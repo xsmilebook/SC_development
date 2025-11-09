@@ -13,15 +13,15 @@ rm(list = ls())
 wdpath <- getwd()
 if (str_detect(wdpath, "cuizaixu_lab")){
   SC_path <-'/ibmgpfs/cuizaixu_lab/xuxiaoyu/HCPD/connectomeMatrix/defaultatlas'
-  demopath<-'/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/demopath'
+  demopath<-'/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/demopath'
   Volume_path <-'/ibmgpfs/cuizaixu_lab/xuxiaoyu/HCPD/processed/schaefer400_nodevolume'
-  interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_HCPD'
+  interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD'
 }else{
   # in PC
-  demopath<-'/Users/xuxiaoyu_work/Cuilab/open_dataset_information/HCP/HCPD_behavior'
-  interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_HCPD'
-  FigureFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Figure_HCPD_final'
-  functionFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+  demopath<-'D:/xuxiaoyu/open_dataset_information/HCP/HCPD_behavior'
+  interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_HCPD'
+  FigureFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_HCPD_final'
+  functionFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
   source(paste0(functionFolder, '/colorbarvalue.R'))
 }
 Behavior <- read.csv(paste0(demopath, '/HCPD_demo_behav.csv')) # 622 subjects with complete dMRI & normal anat
@@ -58,9 +58,25 @@ SCdata.sum$subID <- "NULL"
 for (i in 1:nrow(Behavior)){
   subID <- Behavior$subID[i]
   SCname <- paste0(subID, '_space-T1w_desc-preproc_msmtconnectome.mat')
+  volumefile <- paste0(Volume_path, '/', subID, '_Volume7.txt')
   if (file.exists(paste0(SC_path, '/', SCname))){
     SCmat <- readMat(paste0(SC_path, '/', SCname))
-    SCmat <- SCmat$schaefer400.sift.invnodevol.radius2.count.connectivity[schaefer376_delLM, schaefer376_delLM]
+    ## Normalize the SC counts by volume geometric mean.
+    SCmat <- SCmat$schaefer400.sift.radius2.count.connectivity[1:400, 1:400]
+    nodevolume <- read_table(volumefile, col_names=F)
+    nodevolume <- as.numeric(nodevolume$X2[1:400]) # Use volume rather than voxel size
+    
+    volumeSC <- matrix(NA, 400, 400)
+    for (x in 1:400){
+      for (y in 1:400){
+        volumeSC[x,y] <- sqrt(nodevolume[x]*nodevolume[y])
+      }
+    }
+    
+    SCmat.invnode <- SCmat / volumeSC
+    
+    #Reorder the nodes
+    SCmat.invnode <- SCmat.invnode[schaefer376_delLM, schaefer376_delLM]
     SCmat <- SCmat[orderSA_7, orderSA_7]
     indexup <- upper.tri(SCmat)
     indexsave <- !indexup ###keep lower triangle and diagonal
@@ -95,7 +111,6 @@ SCdata.sum.merge[,deleteindex.delLM+1] <- 0
 meanSC[deleteindex.delLM] <-0
 saveRDS(SCdata.sum.merge, paste0(interfileFolder, '/SCdata.sum.CV75.merge.SAorder.delLMover8.rds'))
 saveRDS(deleteindex.delLM, paste0(interfileFolder, '/CV75_deleteindex.SAorder.delLMover8.rds'))
-
 ########################################################################
 
 ### plot matrix
@@ -133,4 +148,3 @@ summary(sparcity.df); sd(sparcity.df)
 #  Min.   1st Qu.  Median  Mean   3rd Qu.  Max. 
 # 0.4228  0.6651  0.6810  0.6754  0.6929  0.7188 
 # sd = 0.02742583
-

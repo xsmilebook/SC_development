@@ -7,6 +7,7 @@ library(openxlsx)
 library(rjson)
 library(reshape)
 rm(list = ls())
+# set the resolution of large-scale SC matrix
 ds.resolution <- 12
 elementnum <- ds.resolution*(ds.resolution+1) /2
 wdpath <- getwd()
@@ -25,7 +26,7 @@ if (str_detect(wdpath, "cuizaixu_lab")){
   source(paste0(functionFolder, '/colorbarvalue.R'))
     
   }
-# set the resolution of large-scale SC matrix
+
 Behavior <- read.csv(paste0(demopath, '/DemodfScreenFinal.csv'))
 Behavior$siteID <- gsub("site0", "site", Behavior$siteID)
 summary(Behavior[,c("sex", "eventname", "handness")])
@@ -95,7 +96,7 @@ if (str_detect(wdpath, "cuizaixu_lab")){
       SCmat_raw75[deleteindex75]<-0
       df <- data.frame(
         group = SAds.resolution,
-        value75 = SCmat_raw75,
+        value75 = SCmat_raw75
       )
       
       result <- df %>%
@@ -155,7 +156,7 @@ if (str_detect(wdpath, "cuizaixu_lab")){
   SCdata.sum75 <- do.call(rbind, lapply(SCdata.sum, function(x) as.data.frame(x[,c(1:(elementnum+1))])))
   SCdata.sum75_noInvNode <- do.call(rbind, lapply(SCdata.sum, function(x) as.data.frame(x[,c((elementnum+2):(elementnum*2+2))])))
   names(SCdata.sum75_noInvNode) <- c(colname, "scanID")
-  
+    
   SCdata.sum75.merge <- merge(SCdata.sum75, Behavior, by="scanID")
   SCdata.sum75_noInvNode.merge <- merge(SCdata.sum75_noInvNode, Behavior, by="scanID")
   
@@ -168,55 +169,8 @@ if (str_detect(wdpath, "cuizaixu_lab")){
 }else{
   SCdata.sum75.merge <- readRDS(paste0(interfileFolder, '/SCdata_SA',ds.resolution, '_CV75_sumSCinvnode.sum.msmtcsd.merge.rds'))
 }
-colname2 <- character(length = elementnum)
-for (i in 1:elementnum){
-  colname2[i] <- paste0('length.', as.character(i))
-}
-mean_length<-mclapply(1:nrow(Behavior), function(i){
-  scanID <- Behavior$scanID[i]
-  siteID <- Behavior$siteID4[i]
-  eventname <-strsplit(scanID, 'ses-')[[1]][2]
-  SCname <- paste0(scanID, '_space-T1w_desc-preproc_msmtconnectome.mat')
-  SC_file_path <- paste0(SC_path, '/', eventname, '/SIEMENS/', siteID, '/', SCname)
-  if (file.exists(SC_file_path)){
-    SCmat <- readMat(SC_file_path)
-    SCmat_raw <- SCmat$schaefer400.sift.radius2.count.connectivity[schaefer376_delLM, schaefer376_delLM]
-    SCmat_raw <- SCmat_raw[orderSA_7, orderSA_7]
-    length_raw <- SCmat$schaefer400.radius2.meanlength.connectivity[schaefer376_delLM, schaefer376_delLM]
-    length_raw <- length_raw[orderSA_7, orderSA_7]
-    totallength_raw <- length_raw * SCmat_raw
-    indexup <- upper.tri(SCmat_raw)
-    indexsave <- !indexup
-    SCmat_raw <- SCmat_raw[indexsave]
-    SCmat_raw75 <- SCmat_raw
-    SCmat_raw75[deleteindex75]<-0
-    totallength_raw <- totallength_raw[indexsave]
-    totallength_raw75 <- totallength_raw
-    totallength_raw75[deleteindex75]<-0
-    df <- data.frame(
-      group = SAds.resolution,
-      value75 = SCmat_raw75,
-      length75 = totallength_raw75
-    )
-    
-    result <- df %>%
-      group_by(group) %>%
-      summarise(sum_value75 = sum(value75), sum_length75=sum(length75))
-    mean_length75 <- result$sum_length75 / result$sum_value75
-    sumSC.raw75 <- result$sum_value75[1:elementnum]
-    
-    mean_length75 <- as.data.frame(t(mean_length75))
-    names(mean_length75) <- colname2
-    mean_length75$scanID[1] <- scanID
-  }
-  return(data.frame(mean_length75))
-}, mc.cores = 50)
-mean_length75 <- do.call(rbind, lapply(mean_length, function(x) as.data.frame(x[,c(1:(elementnum+1))])))
-mean_length <- list(mean_length75)
-saveRDS(mean_length, paste0(interfileFolder, '/mean_length_SA', ds.resolution,'.rds'))
 
 # plot
-SCdata.sum75.merge <- readRDS(paste0(interfileFolder, '/SCdata_SA',ds.resolution, '_CV75_sumSCinvnode.sum.msmtcsd.merge.rds'))
 
 Matrix.tmp <- matrix(NA, nrow = ds.resolution, ncol=ds.resolution)
 linerange_frame<-data.frame(x=c(0.5,ds.resolution+0.5), ymin =rep(-ds.resolution-0.5, times=2), ymax =rep(-0.5, times=2),
@@ -276,4 +230,7 @@ for (i in 1:3){
   ggsave(filename, Fig,  height = 18, width = 20, units = "cm")
   
 }
+
+
+
 

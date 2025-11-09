@@ -16,18 +16,19 @@ library(RColorBrewer)
 rm(list = ls())
 CVthr=75
 wdpath <- getwd()
-if (str_detect(wdpath, "Users")){
-  resultFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results_ABCD'
-  interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_ABCD'
-  functionFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-  FigureFolder<-paste0('/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Figure_ABCD_final/SA12/CV', CVthr)
-  source(paste0(functionFolder, "/SCrankcorr.R"))
-  
-}else if (str_detect(wdpath, "cuizaixu_lab")){
+if (str_detect(wdpath, "cuizaixu_lab")){
   interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_ABCD'
   functionFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/Rcode_SCdevelopment/gamfunction'
   resultFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/results_ABCD'
+  
+}else{
+  resultFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/results_ABCD'
+  interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ABCD'
+  functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+  FigureFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_ABCD_final/SA12/CV75'
+  source(paste0(functionFolder, "/SCrankcorr.R"))
 }
+
 # source function
 source(paste0(functionFolder, '/gamminteraction.R'))
 detectCores()
@@ -88,6 +89,7 @@ if (str_detect(wdpath, "cuizaixu_lab")){
 # Correlation to connectional axis
 gamresult.tmp <- readRDS(paste0(interfileFolder, "/gamresult_Int_age_pFactor_", int_var, "_CV", CVthr,".rds"))
 gamresult.tmp[3:12] <- lapply(gamresult.tmp[3:12], as.numeric)
+print(paste0(sum(gamresult.tmp$bootstrap_pvalue.fdr<0.05), " edges have significant age by ", int_var, " effect."))
 gamresult.tmp$bootstrap.P.disease.fdr <- p.adjust(gamresult.tmp$bootstrap.P.disease, method = "fdr")
 print(paste0(sum(gamresult.tmp$bootstrap.P.disease.fdr<0.05), " edges have significant ", int_var, " effect."))
 # CV75: 11 edges have significant general effect.
@@ -107,10 +109,12 @@ corr.test(gamresult.tmp$T.disease_control_distance, gamresult.tmp$meandistance, 
 SCrankresult.whole.controldistance <- SCrankcorr(gamresult.tmp, "T.disease_control_distance", 12, dsdata=FALSE)
 print(paste("Correlation coefficient between cognitve associations regressing out fiber distance and connectional axis is", round(SCrankresult.whole.controldistance$r.spearman,2), "with a P value of", round(SCrankresult.whole.controldistance$p.spearman,3)))
 print(SCrankresult.whole.controldistance)
+
+
 ```
 
 ## 2. scatter polts & matrix graph
-Fig. 5(B,C)
+
 
 ```{r scatter_plot}
 
@@ -122,15 +126,15 @@ for (Interest.var in c("IntpartialRsq", "T.disease", "T.disease_control_distance
   }else{ytitle=Interest.var}
   print(Interest.var)
   if (str_detect(Interest.var, "_control_distance")){
-    mytheme <- theme(axis.text=element_text(size=22.6, color="black"), 
-        axis.title =element_text(size=22.6),aspect.ratio = 0.82,
-        axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
-        plot.title = element_text(size=20, hjust = 0.5, vjust=2),
-        plot.background=element_rect(fill="transparent"),
-        panel.background=element_rect(fill="transparent"),
-        legend.position = "none")
-    mywidth=17.5
-    myheight=15
+    mytheme <- theme(axis.text=element_text(size=23, color="black"), 
+          axis.title =element_text(size=23),aspect.ratio = 0.97,
+          axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
+          plot.title = element_text(size=20, hjust = 0.5, vjust=2),
+          plot.background=element_rect(fill="transparent"),
+          panel.background=element_rect(fill="transparent"),
+          legend.position = "none")
+    mywidth=13
+    myheight=13
   }else{
     mytheme <- theme(axis.text=element_text(size=23.4, color="black"), 
         axis.title =element_text(size=23.4),aspect.ratio = 1,
@@ -151,7 +155,7 @@ for (Interest.var in c("IntpartialRsq", "T.disease", "T.disease_control_distance
     theme_classic()+
     mytheme
   print(scatterFig)
-  ggsave(paste0(FigureFolder, '/Disease/pFactor/',Interest.var, '_',int_var,'_SCrankcorr.tiff'),scatterFig, width=13, height =13, units = "cm")
+  ggsave(paste0(FigureFolder, '/Disease/pFactor/',Interest.var, '_',int_var,'_SCrankcorr.tiff'),scatterFig, width=mywidth, height =myheight, units = "cm")
   ggsave(paste0(FigureFolder, '/Disease/pFactor/',Interest.var, '_',int_var,'_SCrankcorr.svg'),scatterFig, dpi=600,width=mywidth, height =myheight, units = "cm")
   
   # matrix
@@ -219,14 +223,15 @@ for (Interest.var in c("IntpartialRsq", "T.disease", "T.disease_control_distance
 ```
 
 ## 3. Ineraction plot
-Developmental trajectories by different levels of p-factor. Fig. 5E.
+Developmental trajectories by different levels of p-factor.
 ```{r SCdev_by_pfactor}
 dataname <- "SCdata.diw"
 int_var <- "GENERAL"
 stats_only <- FALSE
 
-if (exists(paste0(interfileFolder, 'plotdata_high90_low10_pFactor_', int_var, '_develop_CV',CVthr ,'.rds'))==0){
-  resultsum <- mclapply(1:78, function(x){
+if (exists(paste0(interfileFolder, '/plotdata_high90_low10_pFactor_', int_var, '_develop_CV',CVthr ,'.rds'))==0){
+  resultsum <- list()
+  for (x in 1:78){
     int_var.predict.percentile <- 0.1
     region <- grep("SC.", names(SCdata.diw), value=T)[x]
     result.all <- gamm.smooth.predict.covariateinteraction(region, dataname, smooth_var, int_var, int_var.predict.percentile, covariates, knots, set_fx, increments, stats_only)
@@ -243,12 +248,12 @@ if (exists(paste0(interfileFolder, 'plotdata_high90_low10_pFactor_', int_var, '_
     plotdata <- rbind(plotdata.low, plotdata.high)
     plotdata$SC_label <- region
     
-    return(plotdata)
-  }, mc.cores = 4)
-  saveRDS(resultsum, paste0(interfileFolder, 'plotdata_high90_low10_pFactor_', int_var, '_develop_CV',CVthr ,'.rds'))
+    resultsum[[x]] <- plotdata
+  }
+  saveRDS(resultsum, paste0(interfileFolder, '/plotdata_high90_low10_pFactor_', int_var, '_develop_CV',CVthr ,'.rds'))
   
 }
-resultsum <- readRDS(paste0(interfileFolder, 'plotdata_high90_low10_pFactor_', int_var, '_develop_CV',CVthr ,'.rds'))
+resultsum <- readRDS(paste0(interfileFolder, '/plotdata_high90_low10_pFactor_', int_var, '_develop_CV',CVthr ,'.rds'))
 plotdata <- do.call(rbind, resultsum)
 plotdata <- merge(plotdata, SA12_10, by="SC_label")
 
@@ -300,7 +305,6 @@ for (i in 1:10){
     scale_linetype_manual(values=c("dashed", "solid"))+
     labs(x=NULL, y="SC strength (ratio)")+
     mytheme
-  print(Fig)
   ggsave(paste0(FigureFolder, '/Disease/pFactor/Interaction/developmentcurve_decile', i, '.tiff'),Fig, width = 10, height = 10, units = "cm")
   ggsave(paste0(FigureFolder, '/Disease/pFactor/Interaction/developmentcurve_decile', i, '.svg'),Fig, width = 10, height = 10, units = "cm")
 }
@@ -308,53 +312,6 @@ for (i in 1:10){
 
 ```
 
-## 4. Exemple scatter plots: SC strength ~ p-factor, Fig. 5E
-3 connections were selected from lower S-A connectional axis rank to higher randomly.
-```{r exemples}
-# plot data
-SA12_10$SCrank[SA12_10$SC_label %in% c("SC.42_h", "SC.53_h", "SC.74_h")]
-gamresult.tmp$T.disease[gamresult.tmp$parcel %in% c("SC.42_h", "SC.53_h", "SC.74_h")]
-# 2.968158 3.351785 3.019259
-gamresult.tmp$bootstrap.P.disease.fdr[gamresult.tmp$parcel %in% c("SC.42_h", "SC.53_h", "SC.74_h")]
-# 0.03896104 0.03896104 0.04250295
-residuals.plot <- list(); n=0
-for (region in c("SC.42_h", "SC.53_h", "SC.74_h")){
-  residuals.tmp <- gamm.smooth.predict.covariateinteraction(region, dataname, smooth_var, int_var, int_var.predict.percentile, covariates, knots, set_fx, increments, stats_only=T,if_residual=T)
-  names(residuals.tmp) <- c(region, "general", "scanID")
-  residuals.tmp$subID <- str_split_i(residuals.tmp$scanID, "_", 1)
-  n=n+1
-  residuals.plot[[n]] <- residuals.tmp
-}
-names(residuals.plot) <- c("SC.42_h", "SC.53_h", "SC.74_h")
-
-#N=42, 53, 74
-region="SC.42_h"
-plotdata_N <- residuals.plot[[region]]
-plotdata_N$event <- str_split_i(plotdata_N$scanID, "_", 2)
-SCrank = SA12_10$SCrank[SA12_10$SC_label==region]
-tmp.value <- plotdata_N[,region]
-ggplot(data = plotdata_N)+
-  geom_line(aes(x=tmp.value, y=general, group=subID), color="black", alpha=0.2)+
-  geom_point(aes(x=tmp.value, y=general),color="grey", size=0.8, alpha=0.3)+
-  geom_smooth(aes(x=tmp.value, y=general),linewidth=1.4, method="lm", color="black")+
-  #scale_color_manual(values=c("#36659D", "#C9653A"))+
-  scale_x_continuous(breaks = c(-0.6, 0, 0.6))+
-  labs(x="SC strength", y=expression(italic("p")*"-factor"))+
-  theme_classic()+
-  theme(axis.text=element_text(size=22, color="black"), 
-        axis.title =element_text(size=22),aspect.ratio = 0.8,
-        axis.line = element_line(linewidth = 0.5),axis.ticks = element_line(linewidth = 0.5),
-        plot.title = element_text(size=20, hjust = 0.5, vjust=0),
-        plot.subtitle = element_text(size=15, hjust = 0.9, vjust=-6),
-        plot.background=element_rect(fill="transparent"),
-        panel.background=element_rect(fill="transparent"),
-        legend.position = "none")
-
-ggsave(paste0(FigureFolder, "/Disease/pFactor/", region, "_scatterplot_SCrank", SCrank,".svg"), width=14, height=14, units = "cm")
-ggsave(paste0(FigureFolder, "/Disease/pFactor/", region, "_scatterplot_SCrank", SCrank,".tiff"), width=14, height=14, units = "cm")
-
-
-```
 
 
 

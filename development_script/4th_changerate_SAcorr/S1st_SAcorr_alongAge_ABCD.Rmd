@@ -5,7 +5,7 @@ date: "4/16/2024"
 output: html_document
 ---
 
-This script is to generate the alignment between 1st derivatives and S-A connectional axis. Derivatives and posterior derivatives generated will be used. Figure S6 (E, F).
+This script is to generate the alignment between 1st derivatives and S-A connectional axis. Derivatives and posterior derivatives generated will be used. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -22,23 +22,23 @@ library(reshape)
 rm(list = ls())
 wdpath <- getwd()
 CVthr = 75
-if (str_detect(wdpath, "Users")){
-resultFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results_ABCD'
-interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_ABCD'
-functionFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-FigureFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Figure_ABCD_final/SA12'
-  source(paste0(functionFolder, "/SCrankcorr.R"))
-  
-}else if (str_detect(wdpath, "cuizaixu_lab")){
+if (str_detect(wdpath, "cuizaixu_lab")){
   interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_ABCD'
   functionFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/Rcode_SCdevelopment/gamfunction'
   resultFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/results_ABCD'
+  
+}else{
+  resultFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/results_ABCD'
+  interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ABCD'
+  functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+  FigureFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_ABCD_final/SA12'
 }
 derivative.posterior.df <- readRDS(paste0(resultFolder, '/derivative.posterior.df.SA12_CV', CVthr,'.rds'))
 derivative.df <- readRDS(paste0(resultFolder, '/derivative.df78_CV', CVthr,'.rds'))
 #### source function
 source(paste0(functionFolder, '/gamderivatives.R'))
 source(paste0(functionFolder, '/colorbarvalue.R'))
+source(paste0(functionFolder, "/SCrankcorr.R"))
 #### calculate S-A connectional axis in 12*12
 ########################
 Matrix12<-matrix(NA, nrow=12, ncol=12)
@@ -114,7 +114,7 @@ posterior.corr.diw.CI <- do.call(rbind, lapply(posterior.corr.diw.CI, function(x
 ```
 
 
-## 2. plot alignment with S-A connectional axis correlation (Fig. S6E)
+## 2. plot alignment with S-A connectional axis correlation
 ```{r plotalignment}
 df.poscorr.diw <- data.frame(age=agerange, median=posterior.corr.diw.median, up.95CI=posterior.corr.diw.CI$X97.5.,
                              lw.95CI=posterior.corr.diw.CI$X2.5.)
@@ -125,27 +125,27 @@ df.poscorr.diw$median.loess <- loess.median$fitted
 df.poscorr.diw$lw.95CI.loess <- loess.lw$fitted
 df.poscorr.diw$up.95CI.loess <- loess.up$fitted
 
-mytheme <-  theme(axis.text=element_text(size=24.4, color="black"), 
-                  axis.title =element_text(size=24.4),aspect.ratio = 1.1,
-                  axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
-                  plot.title = element_text(size=20, hjust = 0.5, vjust=2),
-                  plot.background=element_rect(fill="transparent"),
-                  panel.background=element_rect(fill="transparent"),
-                  legend.position = "none")
+mytheme <- theme(axis.text=element_text(size=23, color="black"), 
+        axis.title =element_text(size=23),aspect.ratio = 1,
+        axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
+        plot.title = element_text(size=20, hjust = 0.5, vjust=2),
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        legend.position = "none")
 
 ggplot(data=df.poscorr.diw)+
   geom_ribbon(aes(x=age, ymin=lw.95CI.loess, ymax=up.95CI.loess), alpha=0.3)+
-  geom_line(aes(x=age, y=median.loess), size=1)+
-  scale_y_continuous(breaks=c(-0.8, -0.4, 0.0))+
+  geom_line(aes(x=age, y=median.loess), size=1.5)+
+  scale_y_continuous(breaks=c(-0.6, -0.3, 0.0))+
   theme_classic()+
-  labs(x="Age (years)", y="Alignment with\nS-A connectional axis (rho)")+
+  labs(x="Age (years)", y="rho")+
   mytheme
-ggsave(paste0(FigureFolder,'/CV', CVthr, '/Alignment_development/SA12_posDeriv_divweight_corr.tiff'), width=12, height=12, units="cm")
-ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/SA12_posDeriv_divweight_corr.svg'), width=14, height=14, units="cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/Alignment_development/SA12_posDeriv_divweight_corr.tiff'), width=13.5, height=13.5, units="cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/SA12_posDeriv_divweight_corr.svg'), width=16, height=14, units="cm")
 
 ```
 
-## 3.correlation plot at different age (Fig. S6F)
+## 3.correlation plot at different age
 ```{r plot_sep_age}
 agerange <- unique(derivative.df$age)
 df.poscorr.diw$median[df.poscorr.diw$age==min(agerange)]
@@ -162,6 +162,7 @@ df.age8 <- df.age8[-1,]
 
 SCrankcorr(df.age8, "derivative", 12) 
 
+df.poscorr.diw$age[which.min(abs(df.poscorr.diw$median-0))]
 ntmp<-which.min(abs(agerange-max(agerange))) 
 agerange[ntmp]
 df.age13 <-as.data.frame(matrix(NA, nrow=1, ncol=9))
@@ -181,16 +182,16 @@ df.agemerge$age <- as.factor(df.agemerge$age)
 ggplot(data=df.agemerge)+
   geom_smooth(aes(x=rep(SCrank12, 2), y=derivative, group=age), linewidth=1.2,color="black", method ="lm", 
               se=T)+
-  scale_y_continuous(breaks=c(-0.02, 0, 0.02), labels=c(-2,0,2))+
+  #scale_y_continuous(breaks=c(-0.02, 0, 0.02), labels=c(-2,0,2))+
   labs(x="S-A connectional axis rank", y="SC change rate")+
   theme_classic()+
-  theme(axis.text=element_text(size=24.4, color="black"), 
-        axis.title =element_text(size=24.4),aspect.ratio = 0.77,
+  theme(axis.text=element_text(size=24.8, color="black"), 
+        axis.title =element_text(size=24.8),aspect.ratio = 0.97,
         plot.title = element_text(size=15, hjust = 0.1, vjust=-5),
         axis.line = element_line(linewidth=0.55), axis.ticks = element_line(linewidth=0.55),
         legend.position = "none", plot.background=element_rect(fill="transparent"),
         panel.background=element_rect(fill="transparent"))
-ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/deri.diw_corr_SCrank12ageAll.tiff'), width = 14, height = 12, units="cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/deri.diw_corr_SCrank12ageAll.tiff'), width = 16, height = 14, units="cm")
 ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/deri.diw_corr_SCrank12ageAll.svg'), dpi=600, width = 16, height = 14, units="cm")
 #############################################
 

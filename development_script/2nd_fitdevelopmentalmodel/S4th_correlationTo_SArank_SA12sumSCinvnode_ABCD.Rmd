@@ -5,7 +5,6 @@ date: "5/17/2024"
 output: html_document
 ---
 This script is to conduct correlation analysis between gam statistical indexes to connectional axis rank in ABCD dataset. And draw scatter plots & matrix graphs.
-Fig. S6 (A~D)
 Spearman correlations were conducted.
 
 ```{r setup, include=FALSE}
@@ -17,11 +16,11 @@ library(psych)
 library(corrplot)
 library(reshape)
 rm(list = ls())
-demopath<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/demopath'
-functionFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-resultFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results_ABCD'
-interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_ABCD'
-FigureFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Figure_ABCD_final/SA12'
+demopath<-'D:/xuxiaoyu/DMRI_network_development/SC_development/demopath'
+functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+resultFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/results_ABCD'
+interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ABCD'
+FigureFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_ABCD_final/SA12'
 
 ```
 
@@ -37,7 +36,7 @@ SCdata <- readRDS(paste0(interfileFolder, '/SCdata_SA12_CV', CVthr,'_sumSCinvnod
 meanSC <- colMeans(SCdata[,paste0("SC.", 1:78, "_h")], na.rm = T)
 EucDistance <- read.csv(paste0(interfileFolder, "/average_EuclideanDistance_12.csv"))
 #### description
-#corr.test(meanSC, gamresult$partialRsq) # r=0.16, p=0.17
+corr.test(meanSC, gamresult$partialRsq) # r=0.16, p=0.17
 boxplot(gamresult$partialRsq)
 #### source function
 source(paste0(functionFolder, '/SCrankcorr.R'))
@@ -70,7 +69,7 @@ SCrankcorr(gamresult, "meanderv2_control_distance", 12, dsdata=FALSE)
 ```
 
 ## 3. scatter plots
-Fig. S6 (B, D)
+
 ```{r scatter_plot}
 ds.resolution <- 12
 
@@ -82,26 +81,25 @@ mtrixplot <- matrix(NA, ds.resolution, ds.resolution)
 mtrixplot[lower.tri(mtrixplot, diag = T)] <- correlation.df$partialRsq2
 prob_partialRsq <- abs(min(correlation.df$partialRsq2, na.rm = T)) / (max(correlation.df$partialRsq2, na.rm = T)-min(correlation.df$partialRsq2, na.rm = T))
 colorbarvalues.Rsq <- colorbarvalues(correlation.df$partialRsq2, prob_partialRsq)
-
-mytheme <- theme(axis.text=element_text(size=24.3, color="black"), 
-                   axis.title =element_text(size=24.3),aspect.ratio = 0.8,
-                   axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
-                   plot.title = element_text(size=20, hjust = 0.5, vjust=2),
-                   plot.background=element_rect(fill="transparent"),
-                   panel.background=element_rect(fill="transparent"),
-                   legend.position = "none")
-mywidth = 17.5; myheight = 15
+mytheme <- theme(axis.text=element_text(size=23, color="black"), 
+        axis.title =element_text(size=23),aspect.ratio = 1,
+        axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
+        plot.title = element_text(size=20, hjust = 0.5, vjust=2),
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        legend.position = "none")
+mywidth = 14.5; myheight = 14.5
 
 lmthr <- max(abs(correlation.df$partialRsq2), na.rm=T)
 ggplot(data=correlation.df)+
-  geom_point(aes(x=SCrank, y=partialRsq2, color=partialRsq2), size=5)+
+  geom_point(aes(x=SCrank, y=partialRsq2, color=SCrank), size=5.5)+
   geom_smooth(aes(x=SCrank, y=partialRsq2), method ="lm", color="black", linewidth=1.2)+
-  scale_color_distiller(type="seq", palette = "RdBu", direction = -1, limits=c(-lmthr, lmthr))+
+  scale_color_distiller(type="seq", palette = "RdBu", direction = -1)+
   labs(x="S-A connectional axis rank", y=expression("Age effect (partial "*italic("R")^"2"*")"))+
   #scale_y_continuous(breaks = c(0.0030, 0.0060, 0.0090, 0.012))+
   theme_classic()+mytheme
   
-ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.tiff'), width=17, height =14, units = "cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.tiff'), width=mywidth, height =myheight, units = "cm")
 ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.svg'), dpi=600, width=mywidth, height =myheight, units = "cm")
 
 ## mean 2nd derivatives
@@ -113,24 +111,26 @@ mtrixplot[lower.tri(mtrixplot, diag = T)] <- correlation.df$meanderv2
 prob_meanderv2 <- abs(min(correlation.df$meanderv)) / (max(correlation.df$meanderv)-min(correlation.df$meanderv))
 colorbarvalues.meanderv2 <- colorbarvalues(correlation.df$meanderv2, prob_meanderv2)
 
-mytheme <- theme(axis.text=element_text(size=26.4, color="black"), 
-                   axis.title =element_text(size=26.4),aspect.ratio = 0.74,
-                   axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
-                   plot.title = element_text(size=20, hjust = 0.5, vjust=2),
-                   plot.background=element_rect(fill="transparent"),
-                   panel.background=element_rect(fill="transparent"),
-                   legend.position = "none")
-  mywidth = 17.5; myheight = 15
+
+mytheme <- theme(axis.text=element_text(size=25.5, color="black"), 
+                 axis.title =element_text(size=25.5),aspect.ratio = 0.9,
+                 axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
+                 plot.title = element_text(size=20, hjust = 0.5, vjust=2),
+                 plot.background=element_rect(fill="transparent"),
+                 panel.background=element_rect(fill="transparent"),
+                 legend.position = "none")
+mywidth = 17.5; myheight = 15
+
 
 ggplot(data=correlation.df)+
   geom_point(aes(x=SCrank, y=meanderv2, color=meanderv2), size=5)+
   geom_smooth(aes(x=SCrank, y=meanderv2), method ="lm", color="black", linewidth=1.2)+
   scale_color_distiller(type="seq", palette = "RdBu", direction = -1, values=colorbarvalues.meanderv2)+
   labs(x="S-A connectional axis rank", y="Second derivative")+
-  scale_y_continuous(breaks = c(-0.005,0,0.005,0.010), labels=c(-5,0,5,10))+
+  #scale_y_continuous(breaks = c(-0.005,0,0.005,0.010), labels=c(-5,0,5,10))+
   theme_classic()+mytheme
   
-ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.tiff'), width=17, height =14, units = "cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.tiff'), width=mywidth, height =myheight, units = "cm")
 ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.svg'), dpi=600, width=mywidth, height =myheight, units = "cm")
 
 
@@ -183,7 +183,7 @@ for (computevar in computevarlist){
       geom_tile(aes(x=variable, y=nodeid, fill = value, color=value))+
       scale_fill_distiller(type="seq", palette = "RdBu",limit=c(-lmthr, lmthr), na.value = "#053061")+
       scale_color_distiller(type="seq", palette = "RdBu",limit=c(-lmthr, lmthr), na.value = "#053061")+
-      geom_text(data =matrixtmp.df.sig.melt, aes(x=variable, y=nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size=6)+
+      geom_text(data =matrixtmp.df.sig.melt, aes(x=variable, y=nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size=8)+
       geom_linerange(data=linerange_frame, aes(y=y, xmin =xmin, xmax =xmax), color="black", linewidth=0.5)+
       geom_linerange(data=linerange_frame, aes(x=x, ymin =ymin, ymax =ymax), color="black", linewidth=0.5)+
       geom_segment(aes(x = 0.5 , y = -0.5 , xend = 12+0.5 ,yend = -12-0.5), color="black", linewidth=0.5)+
@@ -236,7 +236,7 @@ for (computevar in computevarlist){
 ```
 
 ## 4. Plot for the condition regressed out mean fiber distance
-Fig. S9 (C, D)
+
 ```{r plot_controldistance}
 ## partial Rsq
 computevar <- "partialRsq_control_distance"
@@ -257,15 +257,15 @@ ggplot(data=correlation.df)+
   labs(x="S-A connectional axis rank", y=expression("Age effect (partial "*italic("R")^"2"*")"))+
   #scale_y_continuous(breaks = c(0.0030, 0.0060, 0.0090, 0.012))+
   theme_classic()+
-  theme(axis.text=element_text(size=21.2, color="black"), 
-        axis.title =element_text(size=21.2),aspect.ratio = 0.82,
+  theme(axis.text=element_text(size=22.5, color="black"), 
+        axis.title =element_text(size=22.5),aspect.ratio = 0.88,
         axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
         plot.title = element_text(size=20, hjust = 0.5, vjust=2),
         plot.background=element_rect(fill="transparent"),
         panel.background=element_rect(fill="transparent"),
         legend.position = "none")
-ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.tiff'), width=17, height =14, units = "cm")
-ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.svg'), dpi=600, width=17.5, height =15, units = "cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.tiff'), width=16, height =15, units = "cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.svg'), dpi=600, width=16, height =15, units = "cm")
 
 ## meanderv2
 computevar <- "meanderv2_control_distance"
@@ -282,19 +282,19 @@ ggplot(data=correlation.df)+
   geom_point(aes(x=SCrank, y=meanderv2_control_distance, color=meanderv2_control_distance, size=0.5))+
   geom_smooth(aes(x=SCrank, y=meanderv2_control_distance), method ="lm", color="black", linewidth=1.2)+
   scale_color_distiller(type="seq", palette = "RdBu", direction = -1, values=colorbarvalues.meanderv2)+
-  scale_y_continuous(breaks = c(-0.005, 0, 0.005), labels = c(-5,0,5))+
+  scale_y_continuous(breaks = c(-0.005, 0, 0.005, 0.010), labels = c(-5,0,5, 10))+
   #scale_colour_gradientn(colours = RdBu2,values=colorbarvalues.Rsq, space="Lab")+
   labs(x="S-A connectional axis rank", y="Second derivative")+
   theme_classic()+
-  theme(axis.text=element_text(size=22, color="black"), 
-        axis.title =element_text(size=22),aspect.ratio = 0.75,
+  theme(axis.text=element_text(size=23, color="black"), 
+        axis.title =element_text(size=23),aspect.ratio = 0.75,
         axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
         plot.title = element_text(size=20, hjust = 0.5, vjust=2),
         plot.background=element_rect(fill="transparent"),
         panel.background=element_rect(fill="transparent"),
         legend.position = "none")
-ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.tiff'), width=17, height =14, units = "cm")
-ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.svg'), dpi=600, width=17, height =14, units = "cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.tiff'), width=16, height =14, units = "cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_siteall.svg'), dpi=600, width=16, height =14, units = "cm")
 
 ```
 

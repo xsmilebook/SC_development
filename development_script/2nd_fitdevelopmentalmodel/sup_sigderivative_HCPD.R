@@ -61,7 +61,7 @@ ggplot(data=derivative)+
   #scale_y_continuous(breaks = NULL)+
   #geom_hline(yintercept = 78)+
   ylab("S-A connectional axis rank")+xlab("Age (years)")+ggtitle(label="HCP-D")+
-  labs(color="Derivatives", fill="Derivatives")+
+  labs(color="SC change rate", fill="SC change rate")+
   #scale_x_continuous(breaks = NULL)+
   theme_classic()+
   theme(axis.text=element_text(size=20, color='black'),

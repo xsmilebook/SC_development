@@ -12,9 +12,9 @@ rm(list = ls())
 wdpath <- getwd()
 if (str_detect(wdpath, "cuizaixu_lab")){
   SC_path <-'/ibmgpfs/cuizaixu_lab/xuxiaoyu/ABCD/processed/qsiPrep/SC_matrix'
-  demopath<-'/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/demopath'
+  demopath<-'/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/demopath'
   Volume_path <-'/ibmgpfs/cuizaixu_lab/xuxiaoyu/ABCD/processed/schaefer400_7_nodevolume'
-  interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_ABCD'
+  interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD'
 }else{
   # in PC
   demopath<-"/Users/xuxiaoyu_work/Cuilab/open_dataset_information/ABCD/info"
@@ -102,7 +102,6 @@ SCdata.sum.merge[,deleteindex.delLM+1] <- 0
 meanSC[deleteindex.delLM] <-0
 saveRDS(SCdata.sum.merge, paste0(interfileFolder, '/SCdata.sum.CV75.merge.SAorder.delLM.rds'))
 saveRDS(deleteindex.delLM, paste0(interfileFolder, '/CV75_deleteindex.SAorder.delLM.rds'))
-
 ########################################################################
 
 ## plot
@@ -142,4 +141,3 @@ summary(sparcity.df); sd(sparcity.df)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 # 0.08687 0.55373 0.59869 0.58916 0.63423 0.71385 
 # sd=0.0617236
-

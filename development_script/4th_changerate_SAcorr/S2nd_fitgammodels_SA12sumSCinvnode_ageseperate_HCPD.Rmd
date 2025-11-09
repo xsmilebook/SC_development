@@ -4,7 +4,7 @@ author: "Xiaoyu xu"
 date: "5/16/2024"
 output: html_document
 ---
-This script is to fit gam models for each edge in sub-datasets separated at the flip age (15.5 years).Statistical indices and gam model files will be generated. Fig. 3(E,F)
+This script is to fit gam models for each edge in sub-datasets separated at the flip age (15.5 years).Statistical indices and gam model files will be generated.
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(mgcv)
@@ -15,18 +15,18 @@ library(RColorBrewer)
 rm(list=ls())
 CVthr = 75
 wdpath <- getwd()
-if (str_detect(wdpath, "Users")){
-  resultFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results_HCPD'
-  interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_HCPD'
-  functionFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-  FigureFolder<-paste0('/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Figure_HCPD_final/SA12/CV', CVthr)
-  source(paste0(functionFolder, "/SCrankcorr.R"))
-  source(paste0(functionFolder, '/colorbarvalue.R'))
-  
-}else if (str_detect(wdpath, "cuizaixu_lab")){
+if (str_detect(wdpath, "cuizaixu_lab")){
   interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_HCPD'
   functionFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/Rcode_SCdevelopment/gamfunction'
   resultFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/results_HCPD'
+
+}else{
+  resultFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/results_HCPD'
+  interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_HCPD'
+  functionFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+  FigureFolder<-paste0('D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_HCPD_final/SA12/CV', CVthr)
+  source(paste0(functionFolder, "/SCrankcorr.R"))
+  source(paste0(functionFolder, '/colorbarvalue.R'))
 }
 ```
 
@@ -120,7 +120,8 @@ if (str_detect(wdpath, "cuizaixu_lab")){
 ```
 
 ## 2. Scatter & matrix plots for younger group
-Fig. 3E
+
+
 ```{r scatter_plots_young}
 ## younger
 ds.resolution <- 12
@@ -196,7 +197,7 @@ ggsave(filename, height = 18, width = 20, units = "cm")
 ```
 
 ## 3. Scatter & matrix plots for older group
-Fig. 3F
+
 ```{r scatter_plots_old}
 ## scatter plots
 ############################################

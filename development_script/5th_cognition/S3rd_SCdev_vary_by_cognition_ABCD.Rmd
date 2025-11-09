@@ -5,7 +5,7 @@ date: "3/21/2024"
 output: html_document
 ---
 This script depicts developmental trajectories vary by baseline cognition levels.
-The developmental trajectories within deciles were averaged for visualization. Fig. 4E.
+The developmental trajectories within deciles were averaged for visualization. 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(mgcv)
@@ -18,17 +18,18 @@ library(RColorBrewer)
 rm(list = ls())
 CVthr=75
 wdpath <- getwd()
-if (str_detect(wdpath, "Users")){
-  resultFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results_ABCD'
-  interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_ABCD'
-  functionFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-  FigureFolder<-paste0('/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Figure_ABCD_final/SA12/CV', CVthr)
-  source(paste0(functionFolder, "/SCrankcorr.R"))
-  
-}else if (str_detect(wdpath, "cuizaixu_lab")){
+if (str_detect(wdpath, "ibmgpfs")){
   resultFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/results_ABCD'
   interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_ABCD'
   functionFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/Rcode_SCdevelopment/gamfunction'
+
+}else{
+  resultFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/results_ABCD'
+  interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ABCD'
+  functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+  FigureFolder<-paste0('D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_ABCD_final/SA12/CV', CVthr)
+  source(paste0(functionFolder, "/SCrankcorr.R"))
+
 }
 # load data
 SA12_10 <- read.csv(paste0(interfileFolder, "/SA12_10.csv"))
@@ -109,7 +110,7 @@ plotdf.decile <- rbind(plotdf.decile.low, plotdf.decile.high)
 ```
 
 ## 2. Plots
-Fig. 4E.
+
 ```{r plots}
 colorid <- rev(brewer.pal(10, "RdBu"))
 for (i in 1:10){
@@ -117,7 +118,7 @@ for (i in 1:10){
   colorindex <- colorid[i]
   if (i == 1){
     mytheme=theme(axis.text=element_text(size=21, color="black"), 
-        axis.title =element_text(size=21),aspect.ratio = 1,
+        axis.title =element_text(size=21),aspect.ratio = 1.2,
         axis.line = element_line(linewidth=0.5),axis.ticks = element_line(linewidth=0.5),
         plot.background=element_rect(fill="transparent"),
         panel.border = element_rect(fill=NA, color="transparent"),
@@ -126,17 +127,17 @@ for (i in 1:10){
   }else{
     mytheme=theme(axis.text.x =element_text(size=21, color="black"), 
                   axis.text.y =element_text(size=21, color="transparent"),
-        axis.title.x =element_text(size=21),
-        axis.title.y =element_text(size=21, colour = "transparent"),
-        aspect.ratio = 1,
-        axis.line.x = element_line(linewidth=0.5), 
-        axis.line.y = element_line(linewidth=0.5, colour = "transparent"),
-        axis.ticks.x = element_line(linewidth=0.5),
-        axis.ticks.y = element_line(linewidth=0.5, colour = "transparent"),
-        plot.background=element_rect(fill="transparent"),
-        panel.grid=element_line(linewidth=0.5, colour = "transparent"),
-        panel.border = element_rect(fill=NA, color="transparent"),
-        panel.background=element_rect(fill="transparent", color="transparent"), legend.position = "none")
+                  axis.title.x =element_text(size=21),
+                  axis.title.y =element_text(size=21, colour = "transparent"),
+                  aspect.ratio = 1,
+                  axis.line.x = element_line(linewidth=0.5), 
+                  axis.line.y = element_line(linewidth=0.5, colour = "transparent"),
+                  axis.ticks.x = element_line(linewidth=0.5),
+                  axis.ticks.y = element_line(linewidth=0.5, colour = "transparent"),
+                  plot.background=element_rect(fill="transparent"),
+                  panel.grid=element_line(linewidth=0.5, colour = "transparent"),
+                  panel.border = element_rect(fill=NA, color="transparent"),
+                  panel.background=element_rect(fill="transparent", color="transparent"), legend.position = "none")
 
   }
   
@@ -150,7 +151,7 @@ for (i in 1:10){
   
   print(Fig)
   ggsave(paste0(FigureFolder, '/cognition/', Cogvar, '/Interaction/developmentcurve_decile', i, '.tiff'),Fig, width = 10, height = 10, units = "cm")
-  ggsave(paste0(FigureFolder, '/cognition/', Cogvar, '/Interaction/developmentcurve_decile', i, '.svg'),Fig, width = 10, height = 10, units = "cm")
+  ggsave(paste0(FigureFolder, '/cognition/', Cogvar, '/Interaction/developmentcurve_decile', i, '.svg'),Fig, width = 8.5, height = 9.5, units = "cm")
 }
 
 

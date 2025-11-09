@@ -5,7 +5,7 @@ date: "4/17/2024"
 output: html_document
 ---
 
-This script generate the schema of fluid cognition structure and scatter plots between SC strength and fluid cognition for 3 exemplified connections. Fig. 4(A,D)
+This script generate the schema of fluid cognition structure and scatter plots between SC strength and fluid cognition for 3 exemplified connections. 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 rm(list=ls())
@@ -17,10 +17,10 @@ library(ggplot2)
 library(RColorBrewer)
 library(tidyverse)
 library(geomtextpath)
-interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_ABCD'
-FigureFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Figure_ABCD_final/SA12/CV75/cognition'
-resultFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results_ABCD'
-functionFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ABCD'
+FigureFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_ABCD_final/SA12/CV75/cognition'
+resultFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/results_ABCD'
+functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
 source(paste0(functionFolder, "/gamcog.R"))
 ## load data
 SCdata.all<-readRDS(paste0(interfileFolder, '/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatNTBfluid.rds'))
@@ -30,7 +30,7 @@ SA12_10 <- SA12_10[order(SA12_10$SCrank),]
 
 ```
 
-## 1.fluid score component, Fig. 4A
+## 1.fluid score component
 
 ```{r ComponentPlot}
 # flanker, DCCS, PSM, lswm, pattern
@@ -53,7 +53,7 @@ ggsave(paste0(FigureFolder, '/NTB_fluidscore_component.svg'), width = 16, height
 
 ```
 
-## 2. cognition ~ SC strength scatter plot, Fig. 4D
+## 2. cognition ~ SC strength scatter plot
 Residuals regressed out age, sex and head motions were used in these plots. Three connections located at different positions along the connectional axis were selected for exemples.
 
 ```{r scatterplots}
@@ -70,7 +70,19 @@ smooth_var<-"age"
 covariates<-"sex+mean_fd"
 knots<-3
 corrmethod<-"pearson"
-plotdata <- mclapply(1:78, function(x) {
+cl <- makeCluster(8)
+clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
+invisible(clusterEvalQ(cl, {
+  library(mgcv)
+  library(parallel)
+  library(psych)
+  library(gratia)
+  library(tidyverse)
+  library(reshape)
+  source(paste0(functionFolder, "/gaminteraction.R"))
+  source(paste0(functionFolder, "/gamcog.R"))
+}))
+plotdata <- parLapply(cl, 1:78, function(x) {
   SClabel <- grep("SC.", names(SCdata.cog), value=T)[x]
   region <- SClabel
   gamresult.df <-
@@ -81,76 +93,60 @@ plotdata <- mclapply(1:78, function(x) {
       smooth_var, 
       covariates, 
       knots,
-      corrmethod, set_fx = TRUE, stats_only = FALSE)
+      set_fx = TRUE, stats_only = FALSE)
   gamresult.df <- as.data.frame(gamresult.df[[2]])
   return(gamresult.df)
-}, mc.cores = 4)
+})
 
 SC_Cog_results.df$SClabelorder <- c(1:78)
 SC_Cog_results.df <- merge(SC_Cog_results.df, SA12_10, by.x="parcel", by.y="SC_label")
 SC_Cog_results.df <- SC_Cog_results.df[order(SC_Cog_results.df$SClabelorder),]
-#N=22, 44, 74
-N=22
+
+N=57
 plotdata_N <- plotdata[[N]]
 SCrank = SC_Cog_results.df$SCrank[N]
 print(paste("The figure below is for connection with a rank of", SCrank))
 ggplot(data = plotdata_N)+
   geom_point(aes(x=SCres, y=cogres), color="grey", size=0.8)+
   geom_smooth(aes(x=SCres, y=cogres),linewidth=1.4, method="lm", color="black")+
-  labs(x="SC strength", y="Fluid cognition")+
+  labs(x="SC strength", y="Average performance")+
   theme_classic()+
   theme(axis.text=element_text(size=22, color="black"), 
-        axis.title =element_text(size=22),aspect.ratio = 0.8,
+        axis.title =element_text(size=22),aspect.ratio = 0.9,
         axis.line = element_line(linewidth = 0.5),axis.ticks = element_line(linewidth = 0.5),
         plot.title = element_text(size=20, hjust = 0.5, vjust=0),
         plot.subtitle = element_text(size=15, hjust = 0.9, vjust=-6),
+        plot.margin = margin(t=10, r=10, b=10, l=10, unit = "pt"),
         plot.background=element_rect(fill="transparent"),
         panel.background=element_rect(fill="transparent"),
         legend.position = "none")
 
-ggsave(paste0(FigureFolder, "/", Cogvar, "/SC", N, "_scatterplot.svg"), width=14, height=12, units = "cm")
-ggsave(paste0(FigureFolder, "/", Cogvar, "/SC", N, "_scatterplot.tiff"), width=14, height=14, units = "cm")
+ggsave(paste0(FigureFolder, "/", Cogvar, "/SC", N, "_scatterplot.svg"), width=13.5, height=13.5, units = "cm")
+ggsave(paste0(FigureFolder, "/", Cogvar, "/SC", N, "_scatterplot.tiff"), width=13.5, height=13.5, units = "cm")
 
-N=44
-plotdata_N <- plotdata[[N]]
-SCrank = SC_Cog_results.df$SCrank[N]
-print(paste("The figure below is for connection with a rank of", SCrank))
-ggplot(data = plotdata_N)+
-  geom_point(aes(x=SCres, y=cogres), color="grey", size=0.8)+
-  geom_smooth(aes(x=SCres, y=cogres),linewidth=1.4, method="lm", color="black")+
-  labs(x="SC strength", y="Fluid cognition")+
+
+# corr r distribution
+SC_Cog_results.df.sig <- SC_Cog_results.df %>% filter(anova.cov.p.fdr < 0.05)
+ggplot(data = SC_Cog_results.df.sig, aes(correstimate, y = ..count..)) +
+  geom_histogram(binwidth = 0.01, color = "black", fill = "gray", position = position_dodge()) +
+  labs(x = expression("Correlation ("*italic("r")*")"), y = "Frequency", title = "Cognitive association (N = 72)") +
+  scale_x_continuous(breaks = c(-0.11, -0.08, -0.05)) +
+  #scale_y_continuous(limits = c(0, 70), breaks = c(0,10, 20,30, 40,50,60,70)) +
+  #geom_hline(aes(yintercept = 10), colour = "red", linetype="dashed")+
   theme_classic()+
   theme(axis.text=element_text(size=22, color="black"), 
-        axis.title =element_text(size=22),aspect.ratio = 0.8,
+        axis.title =element_text(size=22),aspect.ratio = 0.9,
         axis.line = element_line(linewidth = 0.5),axis.ticks = element_line(linewidth = 0.5),
         plot.title = element_text(size=20, hjust = 0.5, vjust=0),
         plot.subtitle = element_text(size=15, hjust = 0.9, vjust=-6),
+        plot.margin = margin(t=10, r=10, b=10, l=10, unit = "pt"),
         plot.background=element_rect(fill="transparent"),
         panel.background=element_rect(fill="transparent"),
         legend.position = "none")
+ggsave(paste0(FigureFolder, "/", Cogvar, "/SigCorrestimateDistribution.svg"), width=13.5, height=13.5, units = "cm")
+ggsave(paste0(FigureFolder, "/", Cogvar, "/SigCorrestimateDistribution.tiff"), width=13.5, height=13.5, units = "cm")
 
-ggsave(paste0(FigureFolder, "/", Cogvar, "/SC", N, "_scatterplot.svg"), width=14, height=12, units = "cm")
-ggsave(paste0(FigureFolder, "/", Cogvar, "/SC", N, "_scatterplot.tiff"), width=14, height=14, units = "cm")
 
-N=74
-plotdata_N <- plotdata[[N]]
-SCrank = SC_Cog_results.df$SCrank[N]
-print(paste("The figure below is for connection with a rank of", SCrank))
-ggplot(data = plotdata_N)+
-  geom_point(aes(x=SCres, y=cogres), color="grey", size=0.8)+
-  geom_smooth(aes(x=SCres, y=cogres),linewidth=1.4, method="lm", color="black")+
-  labs(x="SC strength", y="Fluid cognition")+
-  theme_classic()+
-  theme(axis.text=element_text(size=22, color="black"), 
-        axis.title =element_text(size=22),aspect.ratio = 0.8,
-        axis.line = element_line(linewidth = 0.5),axis.ticks = element_line(linewidth = 0.5),
-        plot.title = element_text(size=20, hjust = 0.5, vjust=0),
-        plot.subtitle = element_text(size=15, hjust = 0.9, vjust=-6),
-        plot.background=element_rect(fill="transparent"),
-        panel.background=element_rect(fill="transparent"),
-        legend.position = "none")
 
-ggsave(paste0(FigureFolder, "/", Cogvar, "/SC", N, "_scatterplot.svg"), width=14, height=12, units = "cm")
-ggsave(paste0(FigureFolder, "/", Cogvar, "/SC", N, "_scatterplot.tiff"), width=14, height=14, units = "cm")
 ```
 

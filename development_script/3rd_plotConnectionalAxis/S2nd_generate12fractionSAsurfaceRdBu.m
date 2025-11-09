@@ -30,3 +30,7 @@ end
 schaefer400dlabel_SAaxis.diminfo{1,2}.maps.table=tablenew;
 SAatlaspath='/Users/xuxiaoyu_work/Cuilab/Atlas/S_A_axis/S-A_ArchetypalAxis/FSLRVertex';
 cifti_write(schaefer400dlabel_SAaxis, [SAatlaspath, '/SensorimotorAssociation_schaefer400_Axis12.dlabel.nii']);
+
+
+
+

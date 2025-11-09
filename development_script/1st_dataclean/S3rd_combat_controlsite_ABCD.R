@@ -6,16 +6,16 @@ library(lme4)
 library(gamm4)
 rm(list = ls())
 
-functionFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_ABCD'
-resultFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results'
-demopath<-"/Users/xuxiaoyu_work/Cuilab/open_dataset_information/ABCD/info"
+functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ABCD'
+resultFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/results'
+demopath<-"D:/xuxiaoyu/open_dataset_information/ABCD/info"
 
 source(paste0(functionFolder, '/combat.R'))
 resolutionds <- 12
 edgenum <- (resolutionds+1)*resolutionds / 2
 SCdata <- readRDS(paste0(interfileFolder, '/SCdata_SA', resolutionds, '_CV75_sumSCinvnode.sum.msmtcsd.merge.rds'))
-Behavior <- read.csv("/Users/xuxiaoyu_work/Cuilab/open_dataset_information/ABCD/info/DemodfScreenFinal.csv")
+Behavior <- read.csv("D:/xuxiaoyu/open_dataset_information/ABCD/info/DemodfScreenFinal.csv")
 SCdata$ACSSCORE <- NULL
 SC_vars <- grep("SC.", names(SCdata), value=T)
 
@@ -34,7 +34,7 @@ harmonized_data_age$scanID=comtable$scanID
 for (i in 1:edgenum){
   ctab <- t(data.matrix(comtable%>%select(SC_vars[i])))
   smooth_var<-"age" ; knots=3; set_fx=TRUE ; covariates="sex+mean_fd"
-  region <- SC_vars[1]
+  region <- SC_vars[i]
   # age model
   modelformula1 <- as.formula(sprintf("%s ~ s(%s, k = %s, fx = %s) + %s", region, smooth_var, knots, set_fx, covariates))
   gamm.model <- gamm4(modelformula1, random=~(1|subID), REML=TRUE, data = comtable)
@@ -62,7 +62,7 @@ for (i in 1:edgenum){
   ctab <- t(data.matrix(comtable%>%select(SC_vars[i])))
   smooth_var<-"age" ; knots=3; set_fx=TRUE ; covariates="sex+mean_fd"
   pFactor_var <- "GENERAL"
-  region <- SC_vars[1]
+  region <- SC_vars[i]
   # age model
   modelformula1 <- as.formula(sprintf("%s ~ %s+s(%s, k = %s, fx = %s) + %s", region,pFactor_var, smooth_var, knots, set_fx, covariates))
   gamm.model <- gamm4(modelformula1, random=~(1|subID), REML=TRUE, data = comtable)
@@ -93,7 +93,7 @@ harmonized_data_cognition$scanID=comtable$scanID
 for (i in 1:edgenum){
   ctab <- t(data.matrix(comtable%>%select(SC_vars[i])))
   smooth_var<-"age" ; knots=3; set_fx=TRUE ; covariates="sex+mean_fd"
-  region <- SC_vars[1]; Cogvar="nihtbx_fluidcomp_uncorrected"
+  region <- SC_vars[i]; Cogvar="nihtbx_fluidcomp_uncorrected"
   # age model
   modelformula2 <- as.formula(sprintf("%s ~ %s + s(%s, k = %s, fx = %s) + %s",region, Cogvar, smooth_var, knots, set_fx, covariates))
   gam.model <- gam(modelformula2, method="REML", data = comtable)

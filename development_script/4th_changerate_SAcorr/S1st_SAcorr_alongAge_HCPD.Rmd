@@ -6,7 +6,7 @@ output: html_document
 ---
 
 This script conducted age-resolved developmental analysis. Spearman correlation coefficients between derivatives / posterior derivatives and S-A connectional axis rank will be calculated at 1,000 age points within age spans.
-Figure 3 A~D.
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -22,23 +22,25 @@ library(reshape)
 rm(list = ls())
 CVthr = 75
 wdpath <- getwd()
-if (str_detect(wdpath, "Users")){
-resultFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results_HCPD'
-interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_HCPD'
-functionFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-FigureFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Figure_HCPD_final/SA12'
-  source(paste0(functionFolder, "/SCrankcorr.R"))
-  
-}else if (str_detect(wdpath, "cuizaixu_lab")){
+if (str_detect(wdpath, "cuizaixu_lab")){
   interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_HCPD'
   functionFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/Rcode_SCdevelopment/gamfunction'
   resultFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/results_HCPD'
+  
+}else{
+  resultFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/results_HCPD'
+  interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_HCPD'
+  functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+  FigureFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_HCPD_final/SA12'
 }
+
 derivative.posterior.df <- readRDS(paste0(resultFolder, '/derivative.posterior.df.SA12_CV', CVthr,'.rds'))
 derivative.df <- readRDS(paste0(resultFolder, '/derivative.df78_CV', CVthr,'.rds'))
 #### source function
 source(paste0(functionFolder, '/gamderivatives.R'))
 source(paste0(functionFolder, '/colorbarvalue.R'))
+source(paste0(functionFolder, '/SCrankcorr.R'))
+
 #### calculate S-A connectional axis in 12*12
 ########################
 Matrix12<-matrix(NA, nrow=12, ncol=12)
@@ -109,8 +111,8 @@ age.0.corr.diw.median <- median(age.0.corr.diw) #median age #bayes
 age.0.corr.diw.CI <- quantile(age.0.corr.diw, probs = c(0.025, 0.975)) #compute the credible interval based on all draws
 age.0.corr.diw.lower <- age.0.corr.diw.CI[[1]]
 age.0.corr.diw.upper <- age.0.corr.diw.CI[[2]]
-age.0.corr.diw.median # 15.5192 (CV75)
-age.0.corr.diw.CI # 15.29771 15.79621 (CV75)
+age.0.corr.diw.median # 15.5192 (CV75) ; 15.99007 (CV25)
+age.0.corr.diw.CI # 15.29771 15.79621 (CV75) ; 15.71313 16.33660 (CV25)
 #### median corr and 95% CI
 # diw
 posterior.corr.diw.median <- lapply(c(1:1000), function(x) median(round(deri.SCrank.posterior.corr[,x],4)))
@@ -133,17 +135,27 @@ df.poscorr.diw$median.loess <- loess.median$fitted
 df.poscorr.diw$lw.95CI.loess <- loess.lw$fitted
 df.poscorr.diw$up.95CI.loess <- loess.up$fitted
 print("Fig. 3B")
-
-mytheme <- theme(axis.text=element_text(size=21, color="black"), 
-                 axis.title =element_text(size=21),
-                 axis.line = element_line(linewidth = 0.5),
-                 aspect.ratio =0.78,
-                 plot.background=element_rect(fill="transparent"),
-                 panel.background=element_rect(fill="transparent"),
-                 legend.title=element_text(size=15),
-                 legend.text=element_text(size=15))
-mywidth <- 17.5; myheight <-15
-
+if (CVthr==25){
+  mytheme <- theme(axis.text=element_text(size=20.5, color="black"), 
+        axis.title =element_text(size=20.5),
+        axis.line = element_line(linewidth = 0.5),
+        aspect.ratio =0.93,
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        legend.title=element_text(size=15),
+        legend.text=element_text(size=15))
+  mywidth <- myheight <-15
+}else{
+  mytheme <- theme(axis.text=element_text(size=21, color="black"), 
+        axis.title =element_text(size=21),
+        axis.line = element_line(linewidth = 0.5),
+        aspect.ratio =0.9,
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        legend.title=element_text(size=15),
+        legend.text=element_text(size=15))
+  mywidth <- 20; myheight <-15
+}
 ggplot(data=df.poscorr.diw)+
   geom_ribbon(aes(x=age, ymin=lw.95CI.loess, ymax=up.95CI.loess), alpha=0.3)+
   geom_line(aes(x=age, y=median.loess), linewidth=1.5)+
@@ -175,7 +187,7 @@ ggsave(paste0(FigureFolder, '/CV', CVthr, '/Alignment_development/Agedistributio
 ```
 
 
-## 2. correlation plot at different age (Figure 3 (C, D))
+## 2. correlation plot at different age
 ```{r age-specific_plot}
 agerange <- unique(derivative.df$age)
 df.poscorr.diw$median[df.poscorr.diw$age==min(agerange)] #-0.6477
@@ -225,7 +237,7 @@ ggplot(data=df.agemerge)+
   labs(x="S-A connectional axis rank", y="SC change rate")+
   theme_classic()+
   theme(axis.text=element_text(size=15.4, color="black"), 
-        axis.title =element_text(size=15.4),aspect.ratio = 0.65,
+        axis.title =element_text(size=15.4),aspect.ratio = 0.82,
         plot.title = element_text(size=15, hjust = 0.1, vjust=-5),axis.line = element_line(linewidth = 0.35),
         axis.ticks  = element_line(linewidth = 0.35),
         legend.position = "none", plot.background=element_rect(fill="transparent"),
@@ -349,7 +361,7 @@ ggsave(paste0(FigureFolder,'/CV', CVthr,   '/Alignment_development/Deri_SA12_diw
 
 ```
 
-## 3. derivative plots (Figure 3 (A))
+## 3. derivative plots
 ```{r derivative_plot}
 SCrank <- data.frame(label_ID=paste0("SC.",c(1:78), "_h"), SCrank12=SCrank12)
 SCrank$SCrank12 <- rank(SCrank$SCrank12, ties.method = "first")

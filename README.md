@@ -1,6 +1,6 @@
 # SCDevelopment
 Data and codes for our paper "Mapping the spatiotemporal continuum of structural connectivity development across the human connectome in youth". 
-The original data for these analyses are available via the NIMH Data Archive (NDA),  [the Adolescent Brain Cognitive Development, (ABCD)](https://nda.nih.gov/abcd), [the Lifespan Human Connectome Project in Development (HCP-D)](https://nda.nih.gov/ccf), the Science Data Bank [the developmental component of the Chinese Color Nest Project, (devCCNP)](https://doi.org/10.57760/sciencedb.07478), and the [HBN-POD2](https://github.com/nrdg/HBN-POD2). Data of the YEN and SAND are not yet available, as collection is still ongoing.
+The original data for these analyses are available via the NIMH Data Archive (NDA),  [the Adolescent Brain Cognitive Development, (ABCD)](https://nda.nih.gov/abcd), [the Lifespan Human Connectome Project in Development (HCP-D)](https://nda.nih.gov/ccf), and the Science Data Bank [the developmental component of the Chinese Color Nest Project, (devCCNP)](https://doi.org/10.57760/sciencedb.07478). Data of the EFNY and SAND are not yet available, as collection is still ongoing.
 
 To facilitate the exploration of these developmental patterns, we created an interactive platform (http://connectcharts.cibr.ac.cn) that enables visualization of large-scale structural connectivity trajectories and the reconstructed large-scale white matter tracts.
 
@@ -42,4 +42,7 @@ See the `README` in each folder for details of individual scripts.
 
 ## gamfunction
 This folder contains functions called in the analyses. The functions called in the scripts in the `development_script` folder can be found here.
+
+## dMRIprocessing
+This folder includes dMRI processing scripts: [qsiprep.sh] handles the preprocessing and connectome reconstruction for primary analyses; [Tractseg2Connectome.sh] generates major bundle-based tractography for validation.
 

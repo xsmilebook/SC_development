@@ -49,41 +49,4 @@ ggplot(data =matrixtmp.df.melt)+
 filename<-paste0(FigureFolder, "/Connectionrank_squareDistance.tiff")
 ggsave(filename, height = 18, width = 20, units = "cm")
 
-## save out RGB values of colormap pals::ocean.matter
-colors <- ocean.matter(376)
-rgb_values <- t(col2rgb(colors))
-rgb_values_normalized <- rgb_values / 255
-rgb_df <- as.data.frame(rgb_values_normalized)
-colnames(rgb_df) <- c("R", "G", "B")
-rgb_df$U <- 1
-write.csv(rgb_df, paste0(interfileFolder, "/oceanmatter376_rgb.csv"), row.names = FALSE)
-
-## purple --> yellow
-low_color <- "goldenrod1"
-mid_color <- "white"
-high_color <- "#6f1282"
-
-palette_func <- colorRampPalette(c(low_color, mid_color, high_color))
-colors <- palette_func(376)
-rgb_values <- t(col2rgb(colors))
-rgb_values_normalized <- rgb_values / 255
-rgb_df <- as.data.frame(rgb_values_normalized)
-colnames(rgb_df) <- c("R", "G", "B")
-rgb_df$U <- 1
-
-write.csv(rgb_df, paste0(interfileFolder, "/goldenrod_white376_rgb.csv"), row.names = FALSE)
-
-color_df <- data.frame(
-  x = 1:376,
-  color = colors
-)
-ggplot(color_df, aes(x = x, y = 1, fill = color)) +
-  geom_tile() +
-  scale_fill_identity() +
-  theme_void() +
-  theme(legend.position = "none") +
-  labs(title = "Custom Color Palette",
-       x = NULL,
-       y = NULL)
-
 

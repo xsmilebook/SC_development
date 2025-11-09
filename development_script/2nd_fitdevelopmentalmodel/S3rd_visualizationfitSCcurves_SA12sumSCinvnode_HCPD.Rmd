@@ -4,8 +4,8 @@ author: "Xiaoyu xu"
 date: "5/15/2024"
 output: html_document
 ---
-This script is to generate fitted values from gam models. The predicted SC strength will be generated as the age was sampled from 8 to 22, with a total of 1000 data points, covariables will be set as median or mode.The data will be used to draw developmental trajectories. (Figure 1(B, D, E, F); 
-Figure 2(D)
+This script is to generate fitted values from gam models. The predicted SC strength will be generated as the age was sampled from 8 to 22, with a total of 1000 data points, covariables will be set as median or mode.The data will be used to draw developmental trajectories. 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(R.matlab)
@@ -22,10 +22,10 @@ library(paletteer)
 library(patchwork)
 rm(list = ls())
 
-resultFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results_HCPD'
-interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_HCPD'
-functionFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-FigureFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Figure_HCPD_final/SA12'
+resultFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/results_HCPD'
+interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_HCPD'
+functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+FigureFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_HCPD_final/SA12'
 
 ```
 
@@ -40,14 +40,32 @@ SCdata <- readRDS(paste0(interfileFolder, '/SCdata_SA12_CV', CVthr,'_sumSCinvnod
 derivative <- readRDS(paste0(resultFolder, '/derivative.df78_CV', CVthr,'.rds'))
 #### source function
 source(paste0(functionFolder, '/plotdata_generate.R'))
-source(paste0(functionFolder, '/plotdata_derivatives.R'))
 source(paste0(functionFolder, '/colorbarvalue.R'))
 #### generate fitted values for developmental trajectories
-plotdatasum<-mclapply(1:78, function(x){
+# set cluster
+num_cores <- detectCores() - 8
+cl <- makeCluster(num_cores)
+clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
+invisible(clusterEvalQ(cl, {
+  library(tidyverse)
+  library(R.matlab)
+  library(psych)
+  library(gratia)
+  library(mgcv)
+  library(parallel)
+  library(ggplot2)
+  library(RColorBrewer)
+  library(reshape)
+  source(paste0(functionFolder, '/plotdata_generate.R'))
+  source(paste0(functionFolder, '/colorbarvalue.R'))
+}))
+
+plotdatasum<-parLapply(cl, 1:78, function(x){
   modobj<-gammodelsum[[x]]
-  plotdata<- plotdata_generate(modobj, "age")
+  plotdata<- plotdata_generate(modobj, dataname=NA, "age")
   return(plotdata)
-}, mc.cores = 2)
+})
+saveRDS(plotdatasum, paste0(interfileFolder, "/plotdatasum_scale_TRUE_SA12.rds"))
 plotdatasum.df<-as.data.frame(matrix(NA, nrow = 1, ncol=17))
 names(plotdatasum.df)<-c(names(plotdatasum[[2]])[1:13],"SC_label",  "SCrank", 
                          "PartialRsq", "meanderiv2")
@@ -84,7 +102,8 @@ plotdatasum.df<-plotdatasum.df[-1, ]
 
 ### 2 Developmental trajectories.
 
-Fig. 1B
+
+
 ```{r plot_trajectory1}
 lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq))
 ggplot()+
@@ -102,7 +121,8 @@ ggsave(paste0(FigureFolder, '/CV',CVthr, '/SA12_sumSCinvnode_fit/devcurve_Rsq_fi
 ggsave(paste0(FigureFolder, '/CV',CVthr, '/SA12_sumSCinvnode_fit/devcurve_Rsq_fit.ratio.svg'), dpi=600, width=15, height =15, units = "cm")
 ```
 
-Fig. 1D
+
+
 ```{r plot_trajectory2}
 colorbarvalues.meanderiv2 <- colorbarvalues(plotdatasum.df$meanderiv2, abs(min(plotdatasum.df$meanderiv2))/ (max(plotdatasum.df$meanderiv2)-min(plotdatasum.df$meanderiv2)))
 SC_label_derv2_order <- gamresultsum.SAorder.delLM$parcel[order(gamresultsum.SAorder.delLM$meanderv2)]
@@ -125,7 +145,8 @@ ggsave(paste0(FigureFolder, '/CV',CVthr, '/SA12_sumSCinvnode_fit/devcurve_meande
 ggsave(paste0(FigureFolder, '/CV',CVthr, '/SA12_sumSCinvnode_fit/devcurve_meanderv2_fit.Z.svg'), dpi=600, width=15, height =15, units = "cm")
 
 ```
-Fig. 1E, F
+
+
 ```{r plot_trajectory3}
 BuRd <- rev(brewer.pal(10, "RdBu"))
 ##visualization
@@ -187,7 +208,8 @@ ggsave(paste0(FigureFolder,'/CV',CVthr, '/SA12_sumSCinvnode_fit/SA12_delLM_', SC
 ```
 
 ## 3. Average fitted values for 10 deciles of connectional axis
-Fig. 2D
+
+
 ```{r average_trajectory}
 SA12_10 <- data.frame(SCrank=Matrix12.SCrank[indexsave12])
 SA12_10 <- SA12_10 %>%

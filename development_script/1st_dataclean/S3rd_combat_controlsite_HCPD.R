@@ -4,13 +4,13 @@ library(mgcv)
 library(tidyverse)
 rm(list = ls())
 
-functionFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-interfileFolder <- '/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/interdataFolder_HCPD'
-resultFolder<-'/Users/xuxiaoyu_work/Cuilab/DMRI_network_development/SC_development/results'
-demopath<-'/Users/xuxiaoyu_work/Cuilab/open_dataset_information/HCP/HCPD_behavior'
+functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_HCPD'
+resultFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/results'
+demopath<-'D:/xuxiaoyu/open_dataset_information/HCP/HCPD_behavior'
 source(paste0(functionFolder, '/combat.R'))
 CVthr = 75
-resolutionds <- 7
+resolutionds <- 12
 edgenum <- (resolutionds+1)*resolutionds / 2
 SCdata <- readRDS(paste0(interfileFolder, '/SCdata_SA', resolutionds,'_CV', CVthr,'_sumSCinvnode.sum.msmtcsd.merge.rds'))
 Behavior <- read.csv(paste0(demopath, '/HCPD_demo_behav.csv'))
@@ -32,7 +32,7 @@ harmonized_data_age$subID=comtable$subID
 for (i in 1:edgenum){
   ctab <- t(data.matrix(comtable%>%select(SC_vars[i])))
   smooth_var<-"age" ; knots=3; set_fx=TRUE ; covariates="sex+mean_fd"
-  region <- SC_vars[1]
+  region <- SC_vars[i]
   # age model
   modelformula1 <- as.formula(sprintf("%s ~ s(%s, k = %s, fx = %s) + %s", region, smooth_var, knots, set_fx, covariates))
   gam.model <- gam(modelformula1, method="REML", data = comtable)
@@ -44,7 +44,7 @@ for (i in 1:edgenum){
 dataTable<- merge(harmonized_data_age, Behavior, by="subID")
 describe(comtable$SC.1)
 describe(dataTable$SC.1_h)
-corr.test(comtable$SC.1, dataTable$SC.1_h)
+corr.test(comtable$SC.78, dataTable$SC.78_h)
 saveRDS(dataTable, paste0(interfileFolder, "/SCdata_SA", resolutionds,"_CV", CVthr,"_sumSCinvnode.sum.msmtcsd.combatage.rds"))
 
 # cognition model
@@ -60,7 +60,7 @@ harmonized_data_cognition$subID=comtable$subID
 for (i in 1:edgenum){
   ctab <- t(data.matrix(comtable%>%select(SC_vars[i])))
   smooth_var<-"age" ; knots=3; set_fx=TRUE ; covariates="sex+mean_fd"
-  region <- SC_vars[1]; Cogvar="nih_fluidcogcomp_unadjusted"
+  region <- SC_vars[i]; Cogvar="nih_fluidcogcomp_unadjusted"
   # age model
   modelformula2 <- as.formula(sprintf("%s ~ %s + s(%s, k = %s, fx = %s) + %s",region, Cogvar, smooth_var, knots, set_fx, covariates))
   gam.model <- gam(modelformula2, method="REML", data = comtable)
