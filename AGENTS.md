@@ -1,6 +1,6 @@
 # AGENTS.md
 
-在 `sc_connectome_trajectories` 中进行 AI 协作的操作规则。
+在 `SCDevelopment` 中进行 AI 协作的操作规则。
 本仓库以 `ARCHITECTURE.md` 为稳定结构的唯一来源，除非明确要求，不得提出结构性变更。
 
 ## 基础流程
@@ -16,20 +16,18 @@
 ## 范围与约束
 
 - 默认范围为仅文档，除非用户明确要求工程更改。
-- 不修改 `data/` 与 `outputs/` 下的运行时产物。
+- 不修改 `data/` 与 `outputs/` 下的运行时产物；`wd/` 维持原状。
 - 未经明确要求不得更改目录名称或结构。
 - 保持最小化改动；避免与需求无关的重构。
 
 ## 工程约定（仅在被要求时）
 
-- 集群 GPU 工作遵循 `docs/cluster_gpu_usage.md`（Slurm + Singularity + 不在节点上修改环境）。
-- 以 `python -m scripts.<entry>` 作为执行入口。
 - 避免临时 `sys.path` 修改；如不可避免，仅限入口脚本并说明原因。
-- 路径默认来自 `configs/`；为兼容既有数据与集群环境，可在文档中说明并使用绝对路径。
+- 允许使用绝对路径；若采用绝对路径，需在文档或会话记录中说明数据版本与路径。
 
 ## 文档约定
 
 - 使用严谨、科学的语言。
 - `docs/` 内内容用中文撰写，文件名保持英文。
 - 根目录文件名保持英文。
-- sc_connectome_trajectories 相关说明集中在 `docs/workflow.md` 与 `configs/paths.yaml`（数据集部分）。
+- SCDevelopment 相关说明集中在 `docs/workflow.md`。
