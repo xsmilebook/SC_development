@@ -25,7 +25,7 @@
 - 集群 GPU 工作遵循 `docs/cluster_gpu_usage.md`（Slurm + Singularity + 不在节点上修改环境）。
 - 以 `python -m scripts.<entry>` 作为执行入口。
 - 避免临时 `sys.path` 修改；如不可避免，仅限入口脚本并说明原因。
-- 所有路径必须来自 `configs/`。
+- 路径默认来自 `configs/`；为兼容既有数据与集群环境，可在文档中说明并使用绝对路径。
 
 ## 文档约定
 

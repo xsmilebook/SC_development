@@ -4,6 +4,9 @@ The original data for these analyses are available via the NIMH Data Archive (ND
 
 To facilitate the exploration of these developmental patterns, we created an interactive platform (http://connectcharts.cibr.ac.cn) that enables visualization of large-scale structural connectivity trajectories and the reconstructed large-scale white matter tracts.
 
+## Documentation
+For the project workflow and methods summary, see `docs/README.md`, `docs/workflow.md`, and `docs/methods.md`.
+
 ## Software and system requirements
 ### Diffusion & structural MRI preprocessing
 * FreeSurfer v7.1.1 (https://surfer.nmr.mgh.harvard.edu/)
@@ -45,4 +48,3 @@ This folder contains functions called in the analyses. The functions called in t
 
 ## dMRIprocessing
 This folder includes dMRI processing scripts: `qsiprep.sh` handles the preprocessing and connectome reconstruction for primary analyses; `Tractseg2Connectome.sh` generates major bundle-based tractography for validation.
-
