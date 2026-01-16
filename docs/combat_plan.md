@@ -12,14 +12,15 @@
 - 批次变量：采集站点（site）。
 - 协变量模型：年龄以平滑项建模；其余协变量为线性项。
 - 平滑设定：`bs=tp`、`fx=TRUE`、`k=3`。
+- GAMM 设定与 `gamfunction/gammsmooth.R` 保持一致（`gamm4` + `REML=TRUE` + `random=~(1|subID)`）。
 - 公式依据：按 `docs/research/Manurscript_20251112.pdf` “Correction for multi-site batch effects” 部分的公式与描述执行（年龄平滑 + 性别 + 平均头动；认知与 p-factor 分别加入）。
 
 ## ABCD 的三套数据与协变量
 - 方案 A（基础）：`age + sex`。
-- 方案 B（认知）：`age + ses + cognition`。
+- 方案 B（认知）：`age + sex + cognition`。
 - 方案 C（精神病理）：`age + sex + p-factor`。
 
-> 说明：`ses` 预计指家庭收入-需求比（见补充材料），`cognition` 为 NIH Toolbox fluid composite，`p-factor` 为 CBCL 双因子模型的一般因子；具体变量名与取值需与现有数据表一致。
+> 说明：`cognition` 为 NIH Toolbox fluid composite，`p-factor` 为 CBCL 双因子模型的一般因子；具体变量名与取值需与现有数据表一致。
 
 ## 输入、输出与路径约定
 - 新数据：放入 `data/`，结果输出到 `outputs/`，历史 `wd/` 不改动。
@@ -35,6 +36,7 @@
    - 输出：校正后的 SC 连接强度矩阵与对应日志。
 3) **ABCD：Nonlinear-ComBat-GAM 计划**
    - 使用 `nonlinearlongcombat.R` 进行非线性与纵向结构的批次校正。
+   - ABCD 合并基线与随访后统一校正（纵向方法一致）。
    - 按三套协变量分别运行，保持相同的年龄平滑设定（`bs=tp`、`fx=TRUE`、`k=3`）。
    - 输出三套结果，各自标记对应协变量方案。
 4) **一致性检查**
@@ -47,7 +49,5 @@
 - `PROGRESS.md` 与 `docs/sessions/`：记录执行与版本。
 
 ## 待确认问题
-- `ses` 的具体字段名与计算方式是否确认为“家庭收入-需求比”？
 - `mean FD` 的字段名与计算规则是否与既有脚本一致？
-- ABCD 的三套数据是否需要分别保留基线/随访分层，或先合并再校正？
 - Nonlinear-ComBat-GAM 的 `bs=tp`、`fx=TRUE`、`k=3` 是否需要在 `nonlinearlongcombat.R` 中显式替换默认设置？

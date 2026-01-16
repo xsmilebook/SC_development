@@ -6,3 +6,4 @@
 - 2026-01-16: 调整 `ARCHITECTURE.md` 与 `docs/workflow.md` 以匹配当前项目结构与开发需求。
 - 2026-01-16: 更新 `AGENTS.md` 约定与 `ARCHITECTURE.md`/`docs/workflow.md` 的数据目录规则（新增 `data/`、`outputs/`）。
 - 2026-01-16: 新增 `docs/combat_plan.md`，规划 ComBat/ComBat-GAM 实现与协变量配置。
+- 2026-01-16: 更新 `docs/combat_plan.md`：ABCD 协变量修正、合并纵向校正说明与 GAMM 设定对齐。
