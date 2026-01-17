@@ -12,6 +12,10 @@
 - `wd/` 作为历史结果与中间产物目录，保持不动。
 - 本仓库不使用 `configs/` 或 `src/` 结构，避免将现有脚本迁移导致路径失效。
 - `combat_gam/` 用于集中存放 ComBat-GAM 与纵向 ComBat 相关代码及其依赖。
+- ComBat 运行日志统一写入 `outputs/logs/combat_gam/`，输出结果保存到 `outputs/results/combat_gam/`。
+
+## ComBat-GAM 运行约定
+- 小型测试可直接运行 `combat_gam/scripts/*.sh`；正式任务必须使用 `combat_gam/sbatch/*.sbatch` 提交到 `q_fat_c`。
 
 ## 分析流程（对应现有脚本）
 1) 数据整理与 SC 强度提取（`development_script/1st_dataclean`）

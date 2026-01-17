@@ -14,6 +14,7 @@
 - 平滑设定：`bs=tp`、`fx=TRUE`、`k=3`。
 - GAMM 设定与 `gamfunction/gammsmooth.R` 保持一致（`gamm4` + `REML=TRUE` + `random=~(1|subID)`）。
 - 公式依据：按 `docs/research/Manurscript_20251112.pdf` “Correction for multi-site batch effects” 部分的公式与描述执行（年龄平滑 + 性别 + 平均头动；认知与 p-factor 分别加入）。
+ - neuroHarmonize 版本使用本地修改，固定平滑并设置 `smooth_degree=3`；`smooth_df` 取 4 以满足样条最小自由度约束。
 
 ## ABCD 的三套数据与协变量
 - 方案 A（基础）：`age + sex + meanFD`。
@@ -46,14 +47,17 @@
    - 明确每个数据集的样本 ID、站点变量、年龄、性别、头动、SES、认知、p-factor 的字段名与缺失策略。
    - 记录在 `docs/workflow.md` 与会话记录中。
 2) **HCP-D / Chinese：ComBat-GAM 计划**
-   - 基于 `neuroCombat.R` 生成 ComBat-GAM 方案与设计矩阵。
+   - 使用 `combat_gam/neuroHarmonize` 执行 ComBat-GAM。
    - 设计矩阵含：站点 batch、年龄平滑项（`bs=tp`、`fx=TRUE`、`k=3`）、性别、平均头动；认知与 p-factor 不并入该路径。
+   - 运行入口：`combat_gam/scripts/run_hcpd_combat_gam.sh`、`combat_gam/scripts/run_chinese_combat_gam.sh`。
    - 输出：校正后的 SC 连接强度矩阵与对应日志。
 3) **ABCD：Nonlinear-ComBat-GAM 计划**
    - 使用 `nonlinearlongcombat.R` 进行非线性与纵向结构的批次校正。
    - ABCD 合并基线与随访后统一校正（纵向方法一致）。
    - 按三套协变量分别运行，保持相同的年龄平滑设定（`bs=tp`、`fx=TRUE`、`k=3`）。
    - 调用 GAMM 的实现位置与 `gamfunction/gammsmooth.R` 保持一致。
+   - 若某方案缺乏重复测量，自动使用 GAM（无随机效应）以保证可运行。
+   - 运行入口：`combat_gam/scripts/run_abcd_nonlinear_combat_gam.sh`。
    - 输出三套结果，各自标记对应协变量方案。
 4) **一致性检查**
    - 确认校正后数据维度与原始 SC 连接数一致（例如 12×12 系统对应 78 条连接）。
@@ -63,6 +67,14 @@
 - `outputs/`：按数据集与协变量方案分层保存校正结果。
 - `docs/workflow.md`：记录批次校正的输入字段、参数设定与输出路径。
 - `PROGRESS.md` 与 `docs/sessions/`：记录执行与版本。
+
+## 输出命名（当前实现）
+- HCP-D：`outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+- Chinese Cohort：`outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+- ABCD：
+  - `outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
+  - `outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds`
+  - `outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_pfactor.rds`
 
 ## 待确认问题
 - 无。

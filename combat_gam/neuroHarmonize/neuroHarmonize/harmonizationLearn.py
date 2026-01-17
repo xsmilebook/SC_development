@@ -9,7 +9,8 @@ import copy
 
 def harmonizationLearn(data, covars, eb=True, smooth_terms=[], smooth_term_bounds=(None, None),
                        ref_batch=None, return_s_data=False,
-                       orig_model=None, seed=None):
+                       orig_model=None, seed=None,
+                       smooth_df=10, smooth_degree=3, smooth_fx=False):
     """
     Wrapper for neuroCombat function that returns the harmonization model.
     
@@ -39,6 +40,15 @@ def harmonizationLearn(data, covars, eb=True, smooth_terms=[], smooth_term_bound
         useful when holdout data covers different range than 
         specify the bounds as (minimum, maximum)
         currently not supported for models with mutliple smooth terms
+
+    smooth_df (Optional) : int, default 10
+        degrees of freedom for spline basis when smooth_terms are used
+
+    smooth_degree (Optional) : int, default 3
+        degree of spline basis when smooth_terms are used
+
+    smooth_fx (Optional) : bool, default False
+        if True, use fixed (unpenalized) smoothing without k-fold selection
         
     ref_batch (Optional) : str or int, default None
         batch (site or scanner) to be used as reference for batch adjustment
@@ -111,7 +121,8 @@ def harmonizationLearn(data, covars, eb=True, smooth_terms=[], smooth_term_bound
         'smooth_cols': smooth_cols,
         'bsplines_constructor': None,
         'formula': None,
-        'df_gam': None
+        'df_gam': None,
+        'smooth_fx': smooth_fx
     }
     covars = np.array(covars, dtype='object')
     if ref_batch is None:
@@ -148,10 +159,10 @@ def harmonizationLearn(data, covars, eb=True, smooth_terms=[], smooth_term_bound
         X_spline = covars[:, smooth_cols].astype(float)
         if orig_model is None:
             if len(smooth_cols)==1:
-                bs = BSplines(X_spline, df=10, degree=3,
+                bs = BSplines(X_spline, df=smooth_df, degree=smooth_degree,
                             knot_kwds=[{'lower_bound':smooth_term_bounds[0], 'upper_bound':smooth_term_bounds[1]}])
             else:
-                bs = BSplines(X_spline, df=[10] * len(smooth_cols), degree=[3] * len(smooth_cols))
+                bs = BSplines(X_spline, df=[smooth_df] * len(smooth_cols), degree=[smooth_degree] * len(smooth_cols))
             # construct formula and dataframe required for gam
             formula = 'y ~ '
             df_gam = {}
@@ -295,6 +306,7 @@ def standardizeAcrossFeatures(X, design, info_dict, smooth_model):
         
         if X.shape[0] > 10:
             print('\n[neuroHarmonize]: smoothing more than 10 variables may take several minutes of computation.')
+        smooth_fx = smooth_model.get('smooth_fx', False)
         # initialize penalization weight (not the final weight)
         alpha = np.array([1.0] * len(smooth_cols))
         # initialize an empty matrix for beta
@@ -303,12 +315,17 @@ def standardizeAcrossFeatures(X, design, info_dict, smooth_model):
         for i in range(0, X.shape[0]):
             df_gam.loc[:, 'y'] = X[i, :]
             gam_bs = GLMGam.from_formula(formula, data=df_gam, smoother=bs, alpha=alpha)
-            res_bs = gam_bs.fit()
-            # Optimal penalization weights alpha can be obtained through gcv/kfold
-            # Note: kfold is faster, gcv is more robust
-            gam_bs.alpha = gam_bs.select_penweight_kfold()[0]
-            res_bs_optim = gam_bs.fit()
-            B_hat[:, i] = res_bs_optim.params
+            if smooth_fx:
+                gam_bs.alpha = np.array([0.0] * len(smooth_cols))
+                res_bs = gam_bs.fit()
+                B_hat[:, i] = res_bs.params
+            else:
+                res_bs = gam_bs.fit()
+                # Optimal penalization weights alpha can be obtained through gcv/kfold
+                # Note: kfold is faster, gcv is more robust
+                gam_bs.alpha = gam_bs.select_penweight_kfold()[0]
+                res_bs_optim = gam_bs.fit()
+                B_hat[:, i] = res_bs_optim.params
     ###
     else:
         B_hat = np.dot(np.dot(np.linalg.inv(np.dot(design.T, design)), design.T), X.T)
