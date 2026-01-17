@@ -46,5 +46,8 @@ See the `README` in each folder for details of individual scripts.
 ## gamfunction
 This folder contains functions called in the analyses. The functions called in the scripts in the `development_script` folder can be found here.
 
+## combat_gam
+This folder contains ComBat-GAM and longitudinal ComBat code along with external dependencies for reviewer-driven updates.
+
 ## dMRIprocessing
 This folder includes dMRI processing scripts: `qsiprep.sh` handles the preprocessing and connectome reconstruction for primary analyses; `Tractseg2Connectome.sh` generates major bundle-based tractography for validation.

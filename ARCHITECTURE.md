@@ -18,6 +18,7 @@ SCDevelopment/                  # 项目根目录
 ├── gamfunction/                # 分析函数库（R）
 ├── dMRIprocessing/             # 预处理与重建脚本
 ├── demopath/                   # 人口学与行为数据表
+├── combat_gam/                 # ComBat-GAM/纵向 ComBat 代码与外部依赖
 ├── data/                       # 新数据输入（不纳入版本控制）
 ├── outputs/                    # 新结果输出（不纳入版本控制）
 └── wd/                         # 历史中间结果、模型输出与可视化数据（保持不动）
