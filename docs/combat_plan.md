@@ -20,7 +20,7 @@
 - 方案 B（认知）：`age + sex + cognition + meanFD`。
 - 方案 C（精神病理）：`age + sex + p-factor + meanFD`。
 
-> 说明：`cognition` 为 NIH Toolbox fluid composite，`p-factor` 为 CBCL 双因子模型的一般因子；具体变量名与取值需与现有数据表一致。
+> 说明：`cognition` 为 NIH Toolbox fluid composite，`p-factor` 为 CBCL 双因子模型的一般因子；具体变量名与取值需与现有数据表一致。认知方案保持脚本规则，仅使用 ABCD 基线（`eventname == baseline_year_1_arm_1`）。
 
 ## 输入、输出与路径约定
 - 新数据：放入 `data/`，结果输出到 `outputs/`，历史 `wd/` 不改动。

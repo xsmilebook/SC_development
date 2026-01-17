@@ -11,6 +11,7 @@
 - 2026-01-16: 更新 `docs/combat_plan.md`：ABCD 协变量加入 meanFD，并预留数据路径清单。
 - 2026-01-16: 更新 `docs/combat_plan.md`：补齐 HCP-D、ABCD 与 Chinese Cohort 的集群路径。
 - 2026-01-16: 更新 `docs/combat_plan.md`：补充 ComBat 使用的 SC 数据与协变量表路径。
+- 2026-01-16: 更新 `docs/combat_plan.md`：明确 ABCD 认知方案仅使用基线数据。
 - 2026-01-16: 更新 `AGENTS.md`：限制未经指示不得写入项目路径外文件。
 - 2026-01-16: 新增 `combat_gam/` 并引入 neuroHarmonize 代码与纵向 ComBat 脚本集合。
 - 2026-01-16: 更新 `AGENTS.md`：新增“修改代码或产生新结果需补充文档说明”的流程要求。
