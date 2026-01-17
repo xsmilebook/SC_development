@@ -16,3 +16,4 @@
 - 2026-01-16: 新增 `combat_gam/` 并引入 neuroHarmonize 代码与纵向 ComBat 脚本集合。
 - 2026-01-16: 更新 `AGENTS.md`：新增“修改代码或产生新结果需补充文档说明”的流程要求。
 - 2026-01-16: 更新 `AGENTS.md`：区分小型任务与正式任务的执行方式（脚本直跑 vs sbatch/q_fat_c）。
+- 2026-01-16: 更新 `PLAN.md`：测试直跑，正式任务使用 `sbatch`（`q_fat_c`）。

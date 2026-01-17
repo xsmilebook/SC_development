@@ -12,7 +12,7 @@ We will implement the reviewer-required ComBat-GAM pipeline with a dry-run on a 
 [ ] Implement HCP-D ComBat-GAM using `combat_gam/neuroHarmonize` with GAMM settings aligned to `gamfunction/gammsmooth.R` and batch=`site`.
 [ ] Implement Chinese Cohort ComBat-GAM with batch=`study`, same GAMM settings.
 [ ] Implement ABCD Nonlinear-ComBat-GAM for three covariate sets (A/B/C), with cognition restricted to baseline only.
-[ ] Add SLURM `sbatch` scripts for q_fat_c: one for small test, one for full run; ensure logs go to the new log folder.
+[ ] Run small tests via direct script execution; submit full runs with `sbatch` on `q_fat_c`, ensuring logs go to the new log folder.
 [ ] Validate outputs after test and full runs (dimensions, covariate presence, missingness, site balance) and record anomalies.
 [ ] Update `docs/workflow.md` and a results note to document the new ComBat runs and outputs; then update `PROGRESS.md` and session log.
 
