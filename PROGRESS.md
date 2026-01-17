@@ -9,3 +9,4 @@
 - 2026-01-16: 更新 `docs/combat_plan.md`：ABCD 协变量修正、合并纵向校正说明与 GAMM 设定对齐。
 - 2026-01-16: 更新 `docs/combat_plan.md`：确认沿用既有数据与 GAMM 调用位置一致。
 - 2026-01-16: 更新 `docs/combat_plan.md`：ABCD 协变量加入 meanFD，并预留数据路径清单。
+- 2026-01-16: 更新 `docs/combat_plan.md`：补齐 HCP-D、ABCD 与 Chinese Cohort 的集群路径。

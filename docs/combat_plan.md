@@ -28,9 +28,10 @@
 - 本次使用既有数据，仅调整方法流程与批次校正策略。
 
 ## 数据与路径清单（待补充）
-- HCP-D：<填写集群绝对路径，含 ibmgpfs/GPFS 前缀；如路径缺失需列出备选路径>
-- ABCD：<填写集群绝对路径，含 ibmgpfs/GPFS 前缀；如路径缺失需列出备选路径>
-- Chinese Cohort：<填写集群绝对路径，含 ibmgpfs/GPFS 前缀；如路径缺失需列出备选路径>
+- HCP-D：`/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_HCPD`（来源：`development_script/2nd_fitdevelopmentalmodel/S1st_fitgammodels_SA_ds_sumSCinvnode_HCPD.R`）
+- ABCD：`/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_ABCD`（来源：`development_script/2nd_fitdevelopmentalmodel/S1st_fitgammodels_SA_ds_sumSCinvnode_ABCD.R`）
+- Chinese Cohort：`/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort`
+- 若以上路径在集群上缺失或迁移，需在此处补充新的绝对路径（含 ibmgpfs/GPFS 前缀）。
 
 ## 实现步骤（规划）
 1) **梳理输入表与变量名**
