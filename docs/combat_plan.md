@@ -33,6 +33,14 @@
 - Chinese Cohort：`/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort`
 - 若以上路径在集群上缺失或迁移，需在此处补充新的绝对路径（含 ibmgpfs/GPFS 前缀）。
 
+### 具体输入文件（用于 ComBat）
+- HCP-D SC 数据：`/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_HCPD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds`
+- HCP-D 协变量表：`/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment/demopath/HCPD_demo_behav.csv`
+- ABCD SC 数据：`/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_ABCD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds`
+- ABCD 协变量表：`/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment/demopath/DemodfScreenFinal.csv`
+- Chinese Cohort SC 数据：`/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort/<待确认文件名>`
+- Chinese Cohort 协变量表：`/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort/<待确认文件名>`
+
 ## 实现步骤（规划）
 1) **梳理输入表与变量名**
    - 明确每个数据集的样本 ID、站点变量、年龄、性别、头动、SES、认知、p-factor 的字段名与缺失策略。
