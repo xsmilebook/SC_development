@@ -16,16 +16,21 @@
 - 公式依据：按 `docs/research/Manurscript_20251112.pdf` “Correction for multi-site batch effects” 部分的公式与描述执行（年龄平滑 + 性别 + 平均头动；认知与 p-factor 分别加入）。
 
 ## ABCD 的三套数据与协变量
-- 方案 A（基础）：`age + sex`。
-- 方案 B（认知）：`age + sex + cognition`。
-- 方案 C（精神病理）：`age + sex + p-factor`。
+- 方案 A（基础）：`age + sex + meanFD`。
+- 方案 B（认知）：`age + sex + cognition + meanFD`。
+- 方案 C（精神病理）：`age + sex + p-factor + meanFD`。
 
 > 说明：`cognition` 为 NIH Toolbox fluid composite，`p-factor` 为 CBCL 双因子模型的一般因子；具体变量名与取值需与现有数据表一致。
 
 ## 输入、输出与路径约定
 - 新数据：放入 `data/`，结果输出到 `outputs/`，历史 `wd/` 不改动。
 - 允许使用绝对路径，但需在会话记录中注明数据版本与路径。
- - 本次使用既有数据，仅调整方法流程与批次校正策略。
+- 本次使用既有数据，仅调整方法流程与批次校正策略。
+
+## 数据与路径清单（待补充）
+- HCP-D：<填写集群绝对路径，含 ibmgpfs/GPFS 前缀；如路径缺失需列出备选路径>
+- ABCD：<填写集群绝对路径，含 ibmgpfs/GPFS 前缀；如路径缺失需列出备选路径>
+- Chinese Cohort：<填写集群绝对路径，含 ibmgpfs/GPFS 前缀；如路径缺失需列出备选路径>
 
 ## 实现步骤（规划）
 1) **梳理输入表与变量名**
