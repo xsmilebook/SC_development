@@ -18,6 +18,11 @@ source(file.path("combat_gam", "longitudinal", "neuroCombat.R"))
 source(file.path("combat_gam", "longitudinal", "nonlinearlongcombat.R"))
 
 set.seed(42)
+n_cores_env <- Sys.getenv("SLURM_CPUS_PER_TASK")
+n_cores <- if (nzchar(n_cores_env)) as.integer(n_cores_env) else 1
+if (is.na(n_cores) || n_cores < 1) {
+  n_cores <- 1
+}
 
 scdata <- readRDS(input_rds)
 sc_cols <- grep("^SC\\.", names(scdata), value = TRUE)
@@ -67,7 +72,7 @@ run_variant <- function(df, variant, extra_covars, baseline_only = FALSE) {
   batch <- df$siteID
 
   use_random <- length(unique(ranef)) < nrow(df)
-  result <- nlongcombat(features, knot = 3, ranef = ranef, X_nlin = X_nlin, X_lin = X_lin, batch = batch, use_random = use_random)
+  result <- nlongcombat(features, knot = 3, ranef = ranef, X_nlin = X_nlin, X_lin = X_lin, batch = batch, use_random = use_random, n_cores = n_cores)
   harmonized <- as.data.frame(result$harmonized)
   colnames(harmonized) <- paste0(sc_cols, "_h")
 

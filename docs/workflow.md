@@ -19,6 +19,7 @@
 - ComBat-GAM 使用项目专用环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment`。
 - HCP-D/Chinese 的 GAM 由 `rpy2` 调用 `mgcv::smoothCon` 生成 `s(Age, k=3, bs="tp")` 基函数矩阵，并作为协变量输入 `neuroHarmonize`（不再启用自动平滑）。
 - 运行相关依赖应安装在 `scdevelopment` 环境；若包依赖冲突需建立独立虚拟环境，并在此处补充说明。
+- ABCD 的 Nonlinear-ComBat-GAM 支持并行：`nlongcombat` 使用 `mclapply`，核数由 `SLURM_CPUS_PER_TASK` 控制；未设置时默认单核。
 
 ## 分析流程（对应现有脚本）
 1) 数据整理与 SC 强度提取（`development_script/1st_dataclean`）
