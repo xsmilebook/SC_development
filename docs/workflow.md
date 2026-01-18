@@ -42,7 +42,7 @@
 3) S-A 轴可视化（`development_script/3rd_plotConnectionalAxis`）
 4) 年龄分段与变化率分析（`development_script/4th_changerate_SAcorr`）
 5) 认知与心理病理相关分析（`development_script/5th_cognition`、`development_script/6th_pfactor`）
-   - CBCL total raw 关联分析脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.Rmd`。
+   - CBCL total raw 关联分析脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R`。
 
 ## 待补充说明
 - 根据 `docs/research/Comments.pdf` 与 `docs/research/Manurscript_20251112.pdf` 更新 harmonize/ComBat 的描述与使用场景。
