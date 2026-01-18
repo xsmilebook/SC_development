@@ -1,3 +1,4 @@
+Sys.setenv(R_LIBS_USER = "", R_LIBS = "")
 library(R.matlab)
 library(psych)
 library(mgcv)
