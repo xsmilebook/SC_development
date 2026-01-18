@@ -1,7 +1,5 @@
-library(tidyr)
 library(mgcv)
 library(gratia)
-library(tidyverse)
 library(lme4)
 library(gamm4)
 library(pbkrtest)
@@ -129,13 +127,13 @@ gamm.smooth.predict.covariateinteraction <- function(region, dataname, smooth_va
       )
     }
   }
-  pred <- thisPred %>% dplyr::select(-init)
+  pred <- thisPred[, setdiff(names(thisPred), "init"), drop = FALSE]
   pred[,int_var] <- as.numeric(int_var.predict)
   
   #Generate fitted (predicted) values based on the gam model and predication data frame
   predicted.smooth <- fitted_values(object = modelobj, data = pred)
   predicted.smooth$fitted.centered <- scale(predicted.smooth$.fitted, center=T, scale = F) #subtract the intercept from fitted values
-  predicted.smooth <- predicted.smooth %>% dplyr::select(all_of(smooth_var), .fitted, .se, .lower_ci, .upper_ci, fitted.centered)
+  predicted.smooth <- predicted.smooth[, c(smooth_var, ".fitted", ".se", ".lower_ci", ".upper_ci", "fitted.centered"), drop = FALSE]
   
   changed.range <- predicted.smooth$.fitted[which.max(predicted.smooth$age)]-predicted.smooth$.fitted[which.min(predicted.smooth$age)]
   changed.ratio <- predicted.smooth$.fitted[which.max(predicted.smooth$age)] / predicted.smooth$.fitted[which.min(predicted.smooth$age)]
