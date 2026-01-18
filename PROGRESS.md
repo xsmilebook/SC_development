@@ -54,3 +54,4 @@
 - 2026-01-18: 更新 AGENTS/workflow 规则，要求新生成数据与结果保存在项目路径内。
 - 2026-01-18: CBCL ComBat 输出路径调整到项目内 `outputs/results/combat_cbcl/`。
 - 2026-01-18: 重新生成 CBCL Raw vs ComBat 方差分解图并替换旧版本。
+- 2026-01-18: 导出 CBCL siteID R² 明细/汇总，并在固定 y 轴图中标注均值与最大值。

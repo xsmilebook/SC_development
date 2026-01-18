@@ -171,9 +171,23 @@ p <- ggplot(plot_data, aes(x = edge_base, y = r2, fill = predictor)) +
     plot.title = element_text(hjust = 0.5, face = "bold")
   )
 
+summary_row <- plot_data %>%
+  group_by(condition, predictor) %>%
+  summarise(mean_r2 = mean(r2, na.rm = TRUE), max_r2 = max(r2, na.rm = TRUE), .groups = "drop") %>%
+  mutate(label = paste0(predictor, ": mean=", sprintf("%.4f", mean_r2), ", max=", sprintf("%.4f", max_r2))) %>%
+  select(condition, label)
+
 if (!dir.exists(out_dir)) {
   dir.create(out_dir, recursive = TRUE)
 }
+
+label_df <- summary_row %>%
+  group_by(condition) %>%
+  summarise(label = paste(label, collapse = "\n"), .groups = "drop") %>%
+  mutate(
+    edge_base = levels(combined$edge_base)[1],
+    r2 = max(plot_data$r2, na.rm = TRUE)
+  )
 
 ggsave(file.path(out_dir, "abcd_variance_decomp_cbcl_totalraw.png"), p, width = 14, height = 8, dpi = 300)
 ggsave(file.path(out_dir, "abcd_variance_decomp_cbcl_totalraw.pdf"), p, width = 14, height = 8)
@@ -184,6 +198,14 @@ p_fixed <- ggplot(plot_data, aes(x = edge_base, y = r2, fill = predictor)) +
   facet_grid(condition ~ ., scales = "fixed", switch = "y") +
   scale_fill_manual(values = palette, breaks = levels(plot_data$predictor)) +
   scale_y_continuous(limits = c(0, ymax)) +
+  geom_text(
+    data = label_df,
+    aes(x = edge_base, y = r2, label = label),
+    inherit.aes = FALSE,
+    hjust = 0,
+    vjust = 1,
+    size = 3.2
+  ) +
   labs(
     x = "SC edges",
     y = "R square",
