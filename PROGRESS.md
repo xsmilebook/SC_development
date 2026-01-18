@@ -26,3 +26,4 @@
 - 2026-01-18: 修复并行版 `nlongcombat` 的 batch 变量作用域错误（sbatch 报错：`Xe` 未定义）。
 - 2026-01-18: 为 ABCD 并行提交设置 BLAS 线程限制以避免 OpenBLAS 线程创建失败。
 - 2026-01-18: 生成 ABCD Raw vs ComBat 的结构连接 R2 方差分解图。
+- 2026-01-18: 按参考图风格重绘 ABCD Raw vs ComBat 方差分解图。

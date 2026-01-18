@@ -135,28 +135,32 @@ plot_data <- combined %>%
   pivot_longer(cols = all_of(predictors), names_to = "predictor", values_to = "r2")
 
 palette <- c(
-  siteID = "#1B9E77",
-  age = "#D95F02",
-  sex = "#7570B3",
-  mean_fd = "#66A61E",
-  cognition = "#1F78B4"
+  siteID = "#F8766D",
+  cognition = "#B79F00",
+  mean_fd = "#00BA38",
+  sex = "#00B0F6",
+  age = "#C77CFF"
 )
 
+plot_data$predictor <- factor(plot_data$predictor, levels = c("siteID", "cognition", "mean_fd", "sex", "age"))
+
 p <- ggplot(plot_data, aes(x = edge, y = r2, fill = predictor)) +
-  geom_col(width = 1) +
-  facet_grid(condition ~ ., scales = "free_x") +
-  scale_fill_manual(values = palette, breaks = predictors) +
+  geom_col(width = 0.9, color = "black", linewidth = 0.15) +
+  facet_grid(condition ~ ., scales = "free_y", switch = "y") +
+  scale_fill_manual(values = palette, breaks = levels(plot_data$predictor)) +
   labs(
-    x = "SC edge (sorted by total R2 in Raw)",
-    y = "R2 (variance explained)",
-    fill = "Predictor"
+    x = "SC edges",
+    y = "R square",
+    fill = "type"
   ) +
-  theme_minimal(base_size = 12) +
+  theme_classic(base_size = 12) +
   theme(
     axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.background = element_blank(),
+    strip.text.y.left = element_text(angle = 0, face = "bold"),
     legend.position = "right"
   )
 
