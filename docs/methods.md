@@ -58,7 +58,7 @@
 ## 行为与表型评估
 - 认知：HCP-D 与 ABCD 使用 NIH Toolbox Cognition Battery，五个任务的未年龄校正标准分（均值 100，SD 15）平均后再标准化得到 fluid composite。
 - 精神病理：ABCD 使用 CBCL 量表，基于既有双因子模型估计 p-factor，并在全样本上进行跨时间点的度量不变性约束。
-- 敏感性分析：以 CBCL total raw（`cbcl_scr_syn_totprob_r`）替代 p-factor，采用与 p-factor 相同的协变量与 S-A 相关流程，覆盖全部时间点。
+- 敏感性分析：以 CBCL total raw（`cbcl_scr_syn_totprob_r`）替代 p-factor，采用与 p-factor 相同的协变量与 S-A 相关流程，覆盖全部时间点，并使用 `gamfunction/combat.R` 做站点校正。
 
 ## 影像采集与预处理
 - 采集：HCP-D、ABCD、EFNY、SAND 使用 3T SIEMENS；devCCNP 使用 GE Discovery MR750 3T。
