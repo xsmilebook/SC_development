@@ -20,3 +20,4 @@
 - 2026-01-17: 新增 ComBat-GAM 实现脚本与 sbatch 模板，完成 HCP-D/Chinese/ABCD 小样本测试。
 - 2026-01-18: 建立 `scdevelopment` 环境并通过 rpy2 + mgcv 基函数实现 HCP-D/Chinese ComBat-GAM；更新脚本与文档并重跑小样本测试。
 - 2026-01-18: 更新环境使用约定与工作流说明（依赖集中在 `scdevelopment`，冲突时新建环境）。
+- 2026-01-18: 新增集群使用说明并移除 sbatch 模板中的 `--time`/`--mem` 设置。

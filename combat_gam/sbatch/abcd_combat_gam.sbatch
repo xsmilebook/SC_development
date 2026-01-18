@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH -J combat_abcd_gam
 #SBATCH -p q_fat_c
-#SBATCH --time=24:00:00
-#SBATCH --mem=128G
 #SBATCH --cpus-per-task=8
 #SBATCH --output=outputs/logs/combat_gam/combat_abcd_gam_%j.log
 
