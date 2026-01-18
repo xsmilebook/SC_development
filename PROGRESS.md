@@ -50,3 +50,4 @@
 - 2026-01-18: 新增 CBCL Raw vs ComBat 方差分解绘图脚本并记录输出位置。
 - 2026-01-18: 生成 CBCL Raw vs ComBat 方差分解图（png/pdf）。
 - 2026-01-18: 评估 CBCL Raw vs ComBat 的 siteID R² 贡献（Raw 均值约 0.059，ComBat 均值约 0.00039）。
+- 2026-01-18: 重新生成 CBCL 方差分解图并增加固定 y 轴版本以便比较。

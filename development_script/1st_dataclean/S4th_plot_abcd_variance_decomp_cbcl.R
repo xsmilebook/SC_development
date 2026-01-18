@@ -177,3 +177,30 @@ if (!dir.exists(out_dir)) {
 
 ggsave(file.path(out_dir, "abcd_variance_decomp_cbcl_totalraw.png"), p, width = 14, height = 8, dpi = 300)
 ggsave(file.path(out_dir, "abcd_variance_decomp_cbcl_totalraw.pdf"), p, width = 14, height = 8)
+
+ymax <- max(plot_data$r2, na.rm = TRUE)
+p_fixed <- ggplot(plot_data, aes(x = edge_base, y = r2, fill = predictor)) +
+  geom_col(width = 0.9, color = "black", linewidth = 0.15) +
+  facet_grid(condition ~ ., scales = "fixed", switch = "y") +
+  scale_fill_manual(values = palette, breaks = levels(plot_data$predictor)) +
+  scale_y_continuous(limits = c(0, ymax)) +
+  labs(
+    x = "SC edges",
+    y = "R square",
+    fill = "type",
+    title = "ABCD (CBCL total raw, fixed y)"
+  ) +
+  theme_classic(base_size = 12) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.background = element_blank(),
+    strip.text.y.left = element_text(angle = 0, face = "bold"),
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  )
+
+ggsave(file.path(out_dir, "abcd_variance_decomp_cbcl_totalraw_fixed.png"), p_fixed, width = 14, height = 8, dpi = 300)
+ggsave(file.path(out_dir, "abcd_variance_decomp_cbcl_totalraw_fixed.pdf"), p_fixed, width = 14, height = 8)
