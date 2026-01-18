@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH -J combat_chinese_gam
 #SBATCH -p q_fat_c
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=72
 #SBATCH --output=outputs/logs/combat_gam/combat_chinese_gam_%j.log
 
 set -euo pipefail
