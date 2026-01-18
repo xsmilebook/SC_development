@@ -37,3 +37,4 @@
 - 2026-01-18: 将 `demopath/` 与 `outputs/` 加入忽略清单，并纳入 `docs/` 到版本控制。
 - 2026-01-18: CBCL ComBat 脚本加入小样本测试参数并移除 tidyverse 依赖。
 - 2026-01-18: CBCL ComBat 脚本改用 `grepl` 以移除 `stringr` 依赖。
+- 2026-01-18: CBCL ComBat 脚本在运行前合并 `cbcl_scr_syn_totprob_r` 到 SC 数据。

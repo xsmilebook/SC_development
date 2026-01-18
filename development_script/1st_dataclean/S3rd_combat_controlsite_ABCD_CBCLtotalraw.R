@@ -28,6 +28,8 @@ SCdata <- readRDS(paste0(interfileFolder, "/SCdata_SA", resolutionds, "_CV75_sum
 Behavior <- read.csv(file.path(demopath, "DemodfScreenFinal.csv"))
 
 SCdata$ACSSCORE <- NULL
+Behavior_cbcl <- Behavior[, c("scanID", "cbcl_scr_syn_totprob_r")]
+SCdata <- merge(SCdata, Behavior_cbcl, by = "scanID", all.x = TRUE)
 SC_vars <- grep("SC\\.", names(SCdata), value = TRUE)
 edgenum_run <- if (test_edges > 0) min(edgenum, test_edges) else edgenum
 SC_vars_run <- SC_vars[seq_len(edgenum_run)]
