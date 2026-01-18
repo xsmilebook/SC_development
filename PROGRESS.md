@@ -22,3 +22,4 @@
 - 2026-01-18: 更新环境使用约定与工作流说明（依赖集中在 `scdevelopment`，冲突时新建环境）。
 - 2026-01-18: 新增集群使用说明并移除 sbatch 模板中的 `--time`/`--mem` 设置。
 - 2026-01-18: 为 ABCD Nonlinear-ComBat-GAM 增加并行执行支持，并更新集群与流程文档说明。
+- 2026-01-18: 删除根目录下未使用的 `neuroCombat.R` 与 `nonlinearlongcombat.R`。
