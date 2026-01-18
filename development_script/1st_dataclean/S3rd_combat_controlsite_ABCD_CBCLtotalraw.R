@@ -32,6 +32,7 @@ model_terms <- c(SC_vars, "subID", "age", "siteID", "sex", "mean_fd",
                  "scanID", "cbcl_scr_syn_totprob_r")
 comtable <- SCdata %>% select(model_terms) %>%
   drop_na()
+sitetab <- table(comtable$siteID)
 
 batch <- as.character(comtable$siteID)
 harmonized_data_cbcl <- data.frame(matrix(NA, nrow(comtable), edgenum))
