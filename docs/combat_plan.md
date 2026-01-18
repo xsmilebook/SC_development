@@ -14,7 +14,8 @@
 - 平滑设定：`bs=tp`、`fx=TRUE`、`k=3`。
 - GAMM 设定与 `gamfunction/gammsmooth.R` 保持一致（`gamm4` + `REML=TRUE` + `random=~(1|subID)`）。
 - 公式依据：按 `docs/research/Manurscript_20251112.pdf` “Correction for multi-site batch effects” 部分的公式与描述执行（年龄平滑 + 性别 + 平均头动；认知与 p-factor 分别加入）。
- - neuroHarmonize 版本使用本地修改，固定平滑并设置 `smooth_degree=3`；`smooth_df` 取 4 以满足样条最小自由度约束。
+- 使用 `rpy2` 调用 `mgcv::smoothCon` 构造 `s(Age, k=3, bs="tp")` 的基函数矩阵并作为协变量输入 `neuroHarmonize`；不使用自动平滑或基函数优化。
+- 生成的平滑基函数矩阵若包含常数列，将删除该列以避免与批次列线性相关。
 
 ## ABCD 的三套数据与协变量
 - 方案 A（基础）：`age + sex + meanFD`。
@@ -39,7 +40,7 @@
 - HCP-D 协变量表：`/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment/demopath/HCPD_demo_behav.csv`
 - ABCD SC 数据：`/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_ABCD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds`
 - ABCD 协变量表：`/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment/demopath/DemodfScreenFinal.csv`
-- Chinese Cohort SC 数据：`/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort/<待确认文件名>`
+- Chinese Cohort SC 数据：`/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds`
 - Chinese Cohort 协变量表：`/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort/<待确认文件名>`
 
 ## 实现步骤（规划）

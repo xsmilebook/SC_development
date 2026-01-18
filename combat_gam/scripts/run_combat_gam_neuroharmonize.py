@@ -5,6 +5,10 @@ import sys
 import numpy as np
 import pandas as pd
 import pyreadr
+import rpy2.robjects as ro
+from rpy2.robjects import default_converter, pandas2ri
+from rpy2.robjects.conversion import localconverter
+from rpy2.robjects.packages import importr
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
@@ -26,6 +30,45 @@ def _load_rds(path):
     if not data:
         raise ValueError(f"No objects found in {path}")
     return next(iter(data.values()))
+
+
+def _build_mgcv_basis(age_values, age_col):
+    importr("mgcv")
+    age_values = np.asarray(age_values, dtype=float)
+    with localconverter(default_converter + pandas2ri.converter):
+        r_df = ro.conversion.py2rpy(pd.DataFrame({age_col: age_values}))
+    ro.globalenv["df"] = r_df
+    r_expr = f'sm <- smoothCon(s(`{age_col}`, k=3, bs="tp"), data=df)[[1]]; sm$X'
+    x_mat = np.asarray(ro.r(r_expr))
+    stds = x_mat.std(axis=0)
+    keep = stds > 0
+    x_mat = x_mat[:, keep]
+    columns = [f"{age_col}_s_tp_{idx + 1}" for idx in range(x_mat.shape[1])]
+    return pd.DataFrame(x_mat, columns=columns)
+
+
+def _sample_test_df(df, batch_col, sex_col, test_n, seed):
+    if test_n <= 0 or test_n >= len(df):
+        return df
+    batches = df[batch_col].dropna().unique()
+    if len(batches) < 2:
+        return df.sample(n=min(test_n, len(df)), random_state=seed)
+    n_per = max(2, test_n // len(batches))
+    pieces = []
+    for batch in batches:
+        sub = df[df[batch_col] == batch]
+        n_take = min(n_per, len(sub))
+        pieces.append(sub.sample(n=n_take, random_state=seed))
+    sampled = pd.concat(pieces)
+    remaining = df.drop(sampled.index)
+    if len(sampled) < test_n and not remaining.empty:
+        extra = remaining.sample(n=min(test_n - len(sampled), len(remaining)), random_state=seed)
+        sampled = pd.concat([sampled, extra])
+    if sampled[sex_col].nunique() < 2 or sampled[batch_col].nunique() < 2:
+        sampled = df.sample(n=min(test_n, len(df)), random_state=seed)
+    if sampled[sex_col].nunique() < 2 or sampled[batch_col].nunique() < 2:
+        return df
+    return sampled
 
 
 def main():
@@ -58,26 +101,24 @@ def main():
         raise ValueError(f"Missing columns in input: {missing}")
 
     df = df[needed_cols].dropna()
-    if args.test_n > 0:
-        df = df.sample(n=min(args.test_n, len(df)), random_state=args.seed)
+    df = _sample_test_df(df, args.batch_col, args.sex_col, args.test_n, args.seed)
 
     covars = pd.DataFrame()
     covars["SITE"] = df[args.batch_col].astype(str)
-    covars[args.age_col] = _ensure_numeric(df[args.age_col])
     covars[args.sex_col] = _ensure_numeric(df[args.sex_col])
     covars[args.mean_fd_col] = _ensure_numeric(df[args.mean_fd_col])
     for col in extra_cols:
         covars[col] = _ensure_numeric(df[col])
+
+    basis = _build_mgcv_basis(df[args.age_col], args.age_col)
+    covars = pd.concat([covars.reset_index(drop=True), basis.reset_index(drop=True)], axis=1)
 
     data_matrix = df[sc_cols].to_numpy()
 
     _, data_adj = harmonizationLearn(
         data_matrix,
         covars,
-        smooth_terms=[args.age_col],
-        smooth_df=4,
-        smooth_degree=3,
-        smooth_fx=True,
+        smooth_terms=[],
     )
 
     out = df[[args.id_col]].copy()

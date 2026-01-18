@@ -6,7 +6,7 @@ TEST_N=${2:-0}
 
 set --
 source /GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/bin/activate
-conda activate ML
+conda activate scdevelopment
 
 python combat_gam/scripts/run_combat_gam_neuroharmonize.py \
   --input-rds /ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds \

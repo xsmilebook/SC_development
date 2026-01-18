@@ -7,7 +7,7 @@ TEST_N=${3:-0}
 
 set --
 source /GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/bin/activate
-conda activate ML
+conda activate scdevelopment
 
 export R_LIBS_USER=
 export R_LIBS=
