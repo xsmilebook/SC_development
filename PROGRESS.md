@@ -24,3 +24,4 @@
 - 2026-01-18: 为 ABCD Nonlinear-ComBat-GAM 增加并行执行支持，并更新集群与流程文档说明。
 - 2026-01-18: 删除根目录下未使用的 `neuroCombat.R` 与 `nonlinearlongcombat.R`。
 - 2026-01-18: 修复并行版 `nlongcombat` 的 batch 变量作用域错误（sbatch 报错：`Xe` 未定义）。
+- 2026-01-18: 为 ABCD 并行提交设置 BLAS 线程限制以避免 OpenBLAS 线程创建失败。

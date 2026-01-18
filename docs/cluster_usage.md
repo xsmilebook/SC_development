@@ -8,3 +8,4 @@
 
 ## 并行执行约定
 - ABCD 的 Nonlinear-ComBat-GAM 在 R 内部使用 `mclapply` 并行，核数读取 `SLURM_CPUS_PER_TASK`。
+- 并行任务需限制 BLAS 线程（如 `OPENBLAS_NUM_THREADS=1`、`OMP_NUM_THREADS=1`），避免线程过载与创建失败。

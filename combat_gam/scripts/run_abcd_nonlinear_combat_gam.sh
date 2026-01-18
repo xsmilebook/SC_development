@@ -11,5 +11,9 @@ conda activate scdevelopment
 
 export R_LIBS_USER=
 export R_LIBS=
+export OPENBLAS_NUM_THREADS=1
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
 
 Rscript combat_gam/scripts/run_abcd_nonlinear_combat_gam.R "${INPUT_RDS}" "${OUTPUT_DIR}" "${TEST_N}"
