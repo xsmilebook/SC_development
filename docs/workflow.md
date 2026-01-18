@@ -18,6 +18,7 @@
 - 小型测试可直接运行 `combat_gam/scripts/*.sh`；正式任务必须使用 `combat_gam/sbatch/*.sbatch` 提交到 `q_fat_c`。
 - ComBat-GAM 使用项目专用环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment`。
 - HCP-D/Chinese 的 GAM 由 `rpy2` 调用 `mgcv::smoothCon` 生成 `s(Age, k=3, bs="tp")` 基函数矩阵，并作为协变量输入 `neuroHarmonize`（不再启用自动平滑）。
+- 运行相关依赖应安装在 `scdevelopment` 环境；若包依赖冲突需建立独立虚拟环境，并在此处补充说明。
 
 ## 分析流程（对应现有脚本）
 1) 数据整理与 SC 强度提取（`development_script/1st_dataclean`）
