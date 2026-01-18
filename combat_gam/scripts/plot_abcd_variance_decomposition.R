@@ -100,15 +100,17 @@ shapley_r2 <- function(y, df, vars) {
   list(total_r2 = total_r2, contrib = contrib)
 }
 
-compute_variance_decomp <- function(df, sc_cols, label) {
+compute_variance_decomp <- function(df, sc_cols, label, strip_suffix = FALSE) {
   results <- lapply(sc_cols, function(col) {
     y <- df[[col]]
     data <- df[, predictors]
     data$y <- y
     data <- data %>% drop_na()
     res <- shapley_r2(y, data, predictors)
+    edge_base <- if (strip_suffix) sub("_h$", "", col) else col
     data.frame(
       edge = col,
+      edge_base = edge_base,
       condition = label,
       total_r2 = res$total_r2,
       t(res$contrib),
@@ -121,15 +123,15 @@ compute_variance_decomp <- function(df, sc_cols, label) {
 raw_data <- prepare_raw(raw_rds)
 combat_data <- prepare_combat(combat_rds)
 
-raw_results <- compute_variance_decomp(raw_data$df, raw_data$sc_cols, "Raw")
-combat_results <- compute_variance_decomp(combat_data$df, combat_data$sc_cols, "ComBat")
+raw_results <- compute_variance_decomp(raw_data$df, raw_data$sc_cols, "Raw", strip_suffix = FALSE)
+combat_results <- compute_variance_decomp(combat_data$df, combat_data$sc_cols, "ComBat", strip_suffix = TRUE)
 
 order_edges <- raw_results %>%
   arrange(desc(total_r2)) %>%
-  pull(edge)
+  pull(edge_base)
 
 combined <- bind_rows(raw_results, combat_results)
-combined$edge <- factor(combined$edge, levels = order_edges)
+combined$edge_base <- factor(combined$edge_base, levels = order_edges)
 
 plot_data <- combined %>%
   pivot_longer(cols = all_of(predictors), names_to = "predictor", values_to = "r2")
@@ -144,7 +146,7 @@ palette <- c(
 
 plot_data$predictor <- factor(plot_data$predictor, levels = c("siteID", "cognition", "mean_fd", "sex", "age"))
 
-p <- ggplot(plot_data, aes(x = edge, y = r2, fill = predictor)) +
+p <- ggplot(plot_data, aes(x = edge_base, y = r2, fill = predictor)) +
   geom_col(width = 0.9, color = "black", linewidth = 0.15) +
   facet_grid(condition ~ ., scales = "free_y", switch = "y") +
   scale_fill_manual(values = palette, breaks = levels(plot_data$predictor)) +
