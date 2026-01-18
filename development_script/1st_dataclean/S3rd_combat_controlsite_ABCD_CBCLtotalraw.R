@@ -3,8 +3,6 @@ conda_prefix <- Sys.getenv("CONDA_PREFIX")
 if (nzchar(conda_prefix)) {
   .libPaths(file.path(conda_prefix, "lib", "R", "library"))
 }
-library(R.matlab)
-library(psych)
 library(mgcv)
 library(lme4)
 library(gamm4)
@@ -75,10 +73,22 @@ for (i in 1:edgenum_run) {
 dataTable <- merge(harmonized_data_cbcl, Behavior, by = "scanID")
 qc_var <- if ("SC.50" %in% names(comtable)) "SC.50" else SC_vars_run[1]
 qc_var_h <- paste0(qc_var, "_h")
-describe(comtable[[qc_var]])
+qc_summary <- function(x) {
+  x <- as.numeric(x)
+  stats <- c(
+    n = sum(!is.na(x)),
+    mean = mean(x, na.rm = TRUE),
+    sd = stats::sd(x, na.rm = TRUE),
+    median = stats::median(x, na.rm = TRUE),
+    min = min(x, na.rm = TRUE),
+    max = max(x, na.rm = TRUE)
+  )
+  print(stats)
+}
+qc_summary(comtable[[qc_var]])
 if (qc_var_h %in% names(dataTable)) {
-  describe(dataTable[[qc_var_h]])
-  corr.test(comtable[[qc_var]], dataTable[[qc_var_h]])
+  qc_summary(dataTable[[qc_var_h]])
+  print(stats::cor.test(comtable[[qc_var]], dataTable[[qc_var_h]], use = "pairwise.complete.obs"))
 }
 suffix <- if (test_n > 0 || test_edges > 0) {
   paste0(".test_n", test_n, "_edges", edgenum_run)

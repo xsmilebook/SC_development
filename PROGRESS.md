@@ -46,3 +46,4 @@
 - 2026-01-18: 在 scdevelopment 环境中安装 `R.methodsS3`、`R.oo` 与 `R.utils` 以满足 `R.matlab` 依赖。
 - 2026-01-18: 在 scdevelopment 环境中安装 `psych` 以修复 sbatch 中包缺失问题。
 - 2026-01-18: 在 scdevelopment 环境中安装 `mnormt` 并通过强制 conda 库的小样本测试。
+- 2026-01-18: 移除 CBCL ComBat 脚本对 `psych`/`R.matlab` 的依赖，避免 `mnormt` 的 GLIBC 冲突。
