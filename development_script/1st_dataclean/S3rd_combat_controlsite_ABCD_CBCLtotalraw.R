@@ -10,7 +10,7 @@ test_n <- if (length(args) >= 1) as.integer(args[[1]]) else 0
 test_edges <- if (length(args) >= 2) as.integer(args[[2]]) else 0
 
 wdpath <- getwd()
-if (str_detect(wdpath, "cuizaixu_lab")) {
+if (grepl("cuizaixu_lab", wdpath)) {
   interfileFolder <- "/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD"
   demopath <- file.path(wdpath, "demopath")
   functionFolder <- file.path(wdpath, "gamfunction")
