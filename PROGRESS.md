@@ -48,3 +48,4 @@
 - 2026-01-18: 在 scdevelopment 环境中安装 `mnormt` 并通过强制 conda 库的小样本测试。
 - 2026-01-18: 移除 CBCL ComBat 脚本对 `psych`/`R.matlab` 的依赖，避免 `mnormt` 的 GLIBC 冲突。
 - 2026-01-18: 新增 CBCL Raw vs ComBat 方差分解绘图脚本并记录输出位置。
+- 2026-01-18: 生成 CBCL Raw vs ComBat 方差分解图（png/pdf）。
