@@ -41,3 +41,4 @@
 - 2026-01-18: CBCL ComBat 脚本的测试模式适配少量边时的 QC 变量选择。
 - 2026-01-18: 重装 scdevelopment 环境中的 lme4 以解决 Matrix ABI 不匹配，并完成 CBCL ComBat 小样本测试。
 - 2026-01-18: CBCL ComBat 脚本清空 `R_LIBS_USER`/`R_LIBS` 以避免用户库 GLIBC 冲突。
+- 2026-01-18: CBCL ComBat 脚本显式设置 `.libPaths()` 指向 conda 环境库以避免加载用户 lme4。
