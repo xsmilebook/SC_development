@@ -72,7 +72,7 @@ maxi <- do.call(cbind, lapply(results, function(x) x$maxi))
 Fitted_site <- do.call(cbind, lapply(results, function(x) x$fitted_site))
 Residual <- do.call(cbind, lapply(results, function(x) x$residual))
 
-data.harmonized=neuroCombat(t(Residual),as.factor(Xe$batch))
+data.harmonized=neuroCombat(t(Residual),as.factor(batch))
 dat=t(data.harmonized$dat.combat)
 
 for(i in 1:ncol(dat)){
