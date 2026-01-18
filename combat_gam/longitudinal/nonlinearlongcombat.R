@@ -38,21 +38,25 @@ fit_feature <- function(i) {
   }
   f=substring(f,2)
 
-  if (use_random) {
-    yur=gamm4(as.formula(paste('y','~',"as.factor(batch)",
-                               "+",e,"+",f,"+1",sep='')),
-              random=~(1|subid),data=data.frame(Xe))
-    maxi_i=as.matrix(yur$gam$fitted.values) 
-    fitted_site_i=model.matrix(yur$gam)[,2]%*%as.matrix(yur$gam$coefficients[2])
-    stand_i=as.data.frame(VarCorr(yur$mer))[3,5]
-  } else {
-    yur=gam(as.formula(paste('y','~',"as.factor(batch)",
+if (use_random) {
+  yur=gamm4(as.formula(paste('y','~',"as.factor(batch)",
                              "+",e,"+",f,"+1",sep='')),
-            method="REML",data=data.frame(Xe))
-    maxi_i=as.matrix(yur$fitted.values) 
-    fitted_site_i=model.matrix(yur)[,2]%*%as.matrix(yur$coefficients[2])
-    stand_i=sd(residuals(yur))
-  }
+            random=~(1|subid),data=data.frame(Xe))
+  maxi_i=as.matrix(yur$gam$fitted.values) 
+  mm=as.matrix(model.matrix(yur$gam))
+  batch_cols=grepl("^as\\.factor\\(batch\\)", colnames(mm))
+  fitted_site_i=mm[,batch_cols,drop=FALSE] %*% as.matrix(yur$gam$coefficients[batch_cols])
+  stand_i=as.data.frame(VarCorr(yur$mer))[3,5]
+} else {
+  yur=gam(as.formula(paste('y','~',"as.factor(batch)",
+                           "+",e,"+",f,"+1",sep='')),
+          method="REML",data=data.frame(Xe))
+  maxi_i=as.matrix(yur$fitted.values) 
+  mm=as.matrix(model.matrix(yur))
+  batch_cols=grepl("^as\\.factor\\(batch\\)", colnames(mm))
+  fitted_site_i=mm[,batch_cols,drop=FALSE] %*% as.matrix(yur$coefficients[batch_cols])
+  stand_i=sd(residuals(yur))
+}
   if (is.na(stand_i) || stand_i == 0) {
     stand_i <- 1
   }
