@@ -32,3 +32,4 @@
 - 2026-01-18: 生成 ABCD 三套协变量方案的 R2 方差分解图。
 - 2026-01-18: 生成 HCPD 与 Chinese Cohort 的 Raw vs ComBat R2 方差分解图。
 - 2026-01-18: 补充会话小结与关键经验记录。
+- 2026-01-18: 合并 CBCL total raw 到 ABCD demopath，新增 CBCL ComBat-GAM 变体与关联分析脚本，并更新流程与方法文档。

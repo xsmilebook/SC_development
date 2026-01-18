@@ -2,7 +2,7 @@
 
 ## 目标与范围
 - 目标：在现有数据与脚本基础上，根据审稿意见修订文章，并开展新的关联分析。
-- 当前计划：CBCL total raw 与 SC 的相关；SC 与 S-A axis 的关联；harmonize/ComBat 方法按评论意见更新。
+- 当前计划：CBCL total raw 与 SC 的相关（含 S-A axis 相关）；harmonize/ComBat 方法按评论意见更新。
 - 约束：不在此文档中自行决策新的 harmonize/ComBat 方案；仅记录已存在流程与待更新项。
 
 ## 数据与路径
@@ -20,6 +20,7 @@
 - HCP-D/Chinese 的 GAM 由 `rpy2` 调用 `mgcv::smoothCon` 生成 `s(Age, k=3, bs="tp")` 基函数矩阵，并作为协变量输入 `neuroHarmonize`（不再启用自动平滑）。
 - 运行相关依赖应安装在 `scdevelopment` 环境；若包依赖冲突需建立独立虚拟环境，并在此处补充说明。
 - ABCD 的 Nonlinear-ComBat-GAM 支持并行：`nlongcombat` 使用 `mclapply`，核数由 `SLURM_CPUS_PER_TASK` 控制；未设置时默认单核。
+- ABCD 的 CBCL total raw 作为 p-factor 的敏感性分析，使用同一 Nonlinear-ComBat-GAM 方案，输出为 `combatgam_cbcl_totprob_raw`。
 - 结构连接 R² 方差分解图（Raw vs ComBat）由 `combat_gam/scripts/plot_abcd_variance_decomposition.R` 生成，输出在 `outputs/figures/combat_gam/`，包含：
   - `abcd_variance_decomp_base`（age+sex+meanFD）
   - `abcd_variance_decomp_cognition`（含 cognition）
@@ -39,7 +40,8 @@
 3) S-A 轴可视化（`development_script/3rd_plotConnectionalAxis`）
 4) 年龄分段与变化率分析（`development_script/4th_changerate_SAcorr`）
 5) 认知与心理病理相关分析（`development_script/5th_cognition`、`development_script/6th_pfactor`）
+   - CBCL total raw 关联分析脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.Rmd`。
 
 ## 待补充说明
 - 根据 `docs/research/Comments.pdf` 与 `docs/research/Manurscript_20251112.pdf` 更新 harmonize/ComBat 的描述与使用场景。
-- 明确 CBCL total raw 与 SC 相关分析的输入表结构与协变量设置（仅记录，不做实现）。
+- 明确 CBCL total raw 与 SC 相关分析的输入表结构与协变量设置（已与 p-factor 保持一致）。

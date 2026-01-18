@@ -29,7 +29,8 @@ sc_cols <- grep("^SC\\.", names(scdata), value = TRUE)
 
 base_cols <- c(
   "subID", "scanID", "siteID", "age", "sex", "mean_fd",
-  "nihtbx_fluidcomp_uncorrected", "GENERAL", "eventname"
+  "nihtbx_fluidcomp_uncorrected", "GENERAL", "eventname",
+  "cbcl_scr_syn_totprob_r"
 )
 
 keep_cols <- unique(c(sc_cols, base_cols))
@@ -98,3 +99,4 @@ if (!dir.exists(output_dir)) {
 run_variant(scdata, "age_sex_meanfd", character(0), baseline_only = FALSE)
 run_variant(scdata, "cognition", "nihtbx_fluidcomp_uncorrected", baseline_only = TRUE)
 run_variant(scdata, "pfactor", "GENERAL", baseline_only = FALSE)
+run_variant(scdata, "cbcl_totprob_raw", "cbcl_scr_syn_totprob_r", baseline_only = FALSE)
