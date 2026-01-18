@@ -47,3 +47,6 @@
 ## 待补充说明
 - 根据 `docs/research/Comments.pdf` 与 `docs/research/Manurscript_20251112.pdf` 更新 harmonize/ComBat 的描述与使用场景。
 - 明确 CBCL total raw 与 SC 相关分析的输入表结构与协变量设置（与 p-factor 保持一致，ComBat 使用 `gamfunction/combat.R`）。
+
+## 常见报错与处理
+- `lme4` 载入失败（GLIBC 版本不匹配，指向 `GPFS/.../R/packages/lme4`）：sbatch 环境优先加载用户库导致；在脚本内清空 `R_LIBS_USER`/`R_LIBS` 并显式设置 `.libPaths()` 到 conda 环境库。
