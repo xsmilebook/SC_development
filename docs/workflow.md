@@ -25,7 +25,7 @@
   - `abcd_variance_decomp_base`（age+sex+meanFD）
   - `abcd_variance_decomp_cognition`（含 cognition）
   - `abcd_variance_decomp_pfactor`（含 p-factor）
-- CBCL total raw 的 Raw vs ComBat 方差分解图由 `development_script/1st_dataclean/S4th_plot_abcd_variance_decomp_cbcl.R` 生成，输出为 `abcd_variance_decomp_cbcl_totalraw`。
+- CBCL total raw 的 Raw vs ComBat 方差分解图由 `development_script/1st_dataclean/S4th_plot_abcd_variance_decomp_cbcl.R` 生成，输出为 `abcd_variance_decomp_cbcl_totalraw`；ComBat 输出默认写入 `outputs/results/combat_cbcl/`。
 - HCPD 与 Chinese Cohort 的 Raw vs ComBat 方差分解图由 `combat_gam/scripts/plot_hcpd_chinese_variance_decomposition.R` 生成，输出为：
   - `hcpd_variance_decomp`
   - `chinese_variance_decomp`

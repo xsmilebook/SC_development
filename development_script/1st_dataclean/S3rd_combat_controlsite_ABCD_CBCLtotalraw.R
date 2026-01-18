@@ -15,10 +15,12 @@ test_edges <- if (length(args) >= 2) as.integer(args[[2]]) else 0
 wdpath <- getwd()
 if (grepl("cuizaixu_lab", wdpath)) {
   interfileFolder <- "/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD"
+  outputFolder <- file.path(wdpath, "outputs", "results", "combat_cbcl")
   demopath <- file.path(wdpath, "demopath")
   functionFolder <- file.path(wdpath, "gamfunction")
 } else {
   interfileFolder <- "D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ABCD"
+  outputFolder <- file.path(wdpath, "outputs", "results", "combat_cbcl")
   demopath <- "D:/xuxiaoyu/open_dataset_information/ABCD/info"
   functionFolder <- "D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction"
 }
@@ -95,5 +97,8 @@ suffix <- if (test_n > 0 || test_edges > 0) {
 } else {
   ""
 }
-saveRDS(dataTable, paste0(interfileFolder, "/SCdata_SA", resolutionds,
-                          "_CV75_sumSCinvnode.sum.msmtcsd.combatCBCLtotalraw", suffix, ".rds"))
+if (!dir.exists(outputFolder)) {
+  dir.create(outputFolder, recursive = TRUE)
+}
+saveRDS(dataTable, file.path(outputFolder, paste0("SCdata_SA", resolutionds,
+                          "_CV75_sumSCinvnode.sum.msmtcsd.combatCBCLtotalraw", suffix, ".rds")))

@@ -2,7 +2,7 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 raw_rds <- if (length(args) >= 1) args[[1]] else "/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
-combat_cbcl <- if (length(args) >= 2) args[[2]] else "/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatCBCLtotalraw.rds"
+combat_cbcl <- if (length(args) >= 2) args[[2]] else "outputs/results/combat_cbcl/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatCBCLtotalraw.rds"
 demopath <- if (length(args) >= 3) args[[3]] else "demopath/DemodfScreenFinal.csv"
 out_dir <- if (length(args) >= 4) args[[4]] else "outputs/figures/combat_gam"
 

@@ -52,3 +52,4 @@
 - 2026-01-18: 评估 CBCL Raw vs ComBat 的 siteID R² 贡献（Raw 均值约 0.059，ComBat 均值约 0.00039）。
 - 2026-01-18: 重新生成 CBCL 方差分解图并增加固定 y 轴版本以便比较。
 - 2026-01-18: 更新 AGENTS/workflow 规则，要求新生成数据与结果保存在项目路径内。
+- 2026-01-18: CBCL ComBat 输出路径调整到项目内 `outputs/results/combat_cbcl/`。
