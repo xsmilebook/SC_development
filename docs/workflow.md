@@ -50,3 +50,4 @@
 
 ## 常见报错与处理
 - `lme4` 载入失败（GLIBC 版本不匹配，指向 `GPFS/.../R/packages/lme4`）：sbatch 环境优先加载用户库导致；在脚本内清空 `R_LIBS_USER`/`R_LIBS` 并显式设置 `.libPaths()` 到 conda 环境库。
+- `gratia` 载入失败（缺少 `ggokabeito`/`mirai`/`nanonext`/`patchwork`/`tweedie`/`mvnfast`）：需在 `scdevelopment` 环境中安装依赖（建议优先使用 conda-forge 的 `r-*` 包），并确保脚本内固定使用 conda R 库。

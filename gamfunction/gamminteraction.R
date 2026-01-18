@@ -1,3 +1,9 @@
+Sys.setenv(R_LIBS_USER = "", R_LIBS = "")
+conda_prefix <- Sys.getenv("CONDA_PREFIX")
+if (nzchar(conda_prefix)) {
+  .libPaths(file.path(conda_prefix, "lib", "R", "library"))
+}
+
 library(mgcv)
 library(gratia)
 library(lme4)
