@@ -43,3 +43,4 @@
 - 2026-01-18: CBCL ComBat 脚本清空 `R_LIBS_USER`/`R_LIBS` 以避免用户库 GLIBC 冲突。
 - 2026-01-18: CBCL ComBat 脚本显式设置 `.libPaths()` 指向 conda 环境库以避免加载用户 lme4。
 - 2026-01-18: 在 scdevelopment 环境中安装 `R.matlab` 以修复 sbatch 中包缺失问题。
+- 2026-01-18: 在 scdevelopment 环境中安装 `R.methodsS3`、`R.oo` 与 `R.utils` 以满足 `R.matlab` 依赖。
