@@ -39,3 +39,4 @@
 - 2026-01-18: CBCL ComBat 脚本改用 `grepl` 以移除 `stringr` 依赖。
 - 2026-01-18: CBCL ComBat 脚本在运行前合并 `cbcl_scr_syn_totprob_r` 到 SC 数据。
 - 2026-01-18: CBCL ComBat 脚本的测试模式适配少量边时的 QC 变量选择。
+- 2026-01-18: 重装 scdevelopment 环境中的 lme4 以解决 Matrix ABI 不匹配，并完成 CBCL ComBat 小样本测试。
