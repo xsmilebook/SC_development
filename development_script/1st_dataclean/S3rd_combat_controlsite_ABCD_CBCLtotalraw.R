@@ -1,10 +1,13 @@
 library(R.matlab)
 library(psych)
 library(mgcv)
-library(tidyverse)
 library(lme4)
 library(gamm4)
 rm(list = ls())
+
+args <- commandArgs(trailingOnly = TRUE)
+test_n <- if (length(args) >= 1) as.integer(args[[1]]) else 0
+test_edges <- if (length(args) >= 2) as.integer(args[[2]]) else 0
 
 wdpath <- getwd()
 if (str_detect(wdpath, "cuizaixu_lab")) {
@@ -26,21 +29,28 @@ Behavior <- read.csv(file.path(demopath, "DemodfScreenFinal.csv"))
 
 SCdata$ACSSCORE <- NULL
 SC_vars <- grep("SC\\.", names(SCdata), value = TRUE)
+edgenum_run <- if (test_edges > 0) min(edgenum, test_edges) else edgenum
+SC_vars_run <- SC_vars[seq_len(edgenum_run)]
 
 # CBCL total raw model (sensitivity analysis for p-factor)
-model_terms <- c(SC_vars, "subID", "age", "siteID", "sex", "mean_fd",
+model_terms <- c(SC_vars_run, "subID", "age", "siteID", "sex", "mean_fd",
                  "scanID", "cbcl_scr_syn_totprob_r")
-comtable <- SCdata %>% select(model_terms) %>%
-  drop_na()
+comtable <- SCdata[, model_terms, drop = FALSE]
+comtable <- comtable[complete.cases(comtable), , drop = FALSE]
+if (test_n > 0) {
+  comtable <- do.call(rbind, lapply(split(comtable, comtable$siteID), function(df) {
+    utils::head(df, test_n)
+  }))
+}
 sitetab <- table(comtable$siteID)
 
 batch <- as.character(comtable$siteID)
-harmonized_data_cbcl <- data.frame(matrix(NA, nrow(comtable), edgenum))
-names(harmonized_data_cbcl) <- paste0("SC.", c(1:edgenum), "_h")
+harmonized_data_cbcl <- data.frame(matrix(NA, nrow(comtable), edgenum_run))
+names(harmonized_data_cbcl) <- paste0("SC.", c(1:edgenum_run), "_h")
 harmonized_data_cbcl$scanID <- comtable$scanID
 
-for (i in 1:edgenum) {
-  ctab <- t(data.matrix(comtable %>% select(SC_vars[i])))
+for (i in 1:edgenum_run) {
+  ctab <- t(data.matrix(comtable[, SC_vars_run[i], drop = FALSE]))
   smooth_var <- "age"
   knots <- 3
   set_fx <- TRUE
@@ -59,5 +69,10 @@ dataTable <- merge(harmonized_data_cbcl, Behavior, by = "scanID")
 describe(comtable$SC.50)
 describe(dataTable$SC.50_h)
 corr.test(comtable$SC.50, dataTable$SC.50_h)
+suffix <- if (test_n > 0 || test_edges > 0) {
+  paste0(".test_n", test_n, "_edges", edgenum_run)
+} else {
+  ""
+}
 saveRDS(dataTable, paste0(interfileFolder, "/SCdata_SA", resolutionds,
-                          "_CV75_sumSCinvnode.sum.msmtcsd.combatCBCLtotalraw.rds"))
+                          "_CV75_sumSCinvnode.sum.msmtcsd.combatCBCLtotalraw", suffix, ".rds"))

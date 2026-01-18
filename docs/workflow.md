@@ -32,7 +32,7 @@
 1) 数据整理与 SC 强度提取（`development_script/1st_dataclean`）
    - 合并数据与一致性阈值筛选。
    - 提取大尺度 SC 矩阵并生成汇总数据。
-   - 进行站点/批次 harmonize（ComBat，待按评论更新）。
+   - 进行站点/批次 harmonize（ComBat，待按评论更新）；CBCL total raw 可用 `S3rd_combat_controlsite_ABCD_CBCLtotalraw.R` 的测试参数先小样本跑通。
 2) 发育模型与导数分析（`development_script/2nd_fitdevelopmentalmodel`）
    - GAM/GAMM 建模，生成拟合曲线与导数。
    - 计算与 S-A 轴的相关与可视化。
