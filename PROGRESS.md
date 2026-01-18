@@ -49,3 +49,4 @@
 - 2026-01-18: 移除 CBCL ComBat 脚本对 `psych`/`R.matlab` 的依赖，避免 `mnormt` 的 GLIBC 冲突。
 - 2026-01-18: 新增 CBCL Raw vs ComBat 方差分解绘图脚本并记录输出位置。
 - 2026-01-18: 生成 CBCL Raw vs ComBat 方差分解图（png/pdf）。
+- 2026-01-18: 评估 CBCL Raw vs ComBat 的 siteID R² 贡献（Raw 均值约 0.059，ComBat 均值约 0.00039）。
