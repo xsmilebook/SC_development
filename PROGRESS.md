@@ -30,3 +30,4 @@
 - 2026-01-18: 修复 ComBat 面板柱数异常（edge 名称统一去除 `_h`）。
 - 2026-01-18: 修正 Nonlinear-ComBat-GAM 的 batch 回加项（使用全部 batch dummy 列）。
 - 2026-01-18: 生成 ABCD 三套协变量方案的 R2 方差分解图。
+- 2026-01-18: 生成 HCPD 与 Chinese Cohort 的 Raw vs ComBat R2 方差分解图。

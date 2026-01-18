@@ -24,6 +24,9 @@
   - `abcd_variance_decomp_base`（age+sex+meanFD）
   - `abcd_variance_decomp_cognition`（含 cognition）
   - `abcd_variance_decomp_pfactor`（含 p-factor）
+- HCPD 与 Chinese Cohort 的 Raw vs ComBat 方差分解图由 `combat_gam/scripts/plot_hcpd_chinese_variance_decomposition.R` 生成，输出为：
+  - `hcpd_variance_decomp`
+  - `chinese_variance_decomp`
 
 ## 分析流程（对应现有脚本）
 1) 数据整理与 SC 强度提取（`development_script/1st_dataclean`）
