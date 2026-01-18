@@ -68,9 +68,13 @@ for (i in 1:edgenum_run) {
 }
 
 dataTable <- merge(harmonized_data_cbcl, Behavior, by = "scanID")
-describe(comtable$SC.50)
-describe(dataTable$SC.50_h)
-corr.test(comtable$SC.50, dataTable$SC.50_h)
+qc_var <- if ("SC.50" %in% names(comtable)) "SC.50" else SC_vars_run[1]
+qc_var_h <- paste0(qc_var, "_h")
+describe(comtable[[qc_var]])
+if (qc_var_h %in% names(dataTable)) {
+  describe(dataTable[[qc_var_h]])
+  corr.test(comtable[[qc_var]], dataTable[[qc_var_h]])
+}
 suffix <- if (test_n > 0 || test_edges > 0) {
   paste0(".test_n", test_n, "_edges", edgenum_run)
 } else {
