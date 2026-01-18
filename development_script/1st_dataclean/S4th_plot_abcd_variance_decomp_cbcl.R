@@ -46,6 +46,7 @@ prepare_combat <- function(path) {
   if (length(missing) > 0) {
     stop(paste("Missing columns in ComBat ABCD:", paste(missing, collapse = ", ")))
   }
+  dat <- dat[, needed]
   dat <- dat %>% drop_na()
   dat <- dat %>%
     mutate(
