@@ -51,6 +51,7 @@
 - 小样本测试作业脚本：`sbatch/run_cbcl_assoc_smalltest.sbatch`（脚本内已 `conda activate`）。
 - 全量作业脚本：`sbatch/run_cbcl_assoc_full.sbatch`（脚本内已 `conda activate`）。
 - 运行前确认 `outputs/logs/` 存在，脚本内会自动创建。
+- 两个 sbatch 脚本均会显式设置 `R_LIBS_USER`/`R_PROFILE_USER`，避免作业环境误加载用户库（`/GPFS/.../R/packages`）导致 ABI 不一致报错。
 
 ## 待补充说明
 - 根据 `docs/research/Comments.pdf` 与 `docs/research/Manurscript_20251112.pdf` 更新 harmonize/ComBat 的描述与使用场景。
@@ -63,6 +64,7 @@
 - CBCL ComBat 输出中 `age` 列为嵌套 data.frame：在 CBCL 关联脚本中从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填 `age`。
 - `gratia` 需与 `ggplot2`/`mgcv` 版本匹配：R 4.1.x 下使用 `gratia_0.8.1`（CRAN Archive）以兼容 `mgcv 1.8`。
 - `dplyr`/`rlang` 报 `undefined symbol: R_existsVarInFrame`：通常是 `R_LIBS_USER` 指向旧用户库（如 `/GPFS/.../R/packages`）导致 ABI 不一致；运行前显式设置 `R_LIBS_USER`/`R_LIBS` 到当前 conda 环境库路径，并用 `.libPaths()` 置顶该路径。
+  - 注：`sbatch/run_cbcl_assoc_{smalltest,full}.sbatch` 已内置该隔离设置。
 
 ## 可复用经验（本次会话）
 - **环境隔离**：为复现旧版脚本，建议新建独立 conda 环境（如 `scdevelopment_r41`，R 4.1.3），避免在旧环境上补装导致依赖漂移；必要时用 CRAN Archive 固定包版本（例如 `gratia_0.8.1`）。

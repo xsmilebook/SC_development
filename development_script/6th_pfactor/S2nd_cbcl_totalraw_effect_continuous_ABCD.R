@@ -1,13 +1,12 @@
 library(mgcv)
 library(parallel)
-library(tidyverse)
 library(reshape)
 library(RColorBrewer)
 rm(list = ls())
 CVthr <- 75
 
 wdpath <- getwd()
-if (str_detect(wdpath, "cuizaixu_lab")) {
+if (grepl("cuizaixu_lab", wdpath, fixed = TRUE)) {
   interfileFolder <- "/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD"
 } else {
   interfileFolder <- file.path(wdpath, "interdataFolder_ABCD")
@@ -32,7 +31,8 @@ if (is.data.frame(SCdata$age) || !is.numeric(SCdata$age)) {
 SCdata[, c("sex", "handness", "race_ethnicity")] <- lapply(SCdata[, c("sex", "handness", "race_ethnicity")], as.factor)
 SCdata$age <- SCdata$age / 12
 SCdata$cbcl_scr_syn_totprob_r <- as.numeric(SCdata$cbcl_scr_syn_totprob_r)
-SCdata$totalstrength <- rowMeans(SCdata[, str_detect(names(SCdata), "SC\\.") & str_detect(names(SCdata), "_h")])
+sc_cols <- grepl("SC\\.", names(SCdata)) & grepl("_h", names(SCdata))
+SCdata$totalstrength <- rowMeans(SCdata[, sc_cols, drop = FALSE])
 
 meandistance <- read.csv(paste0(interfileFolder, "/average_EuclideanDistance_12.csv"))
 meandistance <- meandistance$Edistance

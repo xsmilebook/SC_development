@@ -17,4 +17,10 @@ cd "${project_root}"
 source "${conda_root}/etc/profile.d/conda.sh"
 conda activate scdevelopment_r41
 
-Rscript development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R
+# Avoid user-level R libraries overriding conda packages (ABI mismatch).
+export R_LIBS_USER="${CONDA_PREFIX}/lib/R/library"
+export R_LIBS=""
+export R_PROFILE_USER=/dev/null
+export R_ENVIRON_USER=/dev/null
+
+Rscript --vanilla development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R

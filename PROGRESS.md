@@ -79,3 +79,4 @@
 - 2026-01-19: Chinese ComBat 与绘图脚本支持 new/old 双版本参数化运行。
 - 2026-01-19: 删除 Chinese Cohort old 版本 ComBat 与图像，仅保留 new 作为最终版本。
 - 2026-01-19: 更新 workflow 的可复用经验与常见报错说明。
+- 2026-01-19: 修复 CBCL 关联分析 sbatch 的 `rlang` ABI 报错：移除脚本对 `tidyverse/stringr` 依赖，并在 sbatch 中隔离 `R_LIBS_USER` 指向 conda 环境库。
