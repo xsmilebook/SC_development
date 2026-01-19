@@ -15,6 +15,6 @@ mkdir -p "${project_root}/outputs/logs"
 cd "${project_root}"
 
 source "${conda_root}/etc/profile.d/conda.sh"
-conda activate scdevelopment
+conda activate scdevelopment_r41
 
 Rscript development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R
