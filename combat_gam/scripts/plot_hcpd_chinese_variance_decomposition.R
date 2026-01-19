@@ -175,20 +175,6 @@ palette <- c(
   age = "#C77CFF"
 )
 
-build_annotation <- function(plot_data, predictors) {
-  summary <- plot_data %>%
-    group_by(condition, predictor) %>%
-    summarise(mean = mean(r2, na.rm = TRUE), max = max(r2, na.rm = TRUE), .groups = "drop")
-
-  summary$line <- sprintf("%s: mean=%.4f, max=%.4f", summary$predictor, summary$mean, summary$max)
-  ann <- summary %>%
-    arrange(match(predictor, predictors)) %>%
-    group_by(condition) %>%
-    summarise(label = paste(line, collapse = "\n"), .groups = "drop")
-
-  ann
-}
-
 plot_variant <- function(label, raw_data, combat_data, out_prefix) {
   raw_results <- compute_variance_decomp(raw_data$df, raw_data$sc_cols, "Raw", strip_suffix = FALSE)
   combat_results <- compute_variance_decomp(combat_data$df, combat_data$sc_cols, "ComBat", strip_suffix = TRUE)
@@ -205,22 +191,10 @@ plot_variant <- function(label, raw_data, combat_data, out_prefix) {
 
   plot_data$predictor <- factor(plot_data$predictor, levels = predictors)
 
-  ann <- build_annotation(plot_data, predictors)
-  ann$x <- levels(plot_data$edge_base)[[1]]
-  ann$y <- Inf
-
   p <- ggplot(plot_data, aes(x = edge_base, y = r2, fill = predictor)) +
     geom_col(width = 0.9, color = "black", linewidth = 0.15) +
     facet_grid(condition ~ ., scales = "free_y", switch = "y") +
     scale_fill_manual(values = palette, breaks = levels(plot_data$predictor)) +
-    geom_text(
-      data = ann,
-      aes(x = x, y = y, label = label),
-      inherit.aes = FALSE,
-      hjust = 0,
-      vjust = 1.1,
-      size = 3
-    ) +
     labs(
       x = "SC edges",
       y = "R square",
