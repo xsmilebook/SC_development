@@ -73,3 +73,4 @@
 - 2026-01-19: 新建 conda 环境 `scdevelopment_r41`（R 4.1.3）并切换 sbatch 使用新环境。
 - 2026-01-19: 从 Git 暂存区移除 `wd/` 与 `demopath/` 目录下的历史数据文件。
 - 2026-01-19: 使用 Chinese Cohort 新版 merge 数据重绘 ComBat 方差分解图。
+- 2026-01-19: 保留 Chinese Cohort 新版 ComBat 结果并提交更新脚本。
