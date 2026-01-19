@@ -113,23 +113,47 @@ for (Interest.var in plot_vars) {
   tmpvar <- gamresult.tmp[, Interest.var]
   limthr <- max(abs(tmpvar), na.rm = TRUE)
   ytitle <- Interest.var
-  if (Interest.var == "T.disease") {
-    ytitle <- "CBCL total raw association (T value)"
-  }
-  if (Interest.var == "T.disease_control_distance") {
-    ytitle <- "CBCL total raw association (T value, residualized distance)"
+  if (grepl("T.disease", Interest.var, fixed = TRUE)) {
+    ytitle <- expression("CBCL total raw association (" * italic("T") * " value)")
   }
 
-  scatterFig <- ggplot(gamresult.tmp) +
-    geom_point(aes(x = SCrank, y = tmpvar, color = tmpvar), size = 3) +
-    geom_smooth(aes(x = SCrank, y = tmpvar), linewidth = 1.0, method = "lm", se = FALSE, color = "black") +
+  if (grepl("_control_distance", Interest.var, fixed = TRUE)) {
+    mytheme <- theme(axis.text = element_text(size = 23, color = "black"),
+                     axis.title = element_text(size = 23),
+                     aspect.ratio = 0.97,
+                     axis.line = element_line(linewidth = 0.6),
+                     axis.ticks = element_line(linewidth = 0.6),
+                     plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+                     plot.background = element_rect(fill = "transparent"),
+                     panel.background = element_rect(fill = "transparent"),
+                     legend.position = "none")
+    mywidth <- 13
+    myheight <- 13
+  } else {
+    mytheme <- theme(axis.text = element_text(size = 23.4, color = "black"),
+                     axis.title = element_text(size = 23.4),
+                     aspect.ratio = 1,
+                     axis.line = element_line(linewidth = 0.6),
+                     axis.ticks = element_line(linewidth = 0.6),
+                     plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+                     plot.background = element_rect(fill = "transparent"),
+                     panel.background = element_rect(fill = "transparent"),
+                     legend.position = "none")
+    mywidth <- 15
+    myheight <- 15
+  }
+
+  scatterFig <- ggplot(data = gamresult.tmp) +
+    geom_point(aes(x = SCrank, y = tmpvar, color = tmpvar), size = 5) +
+    geom_smooth(aes(x = SCrank, y = tmpvar), linewidth = 1.4, method = "lm", color = "black") +
     scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr, limthr)) +
     labs(x = "S-A connectional axis rank", y = ytitle) +
-    theme_classic()
-  ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_SCrankcorr.png")),
-         scatterFig, width = 16, height = 16, units = "cm", dpi = 300)
-  ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_SCrankcorr.pdf")),
-         scatterFig, width = 16, height = 16, units = "cm")
+    theme_classic() +
+    mytheme
+  ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_", int_var, "_SCrankcorr.tiff")),
+         scatterFig, width = mywidth, height = myheight, units = "cm")
+  ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_", int_var, "_SCrankcorr.svg")),
+         scatterFig, device = grDevices::svg, width = mywidth, height = myheight, units = "cm")
 
   Matrix.tmp.T <- matrix(NA, 12, 12)
   Matrix.tmp.T[lower.tri(Matrix.tmp.T, diag = TRUE)] <- tmpvar
@@ -171,29 +195,27 @@ for (Interest.var in plot_vars) {
     scale_fill_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
     scale_color_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
     geom_text(data = matrixtmp.df.sig.melt, aes(x = variable, y = nodeid, label = "*"),
-              vjust = 0.7, hjust = 0.5, size = 6) +
-    geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.4) +
-    geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.4) +
-    geom_segment(aes(x = 0.5, y = -0.5, xend = 12.5, yend = -12.5), color = "black", linewidth = 0.4) +
+              vjust = 0.7, hjust = 0.5, size = 8) +
+    geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
+    geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
+    geom_segment(aes(x = 0.5, y = -0.5, xend = 12.5, yend = -12.5), color = "black", linewidth = 0.5) +
     ggtitle(paste0(int_var, "_", Interest.var)) +
     labs(x = NULL, y = NULL) +
     scale_y_continuous(breaks = NULL, labels = NULL) +
     scale_x_continuous(breaks = NULL, labels = NULL) +
     theme(
       axis.line = element_blank(),
-      axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 10, angle = 315, hjust = 1, vjust = 1),
-      axis.title = element_text(size = 12),
-      plot.title = element_text(size = 10, hjust = 0.5),
-      legend.title = element_text(size = 10),
-      legend.text = element_text(size = 10),
+      axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
+      axis.title = element_text(size = 18),
+      plot.title = element_text(size = 12, hjust = 0.5),
+      legend.title = element_text(size = 18),
+      legend.text = element_text(size = 18),
       panel.background = element_rect(fill = NA),
       panel.grid.major = element_line(linewidth = 0),
-      panel.grid.minor = element_line(linewidth = 0)
+      panel.grid.minor = element_line(linewidth = 1)
     )
-  ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_Matrix12.png")),
-         MatFig, height = 18, width = 20, units = "cm", dpi = 300)
-  ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_Matrix12.pdf")),
+  ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_", int_var, "_Matrix12.tiff")),
          MatFig, height = 18, width = 20, units = "cm")
 }
 
@@ -253,18 +275,46 @@ plotdata$fit_value <- plotdata[, fit_col]
 plotdf.decile5 <- aggregate(fit_value ~ decile5 + age + label, data = plotdata, FUN = mean)
 
 colorid <- rev(brewer.pal(5, "RdBu"))
-y_label <- if (has_scaling) "SC strength (ratio)" else "SC strength"
 for (i in 1:5) {
   plotdf.tmp <- plotdf.decile5[plotdf.decile5$decile5 == i, ]
-  colorindex <- colorid[i]
-  Fig <- ggplot(plotdf.tmp) +
-    geom_line(aes(x = age, y = fit_value, group = label, linetype = label), linewidth = 1.0, color = colorindex) +
+  colorindex <- rev(brewer.pal(10, "RdBu"))[c(1, 3, 5, 7, 9)][i]
+
+  if (i == 1 || i == 3) {
+    mytheme <- theme(axis.text = element_text(size = 21, color = "black"),
+                     axis.title = element_text(size = 21),
+                     aspect.ratio = 1,
+                     axis.line = element_line(linewidth = 0.5),
+                     axis.ticks = element_line(linewidth = 0.5),
+                     plot.background = element_rect(fill = "transparent"),
+                     panel.border = element_rect(fill = NA, color = "transparent"),
+                     panel.background = element_rect(fill = "transparent", color = "transparent"),
+                     legend.position = "none")
+  } else {
+    mytheme <- theme(axis.text.x = element_text(size = 21, color = "black"),
+                     axis.text.y = element_text(size = 21, color = "transparent"),
+                     axis.title.x = element_text(size = 21),
+                     axis.title.y = element_text(size = 21, colour = "transparent"),
+                     aspect.ratio = 1,
+                     axis.line.x = element_line(linewidth = 0.5),
+                     axis.line.y = element_line(linewidth = 0.5, colour = "transparent"),
+                     axis.ticks.x = element_line(linewidth = 0.5),
+                     axis.ticks.y = element_line(linewidth = 0.5, colour = "transparent"),
+                     plot.background = element_rect(fill = "transparent"),
+                     panel.grid = element_line(linewidth = 0.5, colour = "transparent"),
+                     panel.border = element_rect(fill = NA, color = "transparent"),
+                     panel.background = element_rect(fill = "transparent", color = "transparent"),
+                     legend.position = "none")
+  }
+
+  Fig <- ggplot(data = plotdf.tmp) +
+    geom_line(aes(x = age, y = fit_value, group = label, linetype = label), linewidth = 1.2, color = colorindex) +
+    scale_y_continuous(breaks = c(0.9, 1.0), limits = c(0.90, 1.1)) +
     scale_linetype_manual(values = c(high = "dashed", low = "solid")) +
-    labs(x = "Age (years)", y = y_label, title = paste0("S-A decile group ", i, " (", (2 * i - 1), "-", (2 * i), ")")) +
-    theme_classic() +
-    theme(legend.position = "none")
-  ggsave(file.path(figureFolderInteraction, paste0("developmentcurve_decile5_", i, ".png")),
-         Fig, width = 12, height = 10, units = "cm", dpi = 300)
-  ggsave(file.path(figureFolderInteraction, paste0("developmentcurve_decile5_", i, ".pdf")),
-         Fig, width = 12, height = 10, units = "cm")
+    labs(x = NULL, y = "SC strength (ratio)") +
+    mytheme
+
+  ggsave(file.path(figureFolderInteraction, paste0("developmentcurve_decile5_", i, ".tiff")),
+         Fig, width = 10, height = 10, units = "cm")
+  ggsave(file.path(figureFolderInteraction, paste0("developmentcurve_decile5_", i, ".svg")),
+         Fig, device = grDevices::svg, width = 10, height = 10, units = "cm")
 }
