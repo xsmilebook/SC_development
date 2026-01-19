@@ -45,12 +45,11 @@
    - CBCL total raw 关联分析脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R`。
    - 小样本验证脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R`。
 
-## 容器化运行（CBCL 关联）
-- 容器定义：`containers/scdevelopment_cbcl.def`（conda R 4.1.x），构建产物保存在 `containers/scdevelopment_cbcl.sif`。
-- 构建作业脚本：`sbatch/build_cbcl_container.sbatch`（需 `module load singularity/3.7.0`）。
-- 测试作业脚本：`sbatch/run_cbcl_assoc_smalltest_container.sbatch`。
-- 全量作业脚本：`sbatch/run_cbcl_assoc_full_container.sbatch`。
-- 运行前确认 `outputs/logs/` 存在，或在作业提交前创建。
+## Conda 环境运行（CBCL 关联）
+- 统一使用本地 conda 环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment`（R 4.1.x）。
+- 小样本测试作业脚本：`sbatch/run_cbcl_assoc_smalltest.sbatch`（脚本内已 `conda activate`）。
+- 全量作业脚本：`sbatch/run_cbcl_assoc_full.sbatch`（脚本内已 `conda activate`）。
+- 运行前确认 `outputs/logs/` 存在，脚本内会自动创建。
 
 ## 待补充说明
 - 根据 `docs/research/Comments.pdf` 与 `docs/research/Manurscript_20251112.pdf` 更新 harmonize/ComBat 的描述与使用场景。
@@ -58,4 +57,4 @@
 
 ## 常见报错与处理
 - `lme4` 载入失败（GLIBC 版本不匹配，指向 `GPFS/.../R/packages/lme4`）：sbatch 环境优先加载用户库导致；在脚本内清空 `R_LIBS_USER`/`R_LIBS` 并显式设置 `.libPaths()` 到 conda 环境库。
-- `gratia`/`psych` 载入失败（GLIBC 版本不匹配）：优先改用容器执行，避免依赖落到用户库或 conda 库。
+- `gratia`/`psych` 载入失败（GLIBC 版本不匹配）：优先确保作业激活 conda 环境并避免用户库路径污染。

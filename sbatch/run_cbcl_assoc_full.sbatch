@@ -8,10 +8,13 @@
 
 set -euo pipefail
 
-module load singularity/3.7.0
-
 project_root="/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment"
+conda_root="/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3"
+
+mkdir -p "${project_root}/outputs/logs"
 cd "${project_root}"
 
-singularity exec --bind /ibmgpfs:/ibmgpfs containers/scdevelopment_cbcl.sif \
-  Rscript development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R
+source "${conda_root}/etc/profile.d/conda.sh"
+conda activate scdevelopment
+
+Rscript development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R
