@@ -25,6 +25,10 @@ source(paste0(functionFolder, "/SCrankcorr.R"))
 
 input_rds <- file.path(combatFolder, "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatCBCLtotalraw.rds")
 SCdata <- readRDS(input_rds)
+if (is.data.frame(SCdata$age) || !is.numeric(SCdata$age)) {
+  demodf <- read.csv(file.path(wdpath, "demopath", "DemodfScreenFinal.csv"))
+  SCdata$age <- demodf$age[match(SCdata$scanID, demodf$scanID)]
+}
 SCdata[, c("sex", "handness", "race_ethnicity")] <- lapply(SCdata[, c("sex", "handness", "race_ethnicity")], as.factor)
 SCdata$age <- SCdata$age / 12
 SCdata$cbcl_scr_syn_totprob_r <- as.numeric(SCdata$cbcl_scr_syn_totprob_r)

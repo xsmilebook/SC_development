@@ -27,6 +27,10 @@ source(paste0(functionFolder, "/SCrankcorr.R"))
 
 input_rds <- file.path(combatFolder, "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatCBCLtotalraw.rds")
 SCdata <- readRDS(input_rds)
+if (is.data.frame(SCdata$age) || !is.numeric(SCdata$age)) {
+  demodf <- read.csv(file.path(wdpath, "demopath", "DemodfScreenFinal.csv"))
+  SCdata$age <- demodf$age[match(SCdata$scanID, demodf$scanID)]
+}
 SCdata[, c("sex", "handness", "race_ethnicity")] <- lapply(SCdata[, c("sex", "handness", "race_ethnicity")], as.factor)
 SCdata$age <- SCdata$age / 12
 SCdata$cbcl_scr_syn_totprob_r <- as.numeric(SCdata$cbcl_scr_syn_totprob_r)
@@ -46,7 +50,7 @@ covariates <- "sex+mean_fd"
 knots <- 3
 set_fx <- TRUE
 increments <- 200
-stats_only <- TRUE
+stats_only <- FALSE
 int_var <- "cbcl_scr_syn_totprob_r"
 
 resultsum <- mclapply(seq_along(sc_edges), function(x) {
@@ -65,17 +69,29 @@ gamresult.tmp$bootstrap.P.disease.fdr <- p.adjust(gamresult.tmp$bootstrap.P.dise
 
 saveRDS(gamresult.tmp, file.path(outputFolder, paste0("gamresult_Int_age_cbcl_totprob_raw_CV", CVthr, "_smalltest.rds")))
 
+if (length(sc_edges) < 78) {
+  quit(save = "no")
+}
+
 ## 2. Correlation to S-A connectional axis
-SCrank.df.age <- SCrankcorr(gamresult.tmp, "IntpartialRsq", 12, dsdata = FALSE)
-SCrank.df.cbcl <- SCrankcorr(gamresult.tmp, "T.disease", 12, dsdata = FALSE)
-SCrank.df <- rbind(SCrank.df.age, SCrank.df.cbcl)
-SCrank.df$int_var <- int_var
+if (nrow(gamresult.tmp) >= 78) {
+  SCrank.df.age <- SCrankcorr(gamresult.tmp, "IntpartialRsq", 12, dsdata = FALSE)
+  SCrank.df.cbcl <- SCrankcorr(gamresult.tmp, "T.disease", 12, dsdata = FALSE)
+  SCrank.df <- rbind(SCrank.df.age, SCrank.df.cbcl)
+  SCrank.df$int_var <- int_var
+}
 
-SCrank.tmp <- SCrankcorr(gamresult.tmp, "IntpartialRsq", 12, dsdata = TRUE)
-SCrank <- SCrank.tmp$SCrank
+if (nrow(gamresult.tmp) >= 78) {
+  SCrank.tmp <- SCrankcorr(gamresult.tmp, "IntpartialRsq", 12, dsdata = TRUE)
+  SCrank <- SCrank.tmp$SCrank
+}
 
-gamresult.tmp$meandistance <- meandistance[seq_len(nrow(gamresult.tmp))]
-SCrankresult.whole.controldistance <- SCrankcorr(gamresult.tmp, "T.disease", 12, dsdata = FALSE)
+if (nrow(gamresult.tmp) >= 78) {
+  gamresult.tmp$meandistance <- meandistance[seq_len(nrow(gamresult.tmp))]
+  SCrankresult.whole.controldistance <- SCrankcorr(gamresult.tmp, "T.disease", 12, dsdata = FALSE)
+}
 
-saveRDS(SCrankresult.whole.controldistance,
-        file.path(outputFolder, paste0("SCrankcorr_cbcl_totprob_raw_CV", CVthr, "_smalltest.rds")))
+if (nrow(gamresult.tmp) >= 78) {
+  saveRDS(SCrankresult.whole.controldistance,
+          file.path(outputFolder, paste0("SCrankcorr_cbcl_totprob_raw_CV", CVthr, "_smalltest.rds")))
+}
