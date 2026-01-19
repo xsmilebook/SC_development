@@ -30,6 +30,7 @@
 - HCPD 与 Chinese Cohort 的 Raw vs ComBat 方差分解图由 `combat_gam/scripts/plot_hcpd_chinese_variance_decomposition.R` 生成，输出为：
   - `hcpd_variance_decomp`
   - `chinese_variance_decomp`
+  - 注：Chinese Cohort 中 `study`（siteID）与年龄分布强烈不均衡时，ComBat-GAM 只能在保留年龄效应的前提下校正批次差异，部分 residual site 效应可能仍存在。
 
 ## 分析流程（对应现有脚本）
 1) 数据整理与 SC 强度提取（`development_script/1st_dataclean`）
