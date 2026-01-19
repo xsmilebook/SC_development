@@ -43,6 +43,14 @@
 4) 年龄分段与变化率分析（`development_script/4th_changerate_SAcorr`）
 5) 认知与心理病理相关分析（`development_script/5th_cognition`、`development_script/6th_pfactor`）
    - CBCL total raw 关联分析脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R`。
+   - 小样本验证脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R`。
+
+## 容器化运行（CBCL 关联）
+- 容器定义：`containers/scdevelopment_cbcl.def`，构建产物保存在 `containers/scdevelopment_cbcl.sif`。
+- 构建作业脚本：`sbatch/build_cbcl_container.sbatch`（需 `module load singularity/3.7.0`）。
+- 测试作业脚本：`sbatch/run_cbcl_assoc_smalltest_container.sbatch`。
+- 全量作业脚本：`sbatch/run_cbcl_assoc_full_container.sbatch`。
+- 运行前确认 `outputs/logs/` 存在，或在作业提交前创建。
 
 ## 待补充说明
 - 根据 `docs/research/Comments.pdf` 与 `docs/research/Manurscript_20251112.pdf` 更新 harmonize/ComBat 的描述与使用场景。
@@ -50,5 +58,4 @@
 
 ## 常见报错与处理
 - `lme4` 载入失败（GLIBC 版本不匹配，指向 `GPFS/.../R/packages/lme4`）：sbatch 环境优先加载用户库导致；在脚本内清空 `R_LIBS_USER`/`R_LIBS` 并显式设置 `.libPaths()` 到 conda 环境库。
-- `gratia` 载入失败（`nanonext` 依赖 GLIBC 版本过高）：改用 `mgcv::predict()` 代替 `gratia::fitted_values()`，移除 `gratia` 依赖以避免二进制兼容问题。
-- `psych` 载入失败（`mnormt` 依赖 GLIBC 版本过高）：改用 `stats::cor`/`stats::cor.test` 代替 `psych::corr.test`，移除 `psych` 依赖。
+- `gratia`/`psych` 载入失败（GLIBC 版本不匹配）：优先改用容器执行，避免依赖落到用户库或 conda 库。

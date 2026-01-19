@@ -63,3 +63,6 @@
 - 2026-01-18: 记录并修复 `lme4` GLIBC 报错（脚本内固定 conda R 库路径）。
 - 2026-01-18: 移除 `gratia` 依赖，改用 `mgcv::predict()` 以规避 `nanonext` GLIBC 问题。
 - 2026-01-18: 移除 `psych` 依赖，改用 `stats::cor`/`stats::cor.test` 以规避 `mnormt` GLIBC 问题。
+- 2026-01-19: 回退 CBCL 关联分析脚本与 `gamfunction` 相关函数到历史版本以对齐原始实现。
+- 2026-01-19: 新增 CBCL 关联分析容器定义与 sbatch 构建/运行脚本，并提供小样本验证脚本。
+- 2026-01-19: 更新 `docs/workflow.md` 记录容器运行流程与对应脚本入口。

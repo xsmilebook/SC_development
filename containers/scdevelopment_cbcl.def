@@ -1,0 +1,38 @@
+Bootstrap: docker
+From: rocker/r-ver:4.4.1
+
+%labels
+  Author SCDevelopment
+  Version 1.0
+  Description CBCL association container with required R packages
+
+%environment
+  export R_LIBS_USER=/usr/local/lib/R/site-library
+  export LC_ALL=C
+
+%post
+  apt-get update
+  apt-get install -y --no-install-recommends \
+    build-essential \
+    gfortran \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    libgit2-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    libblas-dev \
+    liblapack-dev \
+    libgomp1 \
+    libglpk-dev
+  rm -rf /var/lib/apt/lists/*
+
+  R -e "options(Ncpus=4, repos='https://cloud.r-project.org'); \
+    install.packages(c('tidyverse','tidyr','reshape','RColorBrewer','mgcv','nlme','Matrix','lme4','gamm4','pbkrtest','R.matlab','R.methodsS3','R.oo','R.utils','psych','mnormt','gratia'))"
+
+%runscript
+  exec R "$@"
