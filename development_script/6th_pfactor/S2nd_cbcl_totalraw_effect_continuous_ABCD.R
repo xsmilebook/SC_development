@@ -268,18 +268,17 @@ if (!file.exists(trajectory_cache)) {
 SA12_10 <- read.csv(sa_path)
 plotdata <- do.call(rbind, readRDS(trajectory_cache))
 plotdata <- merge(plotdata, SA12_10[, c("SC_label", "decile")], by = "SC_label")
-plotdata$decile5 <- ceiling(plotdata$decile / 2)
 
 fit_col <- if (".fitted" %in% names(plotdata)) ".fitted" else "fitted.centered"
 plotdata$fit_value <- plotdata[, fit_col]
-plotdf.decile5 <- aggregate(fit_value ~ decile5 + age + label, data = plotdata, FUN = mean)
+plotdf.decile <- aggregate(fit_value ~ decile + age + label, data = plotdata, FUN = mean)
 
-colorid <- rev(brewer.pal(5, "RdBu"))
-for (i in 1:5) {
-  plotdf.tmp <- plotdf.decile5[plotdf.decile5$decile5 == i, ]
-  colorindex <- rev(brewer.pal(10, "RdBu"))[c(1, 3, 5, 7, 9)][i]
+colorid <- rev(brewer.pal(10, "RdBu"))
+for (i in 1:10) {
+  plotdf.tmp <- plotdf.decile[plotdf.decile$decile == i, ]
+  colorindex <- colorid[i]
 
-  if (i == 1 || i == 3) {
+  if (i == 1 || i == 6) {
     mytheme <- theme(axis.text = element_text(size = 21, color = "black"),
                      axis.title = element_text(size = 21),
                      aspect.ratio = 1,
@@ -313,8 +312,8 @@ for (i in 1:5) {
     labs(x = NULL, y = "SC strength (ratio)") +
     mytheme
 
-  ggsave(file.path(figureFolderInteraction, paste0("developmentcurve_decile5_", i, ".tiff")),
+  ggsave(file.path(figureFolderInteraction, paste0("developmentcurve_decile", i, ".tiff")),
          Fig, width = 10, height = 10, units = "cm")
-  ggsave(file.path(figureFolderInteraction, paste0("developmentcurve_decile5_", i, ".svg")),
+  ggsave(file.path(figureFolderInteraction, paste0("developmentcurve_decile", i, ".svg")),
          Fig, device = grDevices::svg, width = 10, height = 10, units = "cm")
 }

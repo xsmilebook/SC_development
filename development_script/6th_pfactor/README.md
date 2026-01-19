@@ -8,6 +8,5 @@ This script aims to assess the relationship between *p*-factor and SC strength i
 Sensitivity analysis using CBCL total raw score (`cbcl_scr_syn_totprob_r`) instead of *p*-factor in the ABCD dataset. In addition to saving model outputs (`outputs/results/cbcl_totprob/*.rds`), this script generates project-local figures:
 
 - `outputs/figures/cbcl_totprob/Association/`: S-A rank scatter plots and 12×12 t-value matrices.
-- `outputs/figures/cbcl_totprob/Interaction/`: high (90th) vs low (10th) CBCL trajectories across five S-A decile groups.
-
+- `outputs/figures/cbcl_totprob/Interaction/`: high (90th) vs low (10th) CBCL trajectories across S-A deciles (1–10).
 
