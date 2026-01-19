@@ -62,3 +62,10 @@
 - `tidyverse` 报 `readr/forcats/lubridate` 缺失：在 `scdevelopment` 环境安装 `r-tidyverse`（或补装 `r-readr`、`r-forcats`）。
 - CBCL ComBat 输出中 `age` 列为嵌套 data.frame：在 CBCL 关联脚本中从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填 `age`。
 - `gratia` 需与 `ggplot2`/`mgcv` 版本匹配：R 4.1.x 下使用 `gratia_0.8.1`（CRAN Archive）以兼容 `mgcv 1.8`。
+- `dplyr`/`rlang` 报 `undefined symbol: R_existsVarInFrame`：通常是 `R_LIBS_USER` 指向旧用户库（如 `/GPFS/.../R/packages`）导致 ABI 不一致；运行前显式设置 `R_LIBS_USER`/`R_LIBS` 到当前 conda 环境库路径，并用 `.libPaths()` 置顶该路径。
+
+## 可复用经验（本次会话）
+- **环境隔离**：为复现旧版脚本，建议新建独立 conda 环境（如 `scdevelopment_r41`，R 4.1.3），避免在旧环境上补装导致依赖漂移；必要时用 CRAN Archive 固定包版本（例如 `gratia_0.8.1`）。
+- **sbatch 入参约定**：若脚本要求输出路径（如 Chinese ComBat），sbatch 模板应显式传参并将日志写到 `outputs/logs/`，避免默认 `slurm-*.out` 分散且误判为“无日志”。  
+- **方差分解图解读**：`facet_grid(..., scales=\"free_y\")` 会放大 ComBat 面板的视觉高度；判断校正效果应结合数值计算（如导出 `siteID` 的 mean/max），避免仅凭堆叠柱形高度下结论。
+- **数据/结果不入库**：`demopath/`、`outputs/`、`wd/`、`containers/` 等数据目录应在 `.gitignore` 忽略；若已被追踪，需要 `git rm -r --cached` 从索引移除（不删除磁盘文件）。
