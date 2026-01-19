@@ -71,3 +71,4 @@
 - 2026-01-19: 修复 CBCL 关联脚本的 `age` 列异常（回填 demopath），并调整小样本测试以跳过 SCrankcorr。
 - 2026-01-19: 更新 .gitignore，补充忽略 `wd/` 与 `containers/` 等存储数据目录。
 - 2026-01-19: 新建 conda 环境 `scdevelopment_r41`（R 4.1.3）并切换 sbatch 使用新环境。
+- 2026-01-19: 从 Git 暂存区移除 `wd/` 与 `demopath/` 目录下的历史数据文件。
