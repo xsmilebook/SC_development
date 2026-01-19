@@ -5,7 +5,6 @@ if (nzchar(conda_prefix)) {
 }
 
 library(mgcv)
-library(gratia)
 library(lme4)
 library(gamm4)
 library(pbkrtest)
@@ -136,9 +135,16 @@ gamm.smooth.predict.covariateinteraction <- function(region, dataname, smooth_va
   pred <- thisPred[, setdiff(names(thisPred), "init"), drop = FALSE]
   pred[,int_var] <- as.numeric(int_var.predict)
   
-  #Generate fitted (predicted) values based on the gam model and predication data frame
-  predicted.smooth <- fitted_values(object = modelobj, data = pred)
-  predicted.smooth$fitted.centered <- scale(predicted.smooth$.fitted, center=T, scale = F) #subtract the intercept from fitted values
+  #Generate fitted (predicted) values based on the gam model and prediction data frame
+  pred_out <- predict(modelobj, newdata = pred, se.fit = TRUE)
+  predicted.smooth <- data.frame(
+    pred,
+    .fitted = as.numeric(pred_out$fit),
+    .se = as.numeric(pred_out$se.fit),
+    .lower_ci = as.numeric(pred_out$fit - 1.96 * pred_out$se.fit),
+    .upper_ci = as.numeric(pred_out$fit + 1.96 * pred_out$se.fit)
+  )
+  predicted.smooth$fitted.centered <- scale(predicted.smooth$.fitted, center = TRUE, scale = FALSE)
   predicted.smooth <- predicted.smooth[, c(smooth_var, ".fitted", ".se", ".lower_ci", ".upper_ci", "fitted.centered"), drop = FALSE]
   
   changed.range <- predicted.smooth$.fitted[which.max(predicted.smooth$age)]-predicted.smooth$.fitted[which.min(predicted.smooth$age)]

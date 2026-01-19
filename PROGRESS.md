@@ -61,4 +61,4 @@
 - 2026-01-18: CBCL 关联分析脚本小样本测试模式改为单核并跳过 S-A 相关步骤。
 - 2026-01-18: CBCL 关联分析脚本测试模式关闭 bootstrap/pboot 以避免 PBrefdist 报错。
 - 2026-01-18: 记录并修复 `lme4` GLIBC 报错（脚本内固定 conda R 库路径）。
-- 2026-01-18: 安装 `gratia` 依赖并通过 CBCL 关联小样本测试。
+- 2026-01-18: 移除 `gratia` 依赖，改用 `mgcv::predict()` 以规避 `nanonext` GLIBC 问题。
