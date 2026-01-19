@@ -46,7 +46,7 @@
    - 小样本验证脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R`。
 
 ## 容器化运行（CBCL 关联）
-- 容器定义：`containers/scdevelopment_cbcl.def`，构建产物保存在 `containers/scdevelopment_cbcl.sif`。
+- 容器定义：`containers/scdevelopment_cbcl.def`（conda R 4.1.x），构建产物保存在 `containers/scdevelopment_cbcl.sif`。
 - 构建作业脚本：`sbatch/build_cbcl_container.sbatch`（需 `module load singularity/3.7.0`）。
 - 测试作业脚本：`sbatch/run_cbcl_assoc_smalltest_container.sbatch`。
 - 全量作业脚本：`sbatch/run_cbcl_assoc_full_container.sbatch`。

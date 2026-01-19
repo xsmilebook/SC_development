@@ -1,38 +1,39 @@
 Bootstrap: docker
-From: rocker/r-ver:4.4.1
+From: continuumio/miniconda3:23.11.0-1
 
 %labels
   Author SCDevelopment
   Version 1.0
-  Description CBCL association container with required R packages
+  Description CBCL association container with R 4.1.x via conda
 
 %environment
-  export R_LIBS_USER=/usr/local/lib/R/site-library
+  export PATH=/opt/conda/bin:$PATH
+  export R_LIBS_USER=/opt/conda/lib/R/library
   export LC_ALL=C
 
 %post
-  apt-get update
-  apt-get install -y --no-install-recommends \
-    build-essential \
-    gfortran \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxml2-dev \
-    libgit2-dev \
-    libharfbuzz-dev \
-    libfribidi-dev \
-    libfreetype6-dev \
-    libpng-dev \
-    libtiff5-dev \
-    libjpeg-dev \
-    libblas-dev \
-    liblapack-dev \
-    libgomp1 \
-    libglpk-dev
-  rm -rf /var/lib/apt/lists/*
-
-  R -e "options(Ncpus=4, repos='https://cloud.r-project.org'); \
-    install.packages(c('tidyverse','tidyr','reshape','RColorBrewer','mgcv','nlme','Matrix','lme4','gamm4','pbkrtest','R.matlab','R.methodsS3','R.oo','R.utils','psych','mnormt','gratia'))"
+  /opt/conda/bin/conda config --add channels conda-forge
+  /opt/conda/bin/conda config --set channel_priority strict
+  /opt/conda/bin/conda install -y \
+    r-base=4.1.3 \
+    r-tidyverse \
+    r-tidyr \
+    r-reshape \
+    r-rcolorbrewer \
+    r-mgcv \
+    r-nlme \
+    r-matrix \
+    r-lme4 \
+    r-gamm4 \
+    r-pbkrtest \
+    r-r.matlab \
+    r-r.methodss3 \
+    r-r.oo \
+    r-r.utils \
+    r-psych \
+    r-mnormt \
+    r-gratia
+  /opt/conda/bin/conda clean -a -y
 
 %runscript
-  exec R "$@"
+  exec /opt/conda/bin/R "$@"
