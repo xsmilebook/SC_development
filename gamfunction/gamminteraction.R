@@ -1,7 +1,4 @@
-library(tidyr)
 library(mgcv)
-library(gratia)
-library(tidyverse)
 library(lme4)
 library(gamm4)
 library(pbkrtest)
@@ -129,18 +126,28 @@ gamm.smooth.predict.covariateinteraction <- function(region, dataname, smooth_va
       )
     }
   }
-  pred <- thisPred %>% dplyr::select(-init)
+  pred <- thisPred
+  pred$init <- NULL
   pred[,int_var] <- as.numeric(int_var.predict)
   
   #Generate fitted (predicted) values based on the gam model and predication data frame
-  predicted.smooth <- fitted_values(object = modelobj, data = pred)
-  predicted.smooth$fitted.centered <- scale(predicted.smooth$.fitted, center=T, scale = F) #subtract the intercept from fitted values
-  predicted.smooth <- predicted.smooth %>% dplyr::select(all_of(smooth_var), .fitted, .se, .lower_ci, .upper_ci, fitted.centered)
+  pred_fit <- stats::predict(modelobj, newdata = pred, se.fit = TRUE)
+  predicted.smooth <- data.frame(
+    pred[[smooth_var]],
+    .fitted = as.numeric(pred_fit$fit),
+    .se = as.numeric(pred_fit$se.fit)
+  )
+  names(predicted.smooth)[1] <- smooth_var
+  predicted.smooth$.lower_ci <- predicted.smooth$.fitted - 1.96 * predicted.smooth$.se
+  predicted.smooth$.upper_ci <- predicted.smooth$.fitted + 1.96 * predicted.smooth$.se
+  predicted.smooth$fitted.centered <- as.numeric(scale(predicted.smooth$.fitted, center = TRUE, scale = FALSE)) #subtract the intercept from fitted values
+  predicted.smooth <- predicted.smooth[, c(smooth_var, ".fitted", ".se", ".lower_ci", ".upper_ci", "fitted.centered")]
   
-  changed.range <- predicted.smooth$.fitted[which.max(predicted.smooth$age)]-predicted.smooth$.fitted[which.min(predicted.smooth$age)]
-  changed.ratio <- predicted.smooth$.fitted[which.max(predicted.smooth$age)] / predicted.smooth$.fitted[which.min(predicted.smooth$age)]
-  SCweight.age13 <- predicted.smooth$.fitted[which.max(predicted.smooth$age)]
-  SCweight.age9 <- predicted.smooth$.fitted[which.min(predicted.smooth$age)]
+  smooth_vals <- predicted.smooth[[smooth_var]]
+  changed.range <- predicted.smooth$.fitted[which.max(smooth_vals)] - predicted.smooth$.fitted[which.min(smooth_vals)]
+  changed.ratio <- predicted.smooth$.fitted[which.max(smooth_vals)] / predicted.smooth$.fitted[which.min(smooth_vals)]
+  SCweight.age13 <- predicted.smooth$.fitted[which.max(smooth_vals)]
+  SCweight.age9 <- predicted.smooth$.fitted[which.min(smooth_vals)]
   ############################################
   
   stats.reults<-cbind(parcel, int_var, bootstrap_pvalue, gam.int.pvalue, IntpartialRsq,partialRsq, Int.F, T.disease, P.disease, bootstrap.P.disease, changed.range, 
