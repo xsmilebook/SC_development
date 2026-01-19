@@ -76,3 +76,4 @@
 - 2026-01-19: 保留 Chinese Cohort 新版 ComBat 结果并提交更新脚本。
 - 2026-01-19: Chinese Cohort ComBat sbatch 脚本补充多分区提交顺序。
 - 2026-01-19: 为 HCPD/Chinese 方差分解图增加每个协变量的 mean/max 标注以便核对。
+- 2026-01-19: Chinese ComBat 与绘图脚本支持 new/old 双版本参数化运行。

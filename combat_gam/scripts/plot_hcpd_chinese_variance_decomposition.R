@@ -6,6 +6,8 @@ hcpd_combat <- if (length(args) >= 2) args[[2]] else "outputs/results/combat_gam
 ch_raw <- if (length(args) >= 3) args[[3]] else "/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
 ch_combat <- if (length(args) >= 4) args[[4]] else "outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds"
 out_dir <- if (length(args) >= 5) args[[5]] else "outputs/figures/combat_gam"
+hcpd_prefix <- if (length(args) >= 6) args[[6]] else "hcpd_variance_decomp"
+ch_prefix <- if (length(args) >= 7) args[[7]] else "chinese_variance_decomp"
 
 conda_prefix <- Sys.getenv("CONDA_PREFIX")
 if (nzchar(conda_prefix)) {
@@ -247,8 +249,8 @@ plot_variant <- function(label, raw_data, combat_data, out_prefix) {
 
 hcpd_raw_data <- prepare_hcpd_raw(hcpd_raw)
 hcpd_combat_data <- prepare_hcpd_combat(hcpd_combat)
-plot_variant("HCPD", hcpd_raw_data, hcpd_combat_data, "hcpd_variance_decomp")
+plot_variant("HCPD", hcpd_raw_data, hcpd_combat_data, hcpd_prefix)
 
 ch_raw_data <- prepare_chinese_raw(ch_raw)
 ch_combat_data <- prepare_chinese_combat(ch_combat)
-plot_variant("Chinese Cohort", ch_raw_data, ch_combat_data, "chinese_variance_decomp")
+plot_variant("Chinese Cohort", ch_raw_data, ch_combat_data, ch_prefix)
