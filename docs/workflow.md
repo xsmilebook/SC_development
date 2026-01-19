@@ -51,3 +51,4 @@
 ## 常见报错与处理
 - `lme4` 载入失败（GLIBC 版本不匹配，指向 `GPFS/.../R/packages/lme4`）：sbatch 环境优先加载用户库导致；在脚本内清空 `R_LIBS_USER`/`R_LIBS` 并显式设置 `.libPaths()` 到 conda 环境库。
 - `gratia` 载入失败（`nanonext` 依赖 GLIBC 版本过高）：改用 `mgcv::predict()` 代替 `gratia::fitted_values()`，移除 `gratia` 依赖以避免二进制兼容问题。
+- `psych` 载入失败（`mnormt` 依赖 GLIBC 版本过高）：改用 `stats::cor`/`stats::cor.test` 代替 `psych::corr.test`，移除 `psych` 依赖。

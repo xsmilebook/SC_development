@@ -1,6 +1,3 @@
-library(R.matlab)
-library(psych)
-
 SCrankcorr <- function(gamresult, computevar, ds.resolution, dsdata=FALSE){
 
   #### connectional rank
@@ -23,8 +20,8 @@ SCrankcorr <- function(gamresult, computevar, ds.resolution, dsdata=FALSE){
   gamresult.ds<-data.frame(SCrank=Matrix.ds.SCrank[indexsave.ds], computevar=NA)
   gamresult.ds$computevar <-gamresult[, computevar]
   
-  correstimate<-corr.test(gamresult.ds, method="spearman")$r[2,1]
-  p.spearman<-corr.test(gamresult.ds, method="spearman")$p[2,1]
+  correstimate <- stats::cor(gamresult.ds$SCrank, gamresult.ds$computevar, method = "spearman", use = "pairwise.complete.obs")
+  p.spearman <- stats::cor.test(gamresult.ds$SCrank, gamresult.ds$computevar, method = "spearman")$p.value
   SCrankdf <- data.frame(ds.resolution=ds.resolution, Interest.var=computevar,
                          r.spearman=correstimate, p.spearman=p.spearman)
   if (dsdata == TRUE){
@@ -35,6 +32,5 @@ SCrankcorr <- function(gamresult, computevar, ds.resolution, dsdata=FALSE){
   }
   
 }
-
 
 
