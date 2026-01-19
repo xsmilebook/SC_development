@@ -81,3 +81,4 @@
 - 2026-01-19: 更新 workflow 的可复用经验与常见报错说明。
 - 2026-01-19: 修复 CBCL 关联分析 sbatch 的 `rlang` ABI 报错：移除脚本对 `tidyverse/stringr` 依赖，并在 sbatch 中隔离 `R_LIBS_USER` 指向 conda 环境库。
 - 2026-01-19: 修复 CBCL 关联分析对 `gratia` 的依赖：`gamfunction/gamminteraction.R` 改用 `mgcv::predict()` 生成拟合与置信区间，避免缺失 `mvnfast` 触发的启动失败。
+- 2026-01-19: CBCL total raw 关联分析脚本改为直接生成项目内绘图输出（t-value matrix、S-A rank 散点、5 组 S-A 分位数组轨迹），并删除不再使用的 `S2nd_cbcl_totalraw_effect_continuous_ABCD.Rmd`。
