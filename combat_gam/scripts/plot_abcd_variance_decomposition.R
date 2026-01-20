@@ -22,6 +22,7 @@ suppressPackageStartupMessages({
   library(tidyr)
   library(ggplot2)
   library(mgcv)
+  library(nlme)
 })
 
 base_predictors <- c("siteID", "age", "sex", "mean_fd")
@@ -130,9 +131,20 @@ fit_r2_gamm_abcd <- function(df, vars, re_var = "subID") {
     return(calc_r2(df$y, fitted(fit)))
   }
   df[[re_var]] <- as.factor(df[[re_var]])
-  formula <- as.formula(paste0("y ~ ", terms, " + s(", re_var, ", bs='re')"))
-  fit <- mgcv::gam(formula, data = df, method = "REML")
-  calc_r2(df$y, fitted(fit))
+  formula <- as.formula(paste0("y ~ ", terms))
+  random <- stats::setNames(list(~1), re_var)
+  fit <- tryCatch(
+    mgcv::gamm(formula, random = random, data = df, method = "REML"),
+    error = function(e) {
+      warning(sprintf("gamm failed (%s). Falling back to gam random-effect smooth.", e$message))
+      NULL
+    }
+  )
+  if (is.null(fit)) {
+    fallback <- mgcv::gam(as.formula(paste0("y ~ ", terms, " + s(", re_var, ", bs='re')")), data = df, method = "REML")
+    return(calc_r2(df$y, fitted(fallback)))
+  }
+  calc_r2(df$y, fitted(fit$lme))
 }
 
 compute_delta_r2 <- function(y, df, predictors, model = c("GAMM", "GAM"), re_var = "subID") {

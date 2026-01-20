@@ -88,3 +88,4 @@
 - 2026-01-20: 方差分解图的变量解释量从 Shapley R² 改为 drop-one Delta R²（`R²_full - R²_reduced`），并更新 ABCD/HCP-D/Chinese（及 CBCL）相关脚本与输出图。
 - 2026-01-20: Chinese Cohort 方差分解绘图脚本默认 raw 输入切换为 `merge_new.rds`。
 - 2026-01-20: 新增 HCP-D/Chinese 的 neuroHarmonize 原生 smooth_terms 提交脚本（Python）与 sbatch，用于对比 `smooth_fx` 的影响。
+- 2026-01-20: ABCD 方差分解绘图脚本改用 `mgcv::gamm` 拟合纵向数据（random intercept=`subID`）计算 drop-one Delta R²。
