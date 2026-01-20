@@ -97,3 +97,4 @@
 - 2026-01-20: 基于 HCP-D ComBat-GAM 输出新增/修订发育模型脚本的可复现运行方式：HCP-D 的 S1/S2 脚本改为项目内路径；为 S3/S4 的 Rmd 增加对应 Rscript 版本；新增 sbatch `sbatch/run_hcpd_devmodel_combatgam_CV75.sbatch` 并统一产物写入 `outputs/`。
 - 2026-01-20: 修复 HCP-D 发育模型 sbatch 因 R 包缺失导致的失败：补装 `gratia` 相关依赖（`mvnfast`）、`patchwork`、`ecostats`；sbatch 运行前增加“屏蔽系统库”条件下的依赖检查与 `.libPaths()` 打印。
 - 2026-01-20: 修复 HCP-D 发育模型 S1 GAM 拟合失败：`gamfunction/gamsmooth.R`/`gamfunction/gamderivatives.R` 兼容 `gratia` 不同版本的导数输出列名；保留 `ecostats::anovaPB()` 但强制 `ncpus=1` 以避免并行序列化报错（如 `nbinom2 not found`）。
+- 2026-01-20: 修复 HCP-D 发育模型在计算节点频繁出现的 `GLIBC_2.xx not found`（`cli.so`/`farver.so`/`Rcpp.so`）：sbatch 改为使用项目内 `outputs/r_libs/scdevelopment_r41/` 作为 `R_LIBS_USER`，在计算节点上自动编译补装缺失/载入失败的 R 依赖以匹配节点 GLIBC。

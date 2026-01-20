@@ -24,8 +24,15 @@ cd "${project_root}"
 source "${conda_root}/etc/profile.d/conda.sh"
 conda activate scdevelopment_r41
 
-# Avoid user-level R libraries overriding conda packages (ABI mismatch).
-export R_LIBS_USER="${CONDA_PREFIX}/lib/R/library"
+# Avoid system/user-level R libraries overriding our controlled libraries.
+# IMPORTANT: some compute nodes have older GLIBC than the login node; packages
+# compiled on the login node (even inside conda env) can fail with
+# `GLIBC_2.xx not found`. To make the run robust, we install/override required
+# R packages into a project-local library (compiled on the compute node).
+project_r_lib="${project_root}/outputs/r_libs/scdevelopment_r41"
+mkdir -p "${project_r_lib}"
+
+export R_LIBS_USER="${project_r_lib}"
 export R_LIBS=""
 export R_LIBS_SITE="${CONDA_PREFIX}/lib/R/library"
 export R_PROFILE_USER=/dev/null
@@ -48,15 +55,12 @@ echo "[INFO] N_EDGES=${N_EDGES:-<unset>}"
 echo "[INFO] SKIP_POSTERIOR=${SKIP_POSTERIOR}"
 echo "[INFO] MAKE_MATRIX_GRAPHS=${MAKE_MATRIX_GRAPHS}"
 echo "[INFO] CONDA_PREFIX=${CONDA_PREFIX}"
+echo "[INFO] project_r_lib=${project_r_lib}"
 echo "[INFO] Rscript=$(command -v Rscript || true)"
 Rscript --version || true
 
-echo "[INFO] Sanity check: package directories under ${CONDA_PREFIX}/lib/R/library"
-ls -ld "${CONDA_PREFIX}/lib/R/library" || true
-ls -ld "${CONDA_PREFIX}/lib/R/library"/{tidyverse,gratia,mvnfast,patchwork,scales,reshape,ecostats} || true
-
-echo "[INFO] Checking R package dependencies (system libraries masked)"
-Rscript --vanilla -e 'pkgs<-c("mgcv","nlme","tidyverse","gratia","mvnfast","psych","R.matlab","patchwork","RColorBrewer","scales","reshape","ecostats"); cat(".libPaths() BEFORE:\n"); print(.libPaths()); lp<-unique(c(Sys.getenv("R_LIBS_USER"), Sys.getenv("R_LIBS_SITE"))); .libPaths(lp); cat(".libPaths() FORCED:\n"); print(.libPaths()); errs<-character(); for(p in pkgs){cat("== ",p," ==\n", sep=""); ok<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok) errs<-c(errs,p)}; if(length(errs)>0) stop(paste0("Missing packages: ", paste(errs, collapse=", "))); for(p in pkgs) cat(p,":",as.character(packageVersion(p)),"\n")'
+echo "[INFO] Ensuring R package dependencies (system/user libraries masked; project-local installs allowed)"
+Rscript --vanilla -e 'lib_user<-Sys.getenv("R_LIBS_USER"); lib_site<-Sys.getenv("R_LIBS_SITE"); dir.create(lib_user, showWarnings=FALSE, recursive=TRUE); .libPaths(unique(c(lib_user, lib_site))); cat(".libPaths():\n"); print(.libPaths()); options(repos=c(CRAN="https://cloud.r-project.org")); pkgs<-c("mgcv","nlme","tidyverse","gratia","mvnfast","psych","R.matlab","patchwork","RColorBrewer","scales","reshape","ecostats"); for(p in pkgs){cat("== ",p," ==\n", sep=""); ok<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("LOAD_ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok){cat("Installing into ",lib_user,": ",p,"\n", sep=""); install.packages(p, lib=lib_user, dependencies=TRUE); ok2<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("RELOAD_ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok2) stop("Failed to load after install: ", p)}; cat("VERSION: ", as.character(packageVersion(p)),"\n", sep="") }'
 
 Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/S1st_fitgammodels_SA_ds_sumSCinvnode_HCPD.R \
   --project_root="${project_root}" \
