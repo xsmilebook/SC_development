@@ -69,7 +69,21 @@ From: rocker/r-ver:4.1.3
     install_version("gamm4", version = "0.2-6", upgrade = "never")
 
     install.packages(
-      c("corrplot", "RColorBrewer", "openxlsx", "matrixStats"),
+      c(
+        # plotting / reporting
+        "corrplot", "RColorBrewer", "ggcorrplot", "geomtextpath",
+        "paletteer", "pals", "visreg",
+        # data IO / utilities
+        "openxlsx", "matrixStats", "gdata", "rjson",
+        # mixed models / inference helpers
+        "lme4", "pbkrtest",
+        # legacy reshape
+        "reshape2",
+        # knitting (some scripts are Rmd)
+        "knitr",
+        # summaries
+        "tableone"
+      ),
       dependencies = TRUE
     )
 RS
