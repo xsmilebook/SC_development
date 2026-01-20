@@ -34,5 +34,5 @@ python combat_gam/scripts/run_combat_gam_neuroharmonize_native.py \
   --age-col age \
   --sex-col sex \
   --mean-fd-col mean_fd \
+  --smooth-df 4 \
   --test-n "${TEST_N}"
-

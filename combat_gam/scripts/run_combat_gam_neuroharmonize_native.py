@@ -72,7 +72,7 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--eb", action="store_true", default=True)
     parser.add_argument("--no-eb", dest="eb", action="store_false")
-    parser.add_argument("--smooth-df", type=int, default=3)
+    parser.add_argument("--smooth-df", type=int, default=4)
     parser.add_argument("--smooth-degree", type=int, default=3)
     parser.add_argument("--smooth-fx", action="store_true", default=True)
     parser.add_argument("--smooth-kfold", dest="smooth_fx", action="store_false")
@@ -131,4 +131,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
