@@ -3,7 +3,7 @@
 args <- commandArgs(trailingOnly = TRUE)
 hcpd_raw <- if (length(args) >= 1) args[[1]] else "/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
 hcpd_combat <- if (length(args) >= 2) args[[2]] else "outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds"
-ch_raw <- if (length(args) >= 3) args[[3]] else "/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
+ch_raw <- if (length(args) >= 3) args[[3]] else "/ibmgpfs/cuizaixu_lab/congjing/double_check_scdevelopment/NC/interdataFolder_ChineseCohort/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge_new.rds"
 ch_combat <- if (length(args) >= 4) args[[4]] else "outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds"
 out_dir <- if (length(args) >= 5) args[[5]] else "outputs/figures/combat_gam"
 hcpd_prefix <- if (length(args) >= 6) args[[6]] else "hcpd_variance_decomp"
