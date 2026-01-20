@@ -21,6 +21,8 @@
 - 构建（集群）：`sbatch sbatch/build_scdevelopment_r41_container.sbatch`，生成镜像 `outputs/containers/scdevelopment_r41.sif`。
 - 运行（集群）：`sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch`（与非容器版参数一致，支持 `N_EDGES`/`SKIP_POSTERIOR`）。
 - 定义文件：`containers/scdevelopment_r41.def`（可按需扩展依赖，但应尽量保持版本稳定）。
+  - 常见构建报错：`could not use fakeroot: no mapping entry found in /etc/subuid for <user>`：说明集群未为该用户配置 fakeroot/subuid。当前构建脚本不使用 `--fakeroot`；若仍失败需联系管理员开启 setuid build 或提供可用的 fakeroot 配置。
+  - 网络：计算节点联网需代理；构建脚本已内置 `http(s)_proxy` 等环境变量导出。
 
 ## ComBat-GAM 运行约定
 - 小型测试可直接运行 `combat_gam/scripts/*.sh`；正式任务必须使用 `combat_gam/sbatch/*.sbatch` 提交到 `q_fat_c`。
