@@ -1,0 +1,247 @@
+## Rscript version of:
+##   S3rd_visualizationfitSCcurves_SA12sumSCinvnode_HCPD.Rmd
+##
+## This script generates fitted values from scaled GAM models and produces
+## developmental trajectory plots for HCP-D (SA12, sumSCinvnode), using outputs
+## from the ComBat-GAM pipeline.
+##
+## Default inputs (project-relative):
+## - outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/gamresults78_sumSCinvnode_over8_CV75_scale_TRUE.rds
+## - outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/gammodel78_sumSCinvnode_over8_CV75_scale_TRUE.rds
+## - outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/derivative.df78_CV75.rds
+##
+## Outputs (project-relative):
+## - outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/plotdatasum_scale_TRUE_SA12.rds
+## - outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/** (tiff+svg)
+
+rm(list = ls())
+
+library(parallel)
+library(tidyverse)
+library(ggplot2)
+library(RColorBrewer)
+library(scales)
+library(patchwork)
+
+parse_args <- function(args) {
+  res <- list()
+  for (a in args) {
+    if (!startsWith(a, "--") || !grepl("=", a, fixed = TRUE)) next
+    kv <- strsplit(sub("^--", "", a), "=", fixed = TRUE)[[1]]
+    if (length(kv) != 2) next
+    res[[kv[[1]]]] <- kv[[2]]
+  }
+  res
+}
+
+args <- parse_args(commandArgs(trailingOnly = TRUE))
+project_root <- normalizePath(if (!is.null(args$project_root)) args$project_root else getwd(), mustWork = FALSE)
+if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
+  stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
+}
+
+CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
+ds.resolution <- 12
+elementnum <- ds.resolution * (ds.resolution + 1) / 2
+
+interfileFolder <- file.path(
+  project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
+  "hcpd", "combat_gam", paste0("CV", CVthr)
+)
+resultFolder <- file.path(
+  project_root, "outputs", "results", "2nd_fitdevelopmentalmodel",
+  "hcpd", "combat_gam", paste0("CV", CVthr)
+)
+FigureRoot <- file.path(project_root, "outputs", "figures", "2nd_fitdevelopmentalmodel", "hcpd", "combat_gam")
+
+dir.create(interfileFolder, showWarnings = FALSE, recursive = TRUE)
+dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
+dir.create(FigureRoot, showWarnings = FALSE, recursive = TRUE)
+
+functionFolder <- file.path(project_root, "gamfunction")
+source(file.path(functionFolder, "plotdata_generate.R"))
+source(file.path(functionFolder, "colorbarvalue.R"))
+
+n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = NA))
+if (is.na(n_cores) || n_cores < 1) n_cores <- parallel::detectCores()
+n_cores <- max(1L, n_cores)
+
+## load data
+gamresultsum.SAorder.delLM <- readRDS(file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
+gammodelsum <- readRDS(file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
+derivative <- readRDS(file.path(resultFolder, paste0("derivative.df", elementnum, "_CV", CVthr, ".rds")))
+
+## generate fitted values for developmental trajectories
+plotdatasum <- mclapply(seq_len(elementnum), function(x) {
+  modobj <- gammodelsum[[x]]
+  plotdata <- plotdata_generate(modobj, "age")
+  plotdata
+}, mc.cores = n_cores)
+saveRDS(plotdatasum, file.path(interfileFolder, "plotdatasum_scale_TRUE_SA12.rds"))
+
+plotdatasum.df <- as.data.frame(matrix(NA, nrow = 1, ncol = 17))
+names(plotdatasum.df) <- c(names(plotdatasum[[2]])[1:13], "SC_label", "SCrank", "PartialRsq", "meanderiv2")
+
+## SA12 index & SC rank
+Matrix12 <- matrix(NA, nrow = 12, ncol = 12)
+indexup12 <- upper.tri(Matrix12)
+indexsave12 <- !indexup12
+Matrix12.SCrank <- Matrix12
+for (x in 1:12) {
+  for (y in 1:12) {
+    Matrix12.SCrank[x, y] <- x^2 + y^2
+  }
+}
+Matrix12.SCrank[indexup12] <- NA
+Matrix12.SCrank[indexsave12] <- rank(Matrix12.SCrank[indexsave12], ties.method = "average")
+
+for (i in seq_len(elementnum)) {
+  tmp <- plotdatasum[[i]][, -14]
+  tmp$SC_label <- gamresultsum.SAorder.delLM$parcel[[i]]
+  tmp$SCrank <- Matrix12.SCrank[indexsave12][[i]]
+  tmp$PartialRsq <- gamresultsum.SAorder.delLM$partialRsq[[i]]
+  tmp$meanderiv2 <- gamresultsum.SAorder.delLM$meanderv2[[i]]
+  plotdatasum.df <- rbind(plotdatasum.df, tmp)
+}
+plotdatasum.df <- plotdatasum.df[-1, ]
+
+## figure folders (match historical subfolder names)
+FigureFolder <- file.path(FigureRoot, paste0("CV", CVthr))
+FigureFolder_SCfit <- file.path(FigureFolder, "SA12_sumSCinvnode_fit")
+FigureFolder_SCdecile <- file.path(FigureFolder, "SA12_decile_sumSCinvnode_fit")
+dir.create(FigureFolder_SCfit, showWarnings = FALSE, recursive = TRUE)
+dir.create(FigureFolder_SCdecile, showWarnings = FALSE, recursive = TRUE)
+
+## Plots: 78 developmental trajectories (fit.ratio colored by partial R^2)
+lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq))
+p1 <- ggplot() +
+  geom_line(data = plotdatasum.df, aes(x = age, y = fit.ratio, group = SC_label, color = PartialRsq), linewidth = 0.8, alpha = 0.8) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr)) +
+  labs(x = "Age (years)", y = "SC strength (ratio)") +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 20.5, color = "black"),
+    axis.title = element_text(size = 20.5, color = "black"),
+    aspect.ratio = 1,
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    plot.title = element_text(size = 15, hjust = 0.5),
+    legend.position = "none"
+  )
+ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff"), p1, width = 20, height = 14, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.svg"), p1, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
+
+## Plots: 78 developmental trajectories (fit.Z colored by mean 2nd derivative)
+colorbarvalues.meanderiv2 <- colorbarvalues(
+  plotdatasum.df$meanderiv2,
+  abs(min(plotdatasum.df$meanderiv2)) / (max(plotdatasum.df$meanderiv2) - min(plotdatasum.df$meanderiv2))
+)
+SC_label_derv2_order <- gamresultsum.SAorder.delLM$parcel[order(gamresultsum.SAorder.delLM$meanderv2)]
+plotdatasum.df$SC_label2 <- factor(plotdatasum.df$SC_label, levels = SC_label_derv2_order)
+p2 <- ggplot() +
+  geom_line(data = plotdatasum.df, aes(x = age, y = fit.Z, group = SC_label2, color = meanderiv2), linewidth = 0.8, alpha = 0.8) +
+  scale_color_distiller(type = "seq", palette = "RdBu", values = colorbarvalues.meanderiv2, direction = -1) +
+  labs(x = "Age (years)", y = "SC strength (z-score)") +
+  scale_y_continuous(breaks = c(-1.5, 0.0, 1.5)) +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 20.5, color = "black"),
+    axis.title = element_text(size = 20.5, color = "black"),
+    aspect.ratio = 1,
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    plot.title = element_text(size = 15, hjust = 0.5),
+    legend.position = "none"
+  )
+ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff"), p2, width = 20, height = 14, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.svg"), p2, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
+
+## Example edges (SC.2_h and SC.77_h)
+BuRd <- rev(brewer.pal(10, "RdBu"))
+for (i in c(2, 77)) {
+  SClabel <- paste0("SC.", i, "_h")
+  rangev <- max(gamresultsum.SAorder.delLM$meanderv2) - min(gamresultsum.SAorder.delLM$meanderv2)
+  coloridx <- round((gamresultsum.SAorder.delLM$meanderv2[gamresultsum.SAorder.delLM$parcel == SClabel] - min(gamresultsum.SAorder.delLM$meanderv2)) / rangev * 10)
+  if (is.na(coloridx) || coloridx == 0) coloridx <- 1
+  if (coloridx > 10) coloridx <- 10
+  colorID <- BuRd[[coloridx]]
+
+  plotdatasum.df.tmp <- plotdatasum.df[plotdatasum.df$SC_label == SClabel, ]
+  scatterdata <- gammodelsum[[i]]$model
+  scatterdata$SC <- scatterdata[, 1]
+  Scatter_Fig <- ggplot() +
+    geom_ribbon(data = plotdatasum.df.tmp, aes(x = age, ymin = selo, ymax = sehi), alpha = 0.3, fill = colorID) +
+    geom_point(data = scatterdata, aes(x = age, y = SC), alpha = 0.5, color = colorID) +
+    geom_line(data = plotdatasum.df.tmp, aes(x = age, y = fit), linewidth = 1.4, alpha = 1, color = colorID) +
+    labs(y = "SC strength (ratio)") + xlab(NULL) +
+    theme_classic() +
+    theme(
+      axis.text = element_text(size = 18.5, color = "black"),
+      axis.title = element_text(size = 18.5),
+      plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+      aspect.ratio = 0.8,
+      axis.line = element_line(linewidth = 0.4),
+      axis.ticks = element_line(linewidth = 0.4),
+      plot.background = element_rect(fill = "transparent", color = NA),
+      panel.background = element_rect(fill = "transparent", color = NA),
+      legend.position = "none"
+    )
+
+  derivative$significant.derivative_fdr <- as.numeric(derivative$significant.derivative_fdr)
+  deriv.SA12.tmp <- derivative[derivative$label_ID == SClabel, ]
+  deriv.SA12.tmp$h <- 1
+  derivplot <- ggplot(data = deriv.SA12.tmp) +
+    geom_bar(aes(x = age, y = 1, fill = significant.derivative_fdr, color = significant.derivative_fdr), stat = "identity", position = "stack") +
+    scale_fill_gradient2(high = colorID, low = "white", midpoint = 0, na.value = "white", labels = NULL) +
+    scale_color_gradient2(high = colorID, low = "white", midpoint = 0, na.value = "white", labels = NULL) +
+    scale_y_continuous(breaks = NULL) +
+    ylab(NULL) + xlab("Age (years)") +
+    scale_x_continuous(breaks = NULL) +
+    theme_classic() +
+    theme(
+      axis.text = element_text(size = 18.5, color = "black"),
+      axis.title = element_text(size = 18.5),
+      axis.line.y = element_line(linewidth = 0),
+      axis.line.x = element_line(linewidth = 0),
+      aspect.ratio = 0.05,
+      legend.position = "none",
+      plot.background = element_rect(fill = "transparent", color = NA),
+      panel.background = element_rect(fill = "transparent", color = NA)
+    )
+
+  combined_plot <- Scatter_Fig / derivplot + plot_layout(ncol = 1, nrow = 2)
+  ggsave(file.path(FigureFolder_SCfit, paste0("SA12_delLM_", SClabel, "_CV75.tiff")), combined_plot, width = 14, height = 14, units = "cm", bg = "transparent")
+  ggsave(file.path(FigureFolder_SCfit, paste0("SA12_delLM_", SClabel, "_CV75.svg")), combined_plot, dpi = 600, width = 13, height = 13, units = "cm", bg = "transparent")
+}
+
+## Average fitted values for 10 deciles of connectional axis
+SA12_10 <- data.frame(SCrank = Matrix12.SCrank[indexsave12])
+SA12_10 <- SA12_10 %>% mutate(decile = ntile(SCrank, 10))
+SA12_10$SC_label <- gamresultsum.SAorder.delLM$parcel
+write.csv(SA12_10, file.path(interfileFolder, "SA12_10.csv"), row.names = FALSE)
+
+plotdatasum.df.label <- merge(plotdatasum.df, SA12_10, by = "SC_label", all.x = TRUE)
+plotdatasum.df.decile <- plotdatasum.df.label %>%
+  group_by(decile, age) %>%
+  summarise(fit.avg = mean(fit), SCranktype_order = mean(decile), .groups = "drop")
+plotdatasum.df.decile <- plotdatasum.df.decile %>%
+  group_by(decile) %>%
+  mutate(fit.Z = scale(fit.avg), fit.ratio = fit.avg / fit.avg[[1]])
+
+p3 <- ggplot(data = plotdatasum.df.decile, aes(x = age, y = fit.Z, group = decile, color = decile)) +
+  geom_line(linewidth = 1.5, alpha = 0.8) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1) +
+  labs(x = "Age (years)", y = "SC strength (z-score)") +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 17.2, color = "black"),
+    axis.title = element_text(size = 17.2, color = "black"),
+    aspect.ratio = 0.8,
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    plot.title = element_text(size = 15, hjust = 0.5),
+    legend.position = "none"
+  )
+ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.tiff"), p3, dpi = 600, width = 20, height = 14, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.svg"), p3, dpi = 600, width = 15, height = 13, units = "cm", bg = "transparent")
+

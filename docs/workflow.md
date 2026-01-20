@@ -53,6 +53,13 @@
 2) 发育模型与导数分析（`development_script/2nd_fitdevelopmentalmodel`）
    - GAM/GAMM 建模，生成拟合曲线与导数。
    - 计算与 S-A 轴的相关与可视化。
+   - HCP-D（基于 ComBat-GAM 输出）的可复现运行入口：
+     - 输入默认：`outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+     - sbatch：`sbatch/run_hcpd_devmodel_combatgam_CV75.sbatch`
+     - 产物目录：
+       - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
+       - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
+       - figures：`outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
 3) S-A 轴可视化（`development_script/3rd_plotConnectionalAxis`）
 4) 年龄分段与变化率分析（`development_script/4th_changerate_SAcorr`）
 5) 认知与心理病理相关分析（`development_script/5th_cognition`、`development_script/6th_pfactor`）

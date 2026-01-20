@@ -17,6 +17,18 @@ This script elucidates the developmental trajectories of 78 connections, subsequ
 ## S4th_correlationTo_SArank_SA12sumSCinvnode_*.R
 This script conducts Spearman correlation analyses between developmental parameters and the S-A connectional axis rank. It performs regression analyses to remove the effect of Euclidean distance from the average second derivatives and the partial R-squared values for the 78 connections. Subsequently, correlation analyses were carried out between the residuals and the connectional axis to further investigate their relationship.
 
+## HCP-D (ComBat-GAM) in-repo runnable scripts
+Historical scripts in this folder contained hard-coded absolute paths. For running on the current cluster/repo, HCP-D scripts were adapted to write all new intermediates/results/figures under `SCDevelopment/outputs/` and to use the ComBat-GAM HCP-D data by default:
+
+- Input (default): `outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+- Intermediates: `outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
+- Results: `outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
+- Figures: `outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
+
+Rscript versions were added for the original HCP-D Rmd scripts:
+- `S3rd_visualizationfitSCcurves_SA12sumSCinvnode_HCPD.R`
+- `S4th_correlationTo_SArank_SA12sumSCinvnode_HCPD.R`
+
 ## V1st_check_k.R
 This script was utilized to select the optimal (k) values for the smoothing functions in GAM and GAMM. 
 
@@ -25,5 +37,4 @@ Compute Euclidean distance between pairwise systems in 12x12 matrix.
 
 ## sup_sigderivative_HCPD.R
 This script visualized the age window during which the SC strength develops significantly. The age windows were identified based on the significance of first derivatives.
-
 

@@ -94,3 +94,4 @@
 - 2026-01-20: 方差分解绘图更新为序列（sequential）R²，按 `age→sex→mean_fd→表型→site` 顺序计算变量解释量；ABCD 采用 `gamm4` 拟合纵向数据并对拟合失败的边执行跳过策略。
 - 2026-01-20: 修复 ABCD 方差分解绘图在 baseline-only 或缺乏重复测量时 `gamm4` random intercept 不可用导致的崩溃：自动回退到 `mgcv::gam` 并对空结果安全退出。
 - 2026-01-20: 补充 `docs/workflow.md` 的可复用经验：R ABI 隔离、并行/BLAS 线程、neuroHarmonize 平滑项与 statsmodels spline 约束、以及绘图耗时的定量解释。
+- 2026-01-20: 基于 HCP-D ComBat-GAM 输出新增/修订发育模型脚本的可复现运行方式：HCP-D 的 S1/S2 脚本改为项目内路径；为 S3/S4 的 Rmd 增加对应 Rscript 版本；新增 sbatch `sbatch/run_hcpd_devmodel_combatgam_CV75.sbatch` 并统一产物写入 `outputs/`。
