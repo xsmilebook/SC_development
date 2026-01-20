@@ -99,3 +99,4 @@
 - 2026-01-20: 修复 HCP-D 发育模型 S1 GAM 拟合失败：`gamfunction/gamsmooth.R`/`gamfunction/gamderivatives.R` 兼容 `gratia` 不同版本的导数输出列名；保留 `ecostats::anovaPB()` 但强制 `ncpus=1` 以避免并行序列化报错（如 `nbinom2 not found`）。
 - 2026-01-20: 修复 HCP-D 发育模型在计算节点频繁出现的 `GLIBC_2.xx not found`（`cli.so`/`farver.so`/`Rcpp.so`）：sbatch 改为使用项目内 `outputs/r_libs/scdevelopment_r41/` 作为 `R_LIBS_USER`，在计算节点上自动编译补装缺失/载入失败的 R 依赖以匹配节点 GLIBC。
 - 2026-01-20: 修复 HCP-D 发育模型在计算节点无法访问 CRAN 导致的依赖补装失败（`cannot open URL .../PACKAGES` / 误报 “package is not available”）：在项目内建立离线 CRAN 源码仓库 `outputs/r_cran_repo/`，sbatch 仅从本地 repo 安装依赖到 `outputs/r_libs/scdevelopment_r41/`。
+- 2026-01-20: 新增项目专用 Singularity 容器（R 4.1.3）以避免计算节点 GLIBC/联网差异导致的 R 包加载与安装失败：提供定义文件 `containers/scdevelopment_r41.def`、构建脚本 `sbatch/build_scdevelopment_r41_container.sbatch` 与运行脚本 `sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch`。

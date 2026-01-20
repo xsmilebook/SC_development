@@ -1,0 +1,70 @@
+Bootstrap: docker
+From: rocker/r-ver:4.1.3
+
+%labels
+    Project SCDevelopment
+    R 4.1.3
+
+%environment
+    export LC_ALL=C
+    export LANG=C
+    export LANGUAGE=C
+
+%post
+    set -e
+
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        curl \
+        git \
+        gfortran \
+        libcurl4-openssl-dev \
+        libssl-dev \
+        libxml2-dev \
+        zlib1g-dev \
+        libgsl-dev \
+        libglpk40 \
+        libharfbuzz-dev \
+        libfribidi-dev \
+        libfreetype6-dev \
+        libpng-dev \
+        libtiff5-dev \
+        libjpeg-dev \
+        libcairo2-dev \
+        libfontconfig1-dev \
+        libicu-dev \
+        libxt-dev
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+    Rscript --vanilla -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages("remotes")'
+
+    # Keep key versions aligned with the current conda-based workflow:
+    # - R 4.1.3 (base image)
+    # - mgcv 1.8-42
+    # - nlme 3.1-162
+    # - gratia 0.8.1 (compatible with R 4.1.x)
+    # - ecostats 1.2.2 (anovaPB)
+    Rscript --vanilla -e ' \
+      options(repos=c(CRAN="https://cloud.r-project.org")); \
+      library(remotes); \
+      install_version("mgcv", version="1.8-42", upgrade="never"); \
+      install_version("nlme", version="3.1-162", upgrade="never"); \
+      install_version("ecostats", version="1.2.2", upgrade="never"); \
+      install_version("gratia", version="0.8.1", upgrade="never"); \
+      install_version("mvnfast", version="0.2.8", upgrade="never"); \
+      install_version("patchwork", version="1.1.2", upgrade="never"); \
+      install_version("scales", version="1.4.0", upgrade="never"); \
+      install_version("reshape", version="0.8.9", upgrade="never"); \
+      install_version("R.matlab", version="3.7.0", upgrade="never"); \
+      install_version("psych", version="2.3.3", upgrade="never"); \
+      install_version("tidyverse", version="1.3.2", upgrade="never"); \
+      install.packages(c("gamm4","corrplot","RColorBrewer","openxlsx","matrixStats"), dependencies=TRUE) \
+    '
+
+%runscript
+    exec Rscript --vanilla "$@"
+

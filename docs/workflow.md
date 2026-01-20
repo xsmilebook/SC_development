@@ -15,6 +15,13 @@
 - `combat_gam/` 用于集中存放 ComBat-GAM 与纵向 ComBat 相关代码及其依赖。
 - ComBat 运行日志统一写入 `outputs/logs/combat_gam/`，输出结果保存到 `outputs/results/combat_gam/`。
 
+## 容器运行（Singularity/Apptainer）
+- 背景：部分计算节点无法加载在登录节点安装/更新过的 conda R 包（GLIBC 版本不匹配），且计算节点常无法访问 CRAN，导致运行时反复报错（`GLIBC_2.xx not found` / `cannot open URL .../PACKAGES`）。
+- 解决：使用项目内 Singularity 容器（R 4.1.3，固定 mgcv/nlme/ecostats/gratia 等关键版本），避免节点差异导致的依赖不一致。
+- 构建（集群）：`sbatch sbatch/build_scdevelopment_r41_container.sbatch`，生成镜像 `outputs/containers/scdevelopment_r41.sif`。
+- 运行（集群）：`sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch`（与非容器版参数一致，支持 `N_EDGES`/`SKIP_POSTERIOR`）。
+- 定义文件：`containers/scdevelopment_r41.def`（可按需扩展依赖，但应尽量保持版本稳定）。
+
 ## ComBat-GAM 运行约定
 - 小型测试可直接运行 `combat_gam/scripts/*.sh`；正式任务必须使用 `combat_gam/sbatch/*.sbatch` 提交到 `q_fat_c`。
 - ComBat-GAM 使用项目专用环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment`。
