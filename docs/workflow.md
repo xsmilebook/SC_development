@@ -84,5 +84,10 @@
 ## 可复用经验（本次会话）
 - **环境隔离**：为复现旧版脚本，建议新建独立 conda 环境（如 `scdevelopment_r41`，R 4.1.3），避免在旧环境上补装导致依赖漂移；必要时用 CRAN Archive 固定包版本（例如 `gratia_0.8.1`）。
 - **sbatch 入参约定**：若脚本要求输出路径（如 Chinese ComBat），sbatch 模板应显式传参并将日志写到 `outputs/logs/`，避免默认 `slurm-*.out` 分散且误判为“无日志”。  
+- **R ABI 报错排查**：出现 `rlang.so undefined symbol`、`GLIBC` 不匹配等问题时，优先排查作业是否误加载用户库（如 `/GPFS/.../R/packages`）；在 sbatch 内用 `Rscript --vanilla` 并显式设置 `R_LIBS_USER` 到 conda 库可显著降低此类问题。
+- **并行与线程**：脚本并行尽量从 `SLURM_CPUS_PER_TASK` 读取核数（如 `mclapply`/`nlongcombat`）；同时限制 `OPENBLAS_NUM_THREADS/OMP_NUM_THREADS/MKL_NUM_THREADS=1` 避免线程过订阅导致性能下降或报错。
+- **neuroHarmonize 平滑项**：若通过 `smoothCon(... )$X` 手动构造基函数并作为线性协变量输入，`fx` 的影响通常不会体现在 `X` 上；要让固定/惩罚平滑生效，应使用 neuroHarmonize 原生 `smooth_terms`（`smooth_fx`）。
+- **statsmodels spline 约束**：使用 `harmonizationLearn(..., smooth_terms=...)` 时，`smooth_df` 需满足 `smooth_df >= smooth_degree + 1`（例如三次样条 `degree=3` 时 `df>=4`）。
+- **方差分解图耗时**：绘图阶段会对每条边重复拟合多次模型（Raw/ComBat × 多个 covariate 集合），通常远慢于一次性 ComBat；序列（sequential）R² 相比全子集方法更可控，且可通过并行显著缩短总耗时。
 - **方差分解图解读**：`facet_grid(..., scales=\"free_y\")` 会放大 ComBat 面板的视觉高度；判断校正效果应结合数值计算（如导出 `siteID` 的 mean/max），避免仅凭堆叠柱形高度下结论。
 - **数据/结果不入库**：`demopath/`、`outputs/`、`wd/`、`containers/` 等数据目录应在 `.gitignore` 忽略；若已被追踪，需要 `git rm -r --cached` 从索引移除（不删除磁盘文件）。
