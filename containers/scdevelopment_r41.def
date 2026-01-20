@@ -53,39 +53,70 @@ From: rocker/r-ver:4.1.3
     install.packages("remotes")
     library(remotes)
 
-    install_version("mgcv", version = "1.8-42", upgrade = "never")
-    install_version("nlme", version = "3.1-162", upgrade = "never")
-    install_version("ecostats", version = "1.2.2", upgrade = "never")
-    install_version("gratia", version = "0.8.1", upgrade = "never")
-    install_version("mvnfast", version = "0.2.8", upgrade = "never")
-    install_version("patchwork", version = "1.1.2", upgrade = "never")
-    install_version("scales", version = "1.4.0", upgrade = "never")
-    install_version("reshape", version = "0.8.9", upgrade = "never")
-    install_version("R.matlab", version = "3.7.0", upgrade = "never")
-    install_version("psych", version = "2.3.3", upgrade = "never")
-    install_version("tidyverse", version = "1.3.2", upgrade = "never")
+    pin <- function(pkg, ver) {
+      install_version(pkg, version = ver, upgrade = "never")
+    }
+
+    # Base toolchain-ish packages to stabilize tidyverse compilation & loading
+    # (versions aligned to the existing scdevelopment_r41 workflow).
+    pin("Rcpp", "1.0.10")
+    pin("cli", "3.6.1")
+    pin("farver", "2.1.1")
+    pin("stringi", "1.7.12")
+    pin("rlang", "1.1.1")
+    pin("vctrs", "0.6.2")
+
+    # Core modeling stack
+    pin("mgcv", "1.8-42")
+    pin("nlme", "3.1-162")
+    pin("ecostats", "1.2.2")
+    pin("gratia", "0.8.1")
+    pin("mvnfast", "0.2.8")
+
+    # Tidyverse components (pin individually + meta package)
+    pin("ggplot2", "4.0.1")
+    pin("dplyr", "1.1.2")
+    pin("tidyr", "1.3.0")
+    pin("stringr", "1.5.0")
+    pin("readr", "2.1.4")
+    pin("purrr", "1.0.1")
+    pin("tibble", "3.2.1")
+    pin("forcats", "1.0.0")
+    pin("tidyverse", "1.3.2")
+
+    # Plot helpers used in scripts
+    pin("scales", "1.4.0")
+    pin("patchwork", "1.1.2")
+    pin("corrplot", "0.95")
+    pin("ggcorrplot", "0.1.4.1")
+    pin("geomtextpath", "0.2.0")
+    pin("paletteer", "1.7.0")
+    pin("pals", "1.10")
+    pin("visreg", "2.8.0")
+
+    # IO / utilities used in scripts
+    pin("openxlsx", "4.2.8.1")
+    pin("matrixStats", "1.5.0")
+    pin("gdata", "3.0.1")
+    pin("rjson", "0.2.23")
+    pin("reshape", "0.8.9")
+    pin("reshape2", "1.4.5")
+    pin("R.matlab", "3.7.0")
+    pin("psych", "2.3.3")
+    pin("knitr", "1.43")
+    pin("tableone", "0.13.2")
+
+    # Mixed models and related inference
+    pin("lme4", "1.1-33")
+    pin("pbkrtest", "0.5-2")
+
+    # ragg stack (not required by every script, but often needed for reliable raster output)
+    pin("systemfonts", "1.3.1")
+    pin("textshaping", "1.0.4")
+    pin("ragg", "1.5.0")
 
     # CRAN current gamm4 requires R >= 4.4; pin an archive version compatible with R 4.1.x.
-    install_version("gamm4", version = "0.2-6", upgrade = "never")
-
-    install.packages(
-      c(
-        # plotting / reporting
-        "corrplot", "RColorBrewer", "ggcorrplot", "geomtextpath",
-        "paletteer", "pals", "visreg",
-        # data IO / utilities
-        "openxlsx", "matrixStats", "gdata", "rjson",
-        # mixed models / inference helpers
-        "lme4", "pbkrtest",
-        # legacy reshape
-        "reshape2",
-        # knitting (some scripts are Rmd)
-        "knitr",
-        # summaries
-        "tableone"
-      ),
-      dependencies = TRUE
-    )
+    pin("gamm4", "0.2-6")
 RS
     Rscript --vanilla /tmp/install_r_pkgs.R
     rm -f /tmp/install_r_pkgs.R
