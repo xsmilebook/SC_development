@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH -J combat_chinese_gam_native
-#SBATCH -p q_fat_c
+#SBATCH -p q_fat_c,q_fat,q_fat_l
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=64G
 #SBATCH -t 24:00:00

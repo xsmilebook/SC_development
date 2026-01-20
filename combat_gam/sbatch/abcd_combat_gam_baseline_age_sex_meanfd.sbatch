@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH -J combat_abcd_base_gam
-#SBATCH -p q_fat_c
+#SBATCH -p q_fat_c,q_fat,q_fat_l
 #SBATCH --cpus-per-task=72
 #SBATCH --mem=120G
 #SBATCH -t 24:00:00
@@ -37,4 +37,3 @@ Rscript --vanilla combat_gam/scripts/run_abcd_nonlinear_combat_gam_baseline_age_
   "${INPUT_RDS}" \
   "${OUTPUT_RDS}" \
   "${TEST_N}"
-

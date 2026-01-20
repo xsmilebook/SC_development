@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -J cbcl_assoc_full
-#SBATCH -p q_fat_c
+#SBATCH -p q_fat_c,q_fat,q_fat_l
 #SBATCH -c 50
 #SBATCH --mem=120G
 #SBATCH -t 72:00:00

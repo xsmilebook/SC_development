@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH -J plot_abcd_r2
-#SBATCH -p q_fat_c
-#SBATCH --cpus-per-task=24
+#SBATCH -p q_fat_c,q_fat,q_fat_l
+#SBATCH --cpus-per-task=72
 #SBATCH --mem=64G
 #SBATCH -t 06:00:00
 #SBATCH --output=outputs/logs/combat_gam/plot_abcd_variance_decomposition_%j.log
@@ -29,4 +29,3 @@ export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 
 Rscript --vanilla combat_gam/scripts/plot_abcd_variance_decomposition.R
-

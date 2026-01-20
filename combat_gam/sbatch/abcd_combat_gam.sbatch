@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH -J combat_abcd_gam
-#SBATCH -p q_fat_c
+#SBATCH -p q_fat_c,q_fat,q_fat_l
 #SBATCH --cpus-per-task=72
 #SBATCH --output=outputs/logs/combat_gam/combat_abcd_gam_%j.log
 
