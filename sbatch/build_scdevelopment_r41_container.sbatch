@@ -2,8 +2,6 @@
 #SBATCH -J build_scdev_r41_sif
 #SBATCH -p q_fat_c,q_fat,q_fat_l
 #SBATCH -c 8
-#SBATCH --mem=32G
-#SBATCH -t 06:00:00
 #SBATCH -o outputs/logs/containers/build_scdev_r41_%j.log
 
 set -euo pipefail
@@ -44,6 +42,17 @@ echo "[INFO] sif_out=${sif_out}"
 echo "[INFO] http_proxy=${http_proxy}"
 echo "[INFO] https_proxy=${https_proxy}"
 
-# NOTE: do not use --fakeroot (requires /etc/subuid mapping). This cluster's
-# singularity module is expected to support unprivileged builds without it.
-singularity build "${sif_out}" "${def_file}"
+# This cluster does not grant root build privileges and fakeroot may be
+# unavailable (no /etc/subuid mapping). Use remote build.
+if ! singularity remote status 2>/dev/null | grep -qi "logged in"; then
+  if [ -n "${SINGULARITY_REMOTE_TOKEN:-}" ]; then
+    echo "[INFO] Logging into singularity remote (token via SINGULARITY_REMOTE_TOKEN)"
+    token_file="$(mktemp)"
+    printf "%s" "${SINGULARITY_REMOTE_TOKEN}" > "${token_file}"
+    singularity remote login --tokenfile "${token_file}"
+    rm -f "${token_file}"
+  fi
+fi
+
+echo "[INFO] Building with: singularity build --remote ${sif_out} ${def_file}"
+singularity build --remote "${sif_out}" "${def_file}"

@@ -2,8 +2,6 @@
 #SBATCH -J hcpd_devmodel_cg_cv75
 #SBATCH -p q_fat_c,q_fat,q_fat_l
 #SBATCH -c 50
-#SBATCH --mem=120G
-#SBATCH -t 48:00:00
 #SBATCH -o outputs/logs/hcpd_devmodel_combatgam_CV75_%j.log
 
 set -euo pipefail
