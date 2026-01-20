@@ -38,7 +38,7 @@ def _build_mgcv_basis(age_values, age_col):
     with localconverter(default_converter + pandas2ri.converter):
         r_df = ro.conversion.py2rpy(pd.DataFrame({age_col: age_values}))
     ro.globalenv["df"] = r_df
-    r_expr = f'sm <- smoothCon(s(`{age_col}`, k=3, bs="tp"), data=df)[[1]]; sm$X'
+    r_expr = f'sm <- smoothCon(s(`{age_col}`, k=3, bs="tp", fx=TRUE), data=df)[[1]]; sm$X'
     x_mat = np.asarray(ro.r(r_expr))
     stds = x_mat.std(axis=0)
     keep = stds > 0

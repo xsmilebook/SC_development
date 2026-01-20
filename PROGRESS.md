@@ -84,3 +84,4 @@
 - 2026-01-19: CBCL total raw 关联分析脚本改为直接生成项目内绘图输出（t-value matrix、S-A rank 散点、5 组 S-A 分位数组轨迹），并删除不再使用的 `S2nd_cbcl_totalraw_effect_continuous_ABCD.Rmd`。
 - 2026-01-19: CBCL 绘图输出风格对齐 p-factor（theme/字号/透明背景/`tiff+svg`），并将图统一写入 `outputs/figures/cbcl_totprob/`。
 - 2026-01-19: CBCL 轨迹图按 S-A decile 1–10 输出（与 p-factor decile 绘图逻辑一致）。
+- 2026-01-20: HCP-D/Chinese ComBat-GAM（neuroHarmonize）年龄平滑基函数改为 `fx=TRUE`（`s(age, k=3, bs="tp", fx=TRUE)`），与既定 GAMM 设定对齐。
