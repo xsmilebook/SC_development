@@ -21,15 +21,6 @@ MAKE_MATRIX_GRAPHS="${MAKE_MATRIX_GRAPHS:-0}"
 mkdir -p "${project_root}/outputs/logs"
 cd "${project_root}"
 
-# Cluster usage: module load singularity/3.7.0
-if [ -f /usr/share/Modules/init/bash ]; then
-  # shellcheck disable=SC1091
-  source /usr/share/Modules/init/bash
-elif [ -f /etc/profile.d/modules.sh ]; then
-  # shellcheck disable=SC1091
-  source /etc/profile.d/modules.sh
-fi
-
 module load singularity/3.7.0
 singularity --version
 
@@ -78,4 +69,3 @@ exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S4
   --input_rds="/work/${INPUT_RDS#${project_root}/}" \
   --euclid_csv="/work/${EUCLID_CSV#${project_root}/}" \
   --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}"
-
