@@ -103,4 +103,5 @@
 - 2026-01-20: 容器构建适配集群限制：移除 `singularity build --fakeroot`（避免 `/etc/subuid` 缺失导致失败），并在构建 sbatch 中加入计算节点代理环境变量导出以支持联网拉取依赖。
 - 2026-01-20: 容器构建进一步适配集群权限限制：针对 “You must be the root user ... use --remote/--fakeroot” 报错，构建脚本切换为 `singularity build --remote` 并支持通过 `SINGULARITY_REMOTE_TOKEN` 非交互登录。
 - 2026-01-20: 修复容器定义文件 `%post` 中 Rscript 多行转义导致的远端构建失败：改用 heredoc 写入临时 R 脚本后执行，避免 `unexpected end of line` 与 `build image size <= 0`。
+- 2026-01-20: 修复容器内 `gamm4` 不可用：CRAN 当前版本要求 R>=4.4，容器改为安装 CRAN Archive `gamm4==0.2-6` 以兼容 R 4.1.3。
 - 2026-01-20: 简化容器 sbatch 的 module 加载逻辑：移除 Modules 初始化探测，直接使用 `module load singularity/3.7.0`。
