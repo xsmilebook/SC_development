@@ -48,12 +48,29 @@ gam.derivatives <- function(modobj,smooth_var, draws, increments, return_posteri
   pred2 <- pred #second prediction df
   pred2[,smooth_var] <- pred[,smooth_var] + EPS #finite differences
   
-  #Estimate smooth derivatives
-  derivs <- derivatives(gam.model, term = sprintf('s(%s)',smooth_var), interval = "simultaneous", unconditional = UNCONDITIONAL, data = pred) #derivative at 200 indices of smooth_var with a simultaneous CI
-  derivs.fulldf <- derivs %>% dplyr::select(age, .derivative, .se, .lower_ci, .upper_ci)
-  derivs.fulldf <- derivs.fulldf %>% mutate(significant = !(0 > .lower_ci & 0 < .upper_ci))
-  derivs.fulldf$significant.derivative = derivs.fulldf$.derivative*derivs.fulldf$significant
-  colnames(derivs.fulldf) <- c(sprintf("%s", smooth_var), "derivative", "se", "lower_ci", "upper", "significant", "significant.derivative")
+  # Estimate smooth derivatives
+  # NOTE: gratia output column names differ by version. Normalize to a common schema.
+  derivs_raw <- derivatives(gam.model, term = sprintf("s(%s)", smooth_var), interval = "simultaneous", unconditional = UNCONDITIONAL, data = pred)
+  derivs_raw <- as.data.frame(derivs_raw)
+  age_col <- if ("age" %in% names(derivs_raw)) "age" else if ("data" %in% names(derivs_raw)) "data" else smooth_var
+  deriv_col <- if (".derivative" %in% names(derivs_raw)) ".derivative" else if ("derivative" %in% names(derivs_raw)) "derivative" else NA_character_
+  se_col <- if (".se" %in% names(derivs_raw)) ".se" else if ("se" %in% names(derivs_raw)) "se" else NA_character_
+  lower_col <- if (".lower_ci" %in% names(derivs_raw)) ".lower_ci" else if ("lower" %in% names(derivs_raw)) "lower" else NA_character_
+  upper_col <- if (".upper_ci" %in% names(derivs_raw)) ".upper_ci" else if ("upper" %in% names(derivs_raw)) "upper" else NA_character_
+  if (is.na(deriv_col) || is.na(se_col) || is.na(lower_col) || is.na(upper_col)) {
+    stop("Unsupported gratia::derivatives() output columns: ", paste(names(derivs_raw), collapse = ", "))
+  }
+
+  derivs.fulldf <- data.frame(
+    age = as.numeric(derivs_raw[[age_col]]),
+    derivative = as.numeric(derivs_raw[[deriv_col]]),
+    se = as.numeric(derivs_raw[[se_col]]),
+    lower_ci = as.numeric(derivs_raw[[lower_col]]),
+    upper = as.numeric(derivs_raw[[upper_col]])
+  )
+  derivs.fulldf$significant <- !(0 > derivs.fulldf$lower_ci & 0 < derivs.fulldf$upper)
+  derivs.fulldf$significant.derivative <- derivs.fulldf$derivative * derivs.fulldf$significant
+  colnames(derivs.fulldf)[1] <- sprintf("%s", smooth_var)
   
   #Estimate posterior smooth derivatives from simulated GAM posterior distribution
   if(return_posterior_derivatives == TRUE){

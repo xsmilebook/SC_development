@@ -27,20 +27,30 @@ export R_LIBS=""
 export R_LIBS_SITE="${CONDA_PREFIX}/lib/R/library"
 export R_PROFILE_USER=/dev/null
 export R_ENVIRON_USER=/dev/null
+export R_PROFILE=/dev/null
+export R_ENVIRON=/dev/null
 
 # Avoid thread oversubscription (mclapply already uses cores).
 export OPENBLAS_NUM_THREADS=1
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
+export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
 
 echo "[INFO] project_root=${project_root}"
 echo "[INFO] CVTHR=${CVTHR}"
 echo "[INFO] INPUT_RDS=${INPUT_RDS}"
 echo "[INFO] EUCLID_CSV=${EUCLID_CSV}"
 echo "[INFO] SLURM_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK:-}"
+echo "[INFO] CONDA_PREFIX=${CONDA_PREFIX}"
+echo "[INFO] Rscript=$(command -v Rscript || true)"
+Rscript --version || true
+
+echo "[INFO] Sanity check: package directories under ${CONDA_PREFIX}/lib/R/library"
+ls -ld "${CONDA_PREFIX}/lib/R/library" || true
+ls -ld "${CONDA_PREFIX}/lib/R/library"/{tidyverse,gratia,mvnfast,patchwork,scales,reshape} || true
 
 echo "[INFO] Checking R package dependencies (system libraries masked)"
-Rscript --vanilla -e 'pkgs<-c("mgcv","nlme","tidyverse","gratia","mvnfast","psych","R.matlab","patchwork","RColorBrewer","scales","reshape","ecostats"); cat(".libPaths():\n"); print(.libPaths()); miss<-pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly=TRUE)]; if(length(miss)>0) stop(paste0("Missing packages: ", paste(miss, collapse=", "))); for(p in pkgs) cat(p,":",as.character(packageVersion(p)),"\n")'
+Rscript --vanilla -e 'pkgs<-c("mgcv","nlme","tidyverse","gratia","mvnfast","psych","R.matlab","patchwork","RColorBrewer","scales","reshape"); cat(".libPaths() BEFORE:\n"); print(.libPaths()); lp<-unique(c(Sys.getenv("R_LIBS_USER"), Sys.getenv("R_LIBS_SITE"))); .libPaths(lp); cat(".libPaths() FORCED:\n"); print(.libPaths()); errs<-character(); for(p in pkgs){cat("== ",p," ==\n", sep=""); ok<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok) errs<-c(errs,p)}; if(length(errs)>0) stop(paste0("Missing packages: ", paste(errs, collapse=", "))); for(p in pkgs) cat(p,":",as.character(packageVersion(p)),"\n")'
 
 Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/S1st_fitgammodels_SA_ds_sumSCinvnode_HCPD.R \
   --project_root="${project_root}" \

@@ -4,8 +4,11 @@ library(mgcv)
 library(gratia)
 library(tidyverse)
 library(dplyr)
-library(ecostats)
-set.seed(925)
+# NOTE: historical code used ecostats::anovaPB() (parametric bootstrap) to
+# compare full vs reduced models. That path is fragile on the cluster and can
+# spawn parallel backends unexpectedly. We instead use mgcv's built-in model
+# comparison p-value (approximate) via anova.gam().
+
 #### FIT GAM SMOOTH ####
 ##Function to fit a GAM (measure ~ s(smooth_var, k = knots, fx = set_fx) + covariates)) per each edge and save out statistics and derivative-based characteristics.
 gam.fit.smooth <- function(region, dataname, smooth_var, covariates, knots, set_fx = FALSE, stats_only = FALSE, mod_only = FALSE){
@@ -43,17 +46,42 @@ gam.fit.smooth <- function(region, dataname, smooth_var, covariates, knots, set_
   }
   pred <- thisPred %>% dplyr::select(-init)
   
-  #GAM derivatives
-  #Get 2nd derivatives of the smooth function using finite differences
-  derv <- derivatives(gam.model, term = sprintf('s(%s)',smooth_var), interval = "simultaneous", unconditional = F, data = pred) #derivative at 1000 indices of smooth_var with a simultaneous CI
-  derv2 <- derivatives(gam.model, order = 2,term=sprintf('s(%s)',smooth_var), type = "central", unconditional = F, data = pred)
-  meanderv2<-mean(derv2[[names(derv2)[str_detect(names(derv2),"derivative")]]])
+  # GAM derivatives
+  # NOTE: gratia output column names differ by version. Normalize to a common schema.
+  derv_raw <- derivatives(gam.model, term = sprintf("s(%s)", smooth_var), interval = "simultaneous", unconditional = FALSE, data = pred)
+  derv2_raw <- derivatives(gam.model, order = 2, term = sprintf("s(%s)", smooth_var), type = "central", unconditional = FALSE, data = pred)
+
+  normalize_deriv <- function(df, smooth_var) {
+    df <- as.data.frame(df)
+    age_col <- if ("age" %in% names(df)) "age" else if ("data" %in% names(df)) "data" else smooth_var
+    deriv_col <- if (".derivative" %in% names(df)) ".derivative" else if ("derivative" %in% names(df)) "derivative" else NA_character_
+    se_col <- if (".se" %in% names(df)) ".se" else if ("se" %in% names(df)) "se" else NA_character_
+    lower_col <- if (".lower_ci" %in% names(df)) ".lower_ci" else if ("lower" %in% names(df)) "lower" else NA_character_
+    upper_col <- if (".upper_ci" %in% names(df)) ".upper_ci" else if ("upper" %in% names(df)) "upper" else NA_character_
+    if (is.na(deriv_col) || is.na(se_col) || is.na(lower_col) || is.na(upper_col)) {
+      stop("Unsupported gratia::derivatives() output columns: ", paste(names(df), collapse = ", "))
+    }
+    out <- data.frame(
+      age = df[[age_col]],
+      .derivative = df[[deriv_col]],
+      .se = df[[se_col]],
+      .lower_ci = df[[lower_col]],
+      .upper_ci = df[[upper_col]]
+    )
+    out
+  }
+
+  derv <- normalize_deriv(derv_raw, smooth_var)
+  derv2 <- as.data.frame(derv2_raw)
+  derv2_col <- if (".derivative" %in% names(derv2)) ".derivative" else if ("derivative" %in% names(derv2)) "derivative" else names(derv2)[grepl("derivative", names(derv2))][1]
+  if (is.na(derv2_col) || !nzchar(derv2_col)) stop("Unsupported gratia 2nd derivative output columns: ", paste(names(derv2), collapse = ", "))
+  meanderv2 <- mean(derv2[[derv2_col]])
   
   #Identify derivative significance window(s
-  derv <- derv %>% #add "sig" column (TRUE/FALSE) to derv
-    mutate(sig = !(0 > .lower_ci & 0 < .upper_ci)) #derivative is sig if the lower CI is not < 0 while the upper CI is > 0 (i.e., when the CI does not include 0)
-  derv$sig_deriv = derv$.derivative*derv$sig #add "sig_deriv derivatives column where non-significant derivatives are set to 0
-  
+  derv <- derv %>%
+    mutate(sig = !(0 > .lower_ci & 0 < .upper_ci))
+  derv$sig_deriv <- derv$.derivative * derv$sig
+
   #GAM statistics
   #F value for the smooth term and GAM-based significance of the smooth term
   gam.smooth.F <- gam.results$s.table[3]
@@ -65,10 +93,13 @@ gam.fit.smooth <- function(region, dataname, smooth_var, covariates, knots, set_
   gam.nullmodel <- gam(nullmodel, method = "REML", data = gam.data)
   gam.nullmodel.results <- summary(gam.nullmodel)
   
-  ##Full versus reduced model anova p-value, using parametric bootstrap test.
-  if (mod_only==F){
-    anova.smooth.pvalue <- anovaPB(gam.nullmodel,gam.model, n.sim = 1000,test='Chisq')$`Pr(>Chi)`[2]
-  }else{
+  ## Full versus reduced model p-value (mgcv approximate test; avoids bootstrap parallelism).
+  if (mod_only == FALSE) {
+    a <- anova(gam.nullmodel, gam.model, test = "Chisq")
+    pcol <- intersect(c("Pr(>Chi)", "Pr(>F)"), colnames(a))
+    if (length(pcol) == 0) stop("Unexpected anova() output columns: ", paste(colnames(a), collapse = ", "))
+    anova.smooth.pvalue <- a[[pcol[[1]]]][2]
+  } else {
     anova.smooth.pvalue <- NA
   }
   
