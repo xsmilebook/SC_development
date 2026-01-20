@@ -12,9 +12,10 @@ suppressPackageStartupMessages({
   library(tidyr)
   library(ggplot2)
   library(mgcv)
+  library(gamm4)
 })
 
-predictors <- c("siteID", "age", "sex", "mean_fd", "cbcl")
+predictors <- c("age", "sex", "mean_fd", "cbcl", "siteID")
 
 prepare_raw <- function(path, demo_path) {
   dat <- readRDS(path)
@@ -99,50 +100,61 @@ fit_r2_gamm_abcd <- function(df, vars, re_var = "subID") {
     return(calc_r2(df$y, fitted(fit)))
   }
   df[[re_var]] <- as.factor(df[[re_var]])
-  formula <- as.formula(paste0("y ~ ", terms, " + s(", re_var, ", bs='re')"))
-  fit <- mgcv::gam(formula, data = df, method = "REML")
-  calc_r2(df$y, fitted(fit))
+  form <- as.formula(paste0("y ~ ", terms))
+  fit <- gamm4::gamm4(form, random = stats::as.formula(paste0("~(1|", re_var, ")")), data = df)
+  calc_r2(df$y, fitted(fit$mer))
 }
 
-compute_delta_r2 <- function(y, df, predictors, re_var = "subID") {
-  keep_cols <- unique(c(predictors, intersect(re_var, names(df))))
+compute_sequential_r2 <- function(y, df, ordered_predictors, re_var = "subID") {
+  keep_cols <- unique(c(ordered_predictors, intersect(re_var, names(df))))
   data <- df[, keep_cols, drop = FALSE]
   data$y <- y
   data <- data %>% drop_na()
   if (nrow(data) == 0) {
-    delta <- setNames(rep(NA_real_, length(predictors)), predictors)
-    return(list(r2_full = NA_real_, delta = delta))
+    return(NULL)
   }
 
-  r2_full <- fit_r2_gamm_abcd(data, predictors, re_var = re_var)
-  delta <- setNames(numeric(length(predictors)), predictors)
-  for (x in predictors) {
-    reduced <- setdiff(predictors, x)
-    r2_reduced <- fit_r2_gamm_abcd(data, reduced, re_var = re_var)
-    delta[[x]] <- r2_full - r2_reduced
+  included <- character(0)
+  r2_prev <- fit_r2_gamm_abcd(data, included, re_var = re_var)
+  contrib <- setNames(numeric(length(ordered_predictors)), ordered_predictors)
+  for (x in ordered_predictors) {
+    included <- c(included, x)
+    r2_curr <- fit_r2_gamm_abcd(data, included, re_var = re_var)
+    contrib[[x]] <- r2_curr - r2_prev
+    r2_prev <- r2_curr
   }
-  list(r2_full = r2_full, delta = delta)
+  list(r2_full = r2_prev, contrib = contrib)
 }
 
 compute_variance_decomp <- function(df, sc_cols, label, predictors, strip_suffix = FALSE) {
-  cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+  cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "72"))
   if (is.na(cores) || cores < 1) {
-    cores <- 1
+    cores <- 72
   }
+  cores <- min(cores, 72)
   results <- mclapply(sc_cols, function(col) {
     y <- df[[col]]
-    res <- compute_delta_r2(y, df, predictors, re_var = "subID")
+    res <- tryCatch(
+      compute_sequential_r2(y, df, predictors, re_var = "subID"),
+      error = function(e) {
+        message(sprintf("[S4th_plot_abcd_variance_decomp_cbcl] skip %s: %s", col, e$message))
+        NULL
+      }
+    )
+    if (is.null(res)) {
+      return(NULL)
+    }
     edge_base <- if (strip_suffix) sub("_h$", "", col) else col
     data.frame(
       edge = col,
       edge_base = edge_base,
       condition = label,
       total_r2 = res$r2_full,
-      t(res$delta),
+      t(res$contrib),
       check.names = FALSE
     )
   }, mc.cores = cores)
-  bind_rows(results)
+  bind_rows(Filter(Negate(is.null), results))
 }
 
 palette <- c(

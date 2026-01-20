@@ -22,12 +22,12 @@ suppressPackageStartupMessages({
   library(tidyr)
   library(ggplot2)
   library(mgcv)
-  library(nlme)
+  library(gamm4)
 })
 
-base_predictors <- c("siteID", "age", "sex", "mean_fd")
-cog_predictors <- c("siteID", "age", "sex", "mean_fd", "cognition")
-pfactor_predictors <- c("siteID", "age", "sex", "mean_fd", "pfactor")
+base_predictors <- c("age", "sex", "mean_fd", "siteID")
+cog_predictors <- c("age", "sex", "mean_fd", "cognition", "siteID")
+pfactor_predictors <- c("age", "sex", "mean_fd", "pfactor", "siteID")
 
 prepare_raw <- function(path, include_cognition = FALSE, include_pfactor = FALSE, baseline_only = FALSE) {
   dat <- readRDS(path)
@@ -124,81 +124,70 @@ build_gam_terms <- function(vars) {
   }
 }
 
-fit_r2_gamm_abcd <- function(df, vars, re_var = "subID") {
+fit_r2_gamm4_abcd <- function(df, vars, re_var = "subID") {
   terms <- build_gam_terms(vars)
   if (!re_var %in% names(df)) {
     fit <- mgcv::gam(as.formula(paste0("y ~ ", terms)), data = df, method = "REML")
     return(calc_r2(df$y, fitted(fit)))
   }
   df[[re_var]] <- as.factor(df[[re_var]])
-  formula <- as.formula(paste0("y ~ ", terms))
-  random <- stats::setNames(list(~1), re_var)
-  fit <- tryCatch(
-    mgcv::gamm(formula, random = random, data = df, method = "REML"),
-    error = function(e) {
-      warning(sprintf("gamm failed (%s). Falling back to gam random-effect smooth.", e$message))
-      NULL
-    }
-  )
-  if (is.null(fit)) {
-    fallback <- mgcv::gam(as.formula(paste0("y ~ ", terms, " + s(", re_var, ", bs='re')")), data = df, method = "REML")
-    return(calc_r2(df$y, fitted(fallback)))
-  }
-  calc_r2(df$y, fitted(fit$lme))
+  form <- as.formula(paste0("y ~ ", terms))
+  fit <- gamm4::gamm4(form, random = stats::as.formula(paste0("~(1|", re_var, ")")), data = df)
+  calc_r2(df$y, fitted(fit$mer))
 }
 
-compute_delta_r2 <- function(y, df, predictors, model = c("GAMM", "GAM"), re_var = "subID") {
-  model <- match.arg(model)
-  keep_cols <- unique(c(predictors, intersect(re_var, names(df))))
+compute_sequential_r2 <- function(y, df, ordered_predictors, re_var = "subID") {
+  keep_cols <- unique(c(ordered_predictors, intersect(re_var, names(df))))
   data <- df[, keep_cols, drop = FALSE]
   data$y <- y
   data <- data %>% drop_na()
   if (nrow(data) == 0) {
-    delta <- setNames(rep(NA_real_, length(predictors)), predictors)
-    return(list(r2_full = NA_real_, delta = delta))
+    return(NULL)
   }
 
-  r2_full <- if (model == "GAMM") {
-    fit_r2_gamm_abcd(data, predictors, re_var = re_var)
-  } else {
-    fit <- mgcv::gam(as.formula(paste0("y ~ ", build_gam_terms(predictors))), data = data, method = "REML")
-    calc_r2(data$y, fitted(fit))
+  included <- character(0)
+  r2_prev <- fit_r2_gamm4_abcd(data, included, re_var = re_var)
+  contrib <- setNames(numeric(length(ordered_predictors)), ordered_predictors)
+
+  for (x in ordered_predictors) {
+    included <- c(included, x)
+    r2_curr <- fit_r2_gamm4_abcd(data, included, re_var = re_var)
+    contrib[[x]] <- r2_curr - r2_prev
+    r2_prev <- r2_curr
   }
 
-  delta <- setNames(numeric(length(predictors)), predictors)
-  for (x in predictors) {
-    reduced <- setdiff(predictors, x)
-    r2_reduced <- if (model == "GAMM") {
-      fit_r2_gamm_abcd(data, reduced, re_var = re_var)
-    } else {
-      fit <- mgcv::gam(as.formula(paste0("y ~ ", build_gam_terms(reduced))), data = data, method = "REML")
-      calc_r2(data$y, fitted(fit))
-    }
-    delta[[x]] <- r2_full - r2_reduced
-  }
-
-  list(r2_full = r2_full, delta = delta)
+  list(r2_full = r2_prev, contrib = contrib)
 }
 
 compute_variance_decomp <- function(df, sc_cols, label, predictors, strip_suffix = FALSE) {
-  cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+  cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "72"))
   if (is.na(cores) || cores < 1) {
-    cores <- 1
+    cores <- 72
   }
+  cores <- min(cores, 72)
   results <- mclapply(sc_cols, function(col) {
     y <- df[[col]]
-    res <- compute_delta_r2(y, df, predictors, model = "GAMM", re_var = "subID")
+    res <- tryCatch(
+      compute_sequential_r2(y, df, predictors, re_var = "subID"),
+      error = function(e) {
+        message(sprintf("[plot_abcd_variance_decomposition] skip %s: %s", col, e$message))
+        NULL
+      }
+    )
+    if (is.null(res)) {
+      return(NULL)
+    }
     edge_base <- if (strip_suffix) sub("_h$", "", col) else col
     data.frame(
       edge = col,
       edge_base = edge_base,
       condition = label,
       total_r2 = res$r2_full,
-      t(res$delta),
+      t(res$contrib),
       check.names = FALSE
     )
   }, mc.cores = cores)
-  bind_rows(results)
+  bind_rows(Filter(Negate(is.null), results))
 }
 
 palette <- c(

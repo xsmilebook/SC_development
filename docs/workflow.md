@@ -26,7 +26,7 @@
   - `abcd_variance_decomp_base`（age+sex+meanFD）
   - `abcd_variance_decomp_cognition`（含 cognition）
   - `abcd_variance_decomp_pfactor`（含 p-factor）
-- 方差分解的变量解释量采用 **drop-one Delta R²**：对每个预测变量 X，计算 `R²_full - R²_reduced(去掉X)`，不再计算所有子集（Shapley）。
+- 方差分解的变量解释量采用 **序列（sequential）R²**：按 `age → sex → mean_fd → (cognition/pfactor/cbcl 等) → site` 顺序逐步加入变量，每一步的解释量为 `R²_k - R²_{k-1}`（不再计算所有子集 Shapley）。
 - 集群绘图可直接提交：
   - `combat_gam/sbatch/plot_abcd_variance_decomposition.sbatch`
   - `combat_gam/sbatch/plot_hcpd_chinese_variance_decomposition.sbatch`

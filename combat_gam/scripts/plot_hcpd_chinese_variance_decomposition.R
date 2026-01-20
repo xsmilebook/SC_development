@@ -27,6 +27,7 @@ suppressPackageStartupMessages({
 })
 
 predictors <- c("siteID", "age", "sex", "mean_fd")
+predictors <- c("age", "sex", "mean_fd", "siteID")
 
 calc_r2 <- function(y, fitted) {
   y <- as.numeric(y)
@@ -56,49 +57,63 @@ build_gam_terms <- function(vars) {
 }
 
 fit_r2_gam <- function(df, vars) {
+  if (length(vars) == 0) {
+    return(0)
+  }
   formula <- as.formula(paste0("y ~ ", build_gam_terms(vars)))
   fit <- mgcv::gam(formula, data = df, method = "REML")
   calc_r2(df$y, fitted(fit))
 }
 
-compute_delta_r2 <- function(y, df, predictors) {
-  data <- df[, predictors, drop = FALSE]
+compute_sequential_r2 <- function(y, df, ordered_predictors) {
+  data <- df[, ordered_predictors, drop = FALSE]
   data$y <- y
   data <- data %>% drop_na()
   if (nrow(data) == 0) {
-    delta <- setNames(rep(NA_real_, length(predictors)), predictors)
-    return(list(r2_full = NA_real_, delta = delta))
+    return(NULL)
   }
 
-  r2_full <- fit_r2_gam(data, predictors)
-  delta <- setNames(numeric(length(predictors)), predictors)
-  for (x in predictors) {
-    reduced <- setdiff(predictors, x)
-    r2_reduced <- fit_r2_gam(data, reduced)
-    delta[[x]] <- r2_full - r2_reduced
+  included <- character(0)
+  r2_prev <- 0
+  contrib <- setNames(numeric(length(ordered_predictors)), ordered_predictors)
+  for (x in ordered_predictors) {
+    included <- c(included, x)
+    r2_curr <- fit_r2_gam(data, included)
+    contrib[[x]] <- r2_curr - r2_prev
+    r2_prev <- r2_curr
   }
-  list(r2_full = r2_full, delta = delta)
+  list(r2_full = r2_prev, contrib = contrib)
 }
 
 compute_variance_decomp <- function(df, sc_cols, label, strip_suffix = FALSE) {
-  cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+  cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "72"))
   if (is.na(cores) || cores < 1) {
-    cores <- 1
+    cores <- 72
   }
+  cores <- min(cores, 72)
   results <- mclapply(sc_cols, function(col) {
     y <- df[[col]]
-    res <- compute_delta_r2(y, df, predictors)
+    res <- tryCatch(
+      compute_sequential_r2(y, df, predictors),
+      error = function(e) {
+        message(sprintf("[plot_hcpd_chinese_variance_decomposition] skip %s: %s", col, e$message))
+        NULL
+      }
+    )
+    if (is.null(res)) {
+      return(NULL)
+    }
     edge_base <- if (strip_suffix) sub("_h$", "", col) else col
     data.frame(
       edge = col,
       edge_base = edge_base,
       condition = label,
       total_r2 = res$r2_full,
-      t(res$delta),
+      t(res$contrib),
       check.names = FALSE
     )
   }, mc.cores = cores)
-  bind_rows(results)
+  bind_rows(Filter(Negate(is.null), results))
 }
 
 prepare_hcpd_raw <- function(path) {

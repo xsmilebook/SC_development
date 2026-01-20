@@ -91,3 +91,4 @@
 - 2026-01-20: ABCD 方差分解绘图脚本改用 `mgcv::gamm` 拟合纵向数据（random intercept=`subID`）计算 drop-one Delta R²。
 - 2026-01-20: 新增 ABCD baseline `age+sex+meanFD` 纵向 ComBat（不保护 cognition）脚本与 sbatch：`combat_gam/scripts/run_abcd_nonlinear_combat_gam_baseline_age_sex_meanfd.R`、`combat_gam/sbatch/abcd_combat_gam_baseline_age_sex_meanfd.sbatch`。
 - 2026-01-20: 统一 sbatch 使用多分区 `q_fat_c,q_fat,q_fat_l`；ABCD/HCPD/Chinese 的方差分解绘图 sbatch 提升到 72 核以加速 mclapply。
+- 2026-01-20: 方差分解绘图更新为序列（sequential）R²，按 `age→sex→mean_fd→表型→site` 顺序计算变量解释量；ABCD 采用 `gamm4` 拟合纵向数据并对拟合失败的边执行跳过策略。
