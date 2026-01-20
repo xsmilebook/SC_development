@@ -18,7 +18,7 @@
 ## ComBat-GAM 运行约定
 - 小型测试可直接运行 `combat_gam/scripts/*.sh`；正式任务必须使用 `combat_gam/sbatch/*.sbatch` 提交到 `q_fat_c`。
 - ComBat-GAM 使用项目专用环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment`。
-- HCP-D/Chinese 的 GAM 由 `rpy2` 调用 `mgcv::smoothCon` 生成 `s(Age, k=3, bs="tp")` 基函数矩阵，并作为协变量输入 `neuroHarmonize`（不再启用自动平滑）。
+- HCP-D/Chinese 推荐使用 neuroHarmonize 原生 `smooth_terms`（GAM）实现：`combat_gam/scripts/run_combat_gam_neuroharmonize_native.py`（支持 `smooth_fx` 固定平滑或 k-fold 选择）。
 - 运行相关依赖应安装在 `scdevelopment` 环境；若包依赖冲突需建立独立虚拟环境，并在此处补充说明。
 - ABCD 的 Nonlinear-ComBat-GAM 支持并行：`nlongcombat` 使用 `mclapply`，核数由 `SLURM_CPUS_PER_TASK` 控制；未设置时默认单核。
 - 结构连接 R² 方差分解图（Raw vs ComBat）由 `combat_gam/scripts/plot_abcd_variance_decomposition.R` 生成，输出在 `outputs/figures/combat_gam/`，包含：
@@ -29,6 +29,13 @@
 - 集群绘图可直接提交：
   - `combat_gam/sbatch/plot_abcd_variance_decomposition.sbatch`
   - `combat_gam/sbatch/plot_hcpd_chinese_variance_decomposition.sbatch`
+
+## HCP-D/Chinese ComBat-GAM（neuroHarmonize 原生 smooth_terms）
+- HCP-D 提交：`sbatch combat_gam/sbatch/hcpd_combat_gam_native.sbatch`
+- Chinese 提交：`sbatch combat_gam/sbatch/chinese_combat_gam_native.sbatch`
+- 输出默认写入：
+  - `outputs/results/combat_gam/hcpd/*combatgam_native.rds`
+  - `outputs/results/combat_gam/chinese/*combatgam_native.rds`
 - CBCL total raw 的 Raw vs ComBat 方差分解图由 `development_script/1st_dataclean/S4th_plot_abcd_variance_decomp_cbcl.R` 生成，输出为 `abcd_variance_decomp_cbcl_totalraw`；ComBat 输出默认写入 `outputs/results/combat_cbcl/`。
 - CBCL total raw 的 siteID R² 明细与汇总由 `development_script/1st_dataclean/S5th_export_cbcl_site_r2_summary.R` 导出，输出为 `outputs/results/combat_cbcl/cbcl_site_r2_raw_vs_combat.csv` 与 `cbcl_site_r2_summary.csv`。
 - HCPD 与 Chinese Cohort 的 Raw vs ComBat 方差分解图由 `combat_gam/scripts/plot_hcpd_chinese_variance_decomposition.R` 生成，输出为：

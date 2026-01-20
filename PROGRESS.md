@@ -87,3 +87,4 @@
 - 2026-01-20: HCP-D/Chinese ComBat-GAM（neuroHarmonize）年龄平滑基函数改为 `fx=TRUE`（`s(age, k=3, bs="tp", fx=TRUE)`），与既定 GAMM 设定对齐。
 - 2026-01-20: 方差分解图的变量解释量从 Shapley R² 改为 drop-one Delta R²（`R²_full - R²_reduced`），并更新 ABCD/HCP-D/Chinese（及 CBCL）相关脚本与输出图。
 - 2026-01-20: Chinese Cohort 方差分解绘图脚本默认 raw 输入切换为 `merge_new.rds`。
+- 2026-01-20: 新增 HCP-D/Chinese 的 neuroHarmonize 原生 smooth_terms 提交脚本（Python）与 sbatch，用于对比 `smooth_fx` 的影响。
