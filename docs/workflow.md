@@ -84,6 +84,9 @@
 - `cli.so`/`farver.so`/`Rcpp.so` 报 `GLIBC_2.xx not found`（HCP-D 发育模型、以及依赖 tidyverse 的脚本中较常见）：通常是 **登录节点与计算节点的 GLIBC 版本不一致**，导致在登录节点安装/更新过的 R 包（即使位于 conda 环境目录）在计算节点无法加载。
   - 处理：将 `R_LIBS_USER` 指向项目内的 R 库目录（例如 `outputs/r_libs/scdevelopment_r41/`），并在 sbatch 中对缺失/载入失败的包执行 `install.packages(..., lib=R_LIBS_USER)`，使其在计算节点上编译安装以匹配该节点的 GLIBC；同时保留 `R_LIBS_SITE=${CONDA_PREFIX}/lib/R/library` 作为回退路径。
   - 现有实现：`sbatch/run_hcpd_devmodel_combatgam_CV75.sbatch` 在运行前会自动创建并使用 `outputs/r_libs/scdevelopment_r41/`，并在“屏蔽系统/用户库”条件下检查与补装依赖。
+- `install.packages()` 报 `cannot open URL .../PACKAGES` 或误报 “package is not available for this version of R”（HCP-D 发育模型中曾频繁出现）：通常是 **计算节点无法访问 CRAN**（网络策略/HTTPS 受限），导致无法拉取索引文件。
+  - 处理：在登录节点预先构建离线 CRAN 源码仓库（`outputs/r_cran_repo/src/contrib/` + `PACKAGES.gz`），sbatch 在计算节点只从本地 repo 安装依赖（`options(repos=c(CRAN="file://.../outputs/r_cran_repo"))`），无需外网。
+  - 现有实现：`sbatch/run_hcpd_devmodel_combatgam_CV75.sbatch` 会检查 `outputs/r_cran_repo/src/contrib/PACKAGES.gz` 是否存在；若存在则用离线 repo 安装缺失/载入失败的包到 `outputs/r_libs/scdevelopment_r41/`。
 - `gratia` 报 `there is no package called 'mvnfast'`：这是 `gratia` 的依赖缺失；若仅运行 CBCL 关联分析，已移除 `gamfunction/gamminteraction.R` 对 `gratia` 的依赖以避免该类问题。
 - `tidyverse` 报 `readr/forcats/lubridate` 缺失：在 `scdevelopment` 环境安装 `r-tidyverse`（或补装 `r-readr`、`r-forcats`）。
 - CBCL ComBat 输出中 `age` 列为嵌套 data.frame：在 CBCL 关联脚本中从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填 `age`。

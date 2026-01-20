@@ -28,9 +28,11 @@ conda activate scdevelopment_r41
 # IMPORTANT: some compute nodes have older GLIBC than the login node; packages
 # compiled on the login node (even inside conda env) can fail with
 # `GLIBC_2.xx not found`. To make the run robust, we install/override required
-# R packages into a project-local library (compiled on the compute node).
+# R packages into a project-local library (compiled on the compute node), using
+# an offline CRAN-style source repository stored under `outputs/`.
 project_r_lib="${project_root}/outputs/r_libs/scdevelopment_r41"
 mkdir -p "${project_r_lib}"
+local_cran_repo="${project_root}/outputs/r_cran_repo"
 
 export R_LIBS_USER="${project_r_lib}"
 export R_LIBS=""
@@ -39,6 +41,7 @@ export R_PROFILE_USER=/dev/null
 export R_ENVIRON_USER=/dev/null
 export R_PROFILE=/dev/null
 export R_ENVIRON=/dev/null
+export LOCAL_CRAN_REPO="${local_cran_repo}"
 
 # Avoid thread oversubscription (mclapply already uses cores).
 export OPENBLAS_NUM_THREADS=1
@@ -56,11 +59,12 @@ echo "[INFO] SKIP_POSTERIOR=${SKIP_POSTERIOR}"
 echo "[INFO] MAKE_MATRIX_GRAPHS=${MAKE_MATRIX_GRAPHS}"
 echo "[INFO] CONDA_PREFIX=${CONDA_PREFIX}"
 echo "[INFO] project_r_lib=${project_r_lib}"
+echo "[INFO] local_cran_repo=${local_cran_repo}"
 echo "[INFO] Rscript=$(command -v Rscript || true)"
 Rscript --version || true
 
-echo "[INFO] Ensuring R package dependencies (system/user libraries masked; project-local installs allowed)"
-Rscript --vanilla -e 'lib_user<-Sys.getenv("R_LIBS_USER"); lib_site<-Sys.getenv("R_LIBS_SITE"); dir.create(lib_user, showWarnings=FALSE, recursive=TRUE); .libPaths(unique(c(lib_user, lib_site))); cat(".libPaths():\n"); print(.libPaths()); options(repos=c(CRAN="https://cloud.r-project.org")); pkgs<-c("mgcv","nlme","tidyverse","gratia","mvnfast","psych","R.matlab","patchwork","RColorBrewer","scales","reshape","ecostats"); for(p in pkgs){cat("== ",p," ==\n", sep=""); ok<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("LOAD_ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok){cat("Installing into ",lib_user,": ",p,"\n", sep=""); install.packages(p, lib=lib_user, dependencies=TRUE); ok2<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("RELOAD_ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok2) stop("Failed to load after install: ", p)}; cat("VERSION: ", as.character(packageVersion(p)),"\n", sep="") }'
+echo "[INFO] Ensuring R package dependencies (offline local repo + project-local installs)"
+Rscript --vanilla -e 'lib_user<-Sys.getenv("R_LIBS_USER"); lib_site<-Sys.getenv("R_LIBS_SITE"); repo_root<-Sys.getenv("LOCAL_CRAN_REPO"); if (repo_root == "") stop("LOCAL_CRAN_REPO not set"); pkg_index<-file.path(repo_root, "src", "contrib", "PACKAGES.gz"); if (!file.exists(pkg_index)) stop("Missing local CRAN repo index: ", pkg_index, " (run prefetch step on login node)"); dir.create(lib_user, showWarnings=FALSE, recursive=TRUE); .libPaths(unique(c(lib_user, lib_site))); cat(".libPaths():\n"); print(.libPaths()); options(repos=c(CRAN=paste0("file://", repo_root))); pkgs<-c("mgcv","nlme","tidyverse","gratia","mvnfast","psych","R.matlab","patchwork","RColorBrewer","scales","reshape","ecostats"); for(p in pkgs){cat("== ",p," ==\n", sep=""); ok<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("LOAD_ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok){cat("Installing into ",lib_user,": ",p,"\n", sep=""); install.packages(p, lib=lib_user, dependencies=TRUE); ok2<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("RELOAD_ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok2) stop("Failed to load after install: ", p)}; cat("VERSION: ", as.character(packageVersion(p)),"\n", sep="") }'
 
 Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/S1st_fitgammodels_SA_ds_sumSCinvnode_HCPD.R \
   --project_root="${project_root}" \
