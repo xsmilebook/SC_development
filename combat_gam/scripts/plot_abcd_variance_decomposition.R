@@ -7,10 +7,21 @@ combat_cog <- if (length(args) >= 3) args[[3]] else "outputs/results/combat_gam/
 combat_pfactor <- if (length(args) >= 4) args[[4]] else "outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_pfactor.rds"
 out_dir <- if (length(args) >= 5) args[[5]] else "outputs/figures/combat_gam"
 
+conda_prefix <- Sys.getenv("CONDA_PREFIX")
+if (nzchar(conda_prefix)) {
+  conda_r_lib <- file.path(conda_prefix, "lib", "R", "library")
+  if (dir.exists(conda_r_lib)) {
+    Sys.setenv(R_LIBS_USER = conda_r_lib, R_LIBS = conda_r_lib)
+    .libPaths(c(conda_r_lib, .libPaths()))
+  }
+}
+
 suppressPackageStartupMessages({
+  library(parallel)
   library(dplyr)
   library(tidyr)
   library(ggplot2)
+  library(mgcv)
 })
 
 base_predictors <- c("siteID", "age", "sex", "mean_fd")
@@ -21,6 +32,9 @@ prepare_raw <- function(path, include_cognition = FALSE, include_pfactor = FALSE
   dat <- readRDS(path)
   sc_cols <- grep("^SC\\.", names(dat), value = TRUE)
   needed <- c(sc_cols, "scanID", "siteID", "age", "sex", "mean_fd", "eventname")
+  if ("subID" %in% names(dat)) {
+    needed <- c(needed, "subID")
+  }
   if (include_cognition) {
     needed <- c(needed, "nihtbx_fluidcomp_uncorrected")
   }
@@ -54,6 +68,9 @@ prepare_combat <- function(path, include_cognition = FALSE, include_pfactor = FA
   dat <- readRDS(path)
   sc_cols <- grep("^SC\\..*_h$", names(dat), value = TRUE)
   needed <- c(sc_cols, "scanID", "siteID", "age", "sex", "mean_fd")
+  if ("subID" %in% names(dat)) {
+    needed <- c(needed, "subID")
+  }
   if (include_cognition) {
     needed <- c(needed, "nihtbx_fluidcomp_uncorrected")
   }
@@ -79,71 +96,96 @@ prepare_combat <- function(path, include_cognition = FALSE, include_pfactor = FA
   list(df = dat, sc_cols = sc_cols)
 }
 
-subset_bits <- function(mask, p) {
-  bitwAnd(mask, bitwShiftL(1L, 0:(p - 1))) > 0
-}
-
-r2_for_subset <- function(y, df, vars) {
-  if (length(vars) == 0) {
-    fit <- lm(y ~ 1, data = df)
-  } else {
-    formula <- as.formula(paste("y ~", paste(vars, collapse = " + ")))
-    fit <- lm(formula, data = df)
-  }
+calc_r2 <- function(y, fitted) {
+  y <- as.numeric(y)
+  fitted <- as.numeric(fitted)
   tss <- sum((y - mean(y))^2)
-  rss <- sum(residuals(fit)^2)
+  rss <- sum((y - fitted)^2)
   if (tss == 0) {
     return(0)
   }
   1 - rss / tss
 }
 
-shapley_r2 <- function(y, df, vars) {
-  p <- length(vars)
-  masks <- 0:(2^p - 1)
-  r2_vals <- numeric(length(masks))
-  names(r2_vals) <- masks
-  for (i in seq_along(masks)) {
-    mask <- masks[[i]]
-    included <- vars[subset_bits(mask, p)]
-    r2_vals[[i]] <- r2_for_subset(y, df, included)
+build_gam_terms <- function(vars) {
+  terms <- character()
+  if ("age" %in% vars) {
+    terms <- c(terms, "s(age, k=3, bs='tp', fx=TRUE)")
   }
-  total_r2 <- r2_vals[[as.character(2^p - 1)]]
-  contrib <- numeric(p)
-  for (j in seq_len(p)) {
-    weights <- numeric(length(masks))
-    for (i in seq_along(masks)) {
-      mask <- masks[[i]]
-      if (bitwAnd(mask, bitwShiftL(1L, j - 1)) == 0) {
-        s <- sum(subset_bits(mask, p))
-        weight <- factorial(s) * factorial(p - s - 1) / factorial(p)
-        with_mask <- mask + bitwShiftL(1L, j - 1)
-        weights[[i]] <- weight * (r2_vals[[as.character(with_mask)]] - r2_vals[[as.character(mask)]])
-      }
+  others <- setdiff(vars, "age")
+  if (length(others) > 0) {
+    terms <- c(terms, others)
+  }
+  if (length(terms) == 0) {
+    "1"
+  } else {
+    paste(terms, collapse = " + ")
+  }
+}
+
+fit_r2_gamm_abcd <- function(df, vars, re_var = "subID") {
+  terms <- build_gam_terms(vars)
+  if (!re_var %in% names(df)) {
+    fit <- mgcv::gam(as.formula(paste0("y ~ ", terms)), data = df, method = "REML")
+    return(calc_r2(df$y, fitted(fit)))
+  }
+  df[[re_var]] <- as.factor(df[[re_var]])
+  formula <- as.formula(paste0("y ~ ", terms, " + s(", re_var, ", bs='re')"))
+  fit <- mgcv::gam(formula, data = df, method = "REML")
+  calc_r2(df$y, fitted(fit))
+}
+
+compute_delta_r2 <- function(y, df, predictors, model = c("GAMM", "GAM"), re_var = "subID") {
+  model <- match.arg(model)
+  keep_cols <- unique(c(predictors, intersect(re_var, names(df))))
+  data <- df[, keep_cols, drop = FALSE]
+  data$y <- y
+  data <- data %>% drop_na()
+  if (nrow(data) == 0) {
+    delta <- setNames(rep(NA_real_, length(predictors)), predictors)
+    return(list(r2_full = NA_real_, delta = delta))
+  }
+
+  r2_full <- if (model == "GAMM") {
+    fit_r2_gamm_abcd(data, predictors, re_var = re_var)
+  } else {
+    fit <- mgcv::gam(as.formula(paste0("y ~ ", build_gam_terms(predictors))), data = data, method = "REML")
+    calc_r2(data$y, fitted(fit))
+  }
+
+  delta <- setNames(numeric(length(predictors)), predictors)
+  for (x in predictors) {
+    reduced <- setdiff(predictors, x)
+    r2_reduced <- if (model == "GAMM") {
+      fit_r2_gamm_abcd(data, reduced, re_var = re_var)
+    } else {
+      fit <- mgcv::gam(as.formula(paste0("y ~ ", build_gam_terms(reduced))), data = data, method = "REML")
+      calc_r2(data$y, fitted(fit))
     }
-    contrib[[j]] <- sum(weights)
+    delta[[x]] <- r2_full - r2_reduced
   }
-  names(contrib) <- vars
-  list(total_r2 = total_r2, contrib = contrib)
+
+  list(r2_full = r2_full, delta = delta)
 }
 
 compute_variance_decomp <- function(df, sc_cols, label, predictors, strip_suffix = FALSE) {
-  results <- lapply(sc_cols, function(col) {
+  cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+  if (is.na(cores) || cores < 1) {
+    cores <- 1
+  }
+  results <- mclapply(sc_cols, function(col) {
     y <- df[[col]]
-    data <- df[, predictors]
-    data$y <- y
-    data <- data %>% drop_na()
-    res <- shapley_r2(y, data, predictors)
+    res <- compute_delta_r2(y, df, predictors, model = "GAMM", re_var = "subID")
     edge_base <- if (strip_suffix) sub("_h$", "", col) else col
     data.frame(
       edge = col,
       edge_base = edge_base,
       condition = label,
-      total_r2 = res$total_r2,
-      t(res$contrib),
+      total_r2 = res$r2_full,
+      t(res$delta),
       check.names = FALSE
     )
-  })
+  }, mc.cores = cores)
   bind_rows(results)
 }
 

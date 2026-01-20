@@ -85,3 +85,4 @@
 - 2026-01-19: CBCL 绘图输出风格对齐 p-factor（theme/字号/透明背景/`tiff+svg`），并将图统一写入 `outputs/figures/cbcl_totprob/`。
 - 2026-01-19: CBCL 轨迹图按 S-A decile 1–10 输出（与 p-factor decile 绘图逻辑一致）。
 - 2026-01-20: HCP-D/Chinese ComBat-GAM（neuroHarmonize）年龄平滑基函数改为 `fx=TRUE`（`s(age, k=3, bs="tp", fx=TRUE)`），与既定 GAMM 设定对齐。
+- 2026-01-20: 方差分解图的变量解释量从 Shapley R² 改为 drop-one Delta R²（`R²_full - R²_reduced`），并更新 ABCD/HCP-D/Chinese（及 CBCL）相关脚本与输出图。

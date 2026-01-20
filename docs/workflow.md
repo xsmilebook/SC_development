@@ -25,6 +25,10 @@
   - `abcd_variance_decomp_base`（age+sex+meanFD）
   - `abcd_variance_decomp_cognition`（含 cognition）
   - `abcd_variance_decomp_pfactor`（含 p-factor）
+- 方差分解的变量解释量采用 **drop-one Delta R²**：对每个预测变量 X，计算 `R²_full - R²_reduced(去掉X)`，不再计算所有子集（Shapley）。
+- 集群绘图可直接提交：
+  - `combat_gam/sbatch/plot_abcd_variance_decomposition.sbatch`
+  - `combat_gam/sbatch/plot_hcpd_chinese_variance_decomposition.sbatch`
 - CBCL total raw 的 Raw vs ComBat 方差分解图由 `development_script/1st_dataclean/S4th_plot_abcd_variance_decomp_cbcl.R` 生成，输出为 `abcd_variance_decomp_cbcl_totalraw`；ComBat 输出默认写入 `outputs/results/combat_cbcl/`。
 - CBCL total raw 的 siteID R² 明细与汇总由 `development_script/1st_dataclean/S5th_export_cbcl_site_r2_summary.R` 导出，输出为 `outputs/results/combat_cbcl/cbcl_site_r2_raw_vs_combat.csv` 与 `cbcl_site_r2_summary.csv`。
 - HCPD 与 Chinese Cohort 的 Raw vs ComBat 方差分解图由 `combat_gam/scripts/plot_hcpd_chinese_variance_decomposition.R` 生成，输出为：
