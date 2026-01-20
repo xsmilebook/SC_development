@@ -53,10 +53,10 @@ Rscript --version || true
 
 echo "[INFO] Sanity check: package directories under ${CONDA_PREFIX}/lib/R/library"
 ls -ld "${CONDA_PREFIX}/lib/R/library" || true
-ls -ld "${CONDA_PREFIX}/lib/R/library"/{tidyverse,gratia,mvnfast,patchwork,scales,reshape} || true
+ls -ld "${CONDA_PREFIX}/lib/R/library"/{tidyverse,gratia,mvnfast,patchwork,scales,reshape,ecostats} || true
 
 echo "[INFO] Checking R package dependencies (system libraries masked)"
-Rscript --vanilla -e 'pkgs<-c("mgcv","nlme","tidyverse","gratia","mvnfast","psych","R.matlab","patchwork","RColorBrewer","scales","reshape"); cat(".libPaths() BEFORE:\n"); print(.libPaths()); lp<-unique(c(Sys.getenv("R_LIBS_USER"), Sys.getenv("R_LIBS_SITE"))); .libPaths(lp); cat(".libPaths() FORCED:\n"); print(.libPaths()); errs<-character(); for(p in pkgs){cat("== ",p," ==\n", sep=""); ok<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok) errs<-c(errs,p)}; if(length(errs)>0) stop(paste0("Missing packages: ", paste(errs, collapse=", "))); for(p in pkgs) cat(p,":",as.character(packageVersion(p)),"\n")'
+Rscript --vanilla -e 'pkgs<-c("mgcv","nlme","tidyverse","gratia","mvnfast","psych","R.matlab","patchwork","RColorBrewer","scales","reshape","ecostats"); cat(".libPaths() BEFORE:\n"); print(.libPaths()); lp<-unique(c(Sys.getenv("R_LIBS_USER"), Sys.getenv("R_LIBS_SITE"))); .libPaths(lp); cat(".libPaths() FORCED:\n"); print(.libPaths()); errs<-character(); for(p in pkgs){cat("== ",p," ==\n", sep=""); ok<-tryCatch({suppressPackageStartupMessages(library(p, character.only=TRUE)); TRUE}, error=function(e){cat("ERROR: ",conditionMessage(e),"\n", sep=""); FALSE}); if(!ok) errs<-c(errs,p)}; if(length(errs)>0) stop(paste0("Missing packages: ", paste(errs, collapse=", "))); for(p in pkgs) cat(p,":",as.character(packageVersion(p)),"\n")'
 
 Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/S1st_fitgammodels_SA_ds_sumSCinvnode_HCPD.R \
   --project_root="${project_root}" \

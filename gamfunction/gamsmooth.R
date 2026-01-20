@@ -4,10 +4,13 @@ library(mgcv)
 library(gratia)
 library(tidyverse)
 library(dplyr)
-# NOTE: historical code used ecostats::anovaPB() (parametric bootstrap) to
-# compare full vs reduced models. That path is fragile on the cluster and can
-# spawn parallel backends unexpectedly. We instead use mgcv's built-in model
-# comparison p-value (approximate) via anova.gam().
+library(ecostats)
+
+# NOTE: We keep the historical ecostats::anovaPB() parametric bootstrap test to
+# compare full vs reduced models. However, in this cluster environment,
+# anovaPB() with ncpus=NULL can trigger a SOCK cluster path and fail with
+# serialization errors (e.g., "nbinom2 not found"). We therefore force
+# ncpus=1 inside anovaPB() and rely on the outer mclapply() for parallelism.
 
 #### FIT GAM SMOOTH ####
 ##Function to fit a GAM (measure ~ s(smooth_var, k = knots, fx = set_fx) + covariates)) per each edge and save out statistics and derivative-based characteristics.
@@ -93,12 +96,10 @@ gam.fit.smooth <- function(region, dataname, smooth_var, covariates, knots, set_
   gam.nullmodel <- gam(nullmodel, method = "REML", data = gam.data)
   gam.nullmodel.results <- summary(gam.nullmodel)
   
-  ## Full versus reduced model p-value (mgcv approximate test; avoids bootstrap parallelism).
+  ## Full versus reduced model anova p-value, using parametric bootstrap test.
+  ## IMPORTANT: force ncpus=1 to avoid nested parallelism / SOCK serialization issues.
   if (mod_only == FALSE) {
-    a <- anova(gam.nullmodel, gam.model, test = "Chisq")
-    pcol <- intersect(c("Pr(>Chi)", "Pr(>F)"), colnames(a))
-    if (length(pcol) == 0) stop("Unexpected anova() output columns: ", paste(colnames(a), collapse = ", "))
-    anova.smooth.pvalue <- a[[pcol[[1]]]][2]
+    anova.smooth.pvalue <- anovaPB(gam.nullmodel, gam.model, n.sim = 1000, test = "Chisq", ncpus = 1)$`Pr(>Chi)`[2]
   } else {
     anova.smooth.pvalue <- NA
   }
