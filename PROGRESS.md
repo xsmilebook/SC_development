@@ -85,11 +85,12 @@
 - 2026-01-19: CBCL 绘图输出风格对齐 p-factor（theme/字号/透明背景/`tiff+svg`），并将图统一写入 `outputs/figures/cbcl_totprob/`。
 - 2026-01-19: CBCL 轨迹图按 S-A decile 1–10 输出（与 p-factor decile 绘图逻辑一致）。
 - 2026-01-20: HCP-D/Chinese ComBat-GAM（neuroHarmonize）年龄平滑基函数改为 `fx=TRUE`（`s(age, k=3, bs="tp", fx=TRUE)`），与既定 GAMM 设定对齐。
-- 2026-01-20: 方差分解图的变量解释量从 Shapley R² 改为 drop-one Delta R²（`R²_full - R²_reduced`），并更新 ABCD/HCP-D/Chinese（及 CBCL）相关脚本与输出图。
+- 2026-01-20: 方差分解图的变量解释量从 Shapley R² 改为序列（sequential）R²（按 `age→sex→mean_fd→表型→site` 逐步加入变量，计算增量 R²），并更新 ABCD/HCP-D/Chinese（及 CBCL）相关脚本与输出图。
 - 2026-01-20: Chinese Cohort 方差分解绘图脚本默认 raw 输入切换为 `merge_new.rds`。
 - 2026-01-20: 新增 HCP-D/Chinese 的 neuroHarmonize 原生 smooth_terms 提交脚本（Python）与 sbatch，用于对比 `smooth_fx` 的影响。
 - 2026-01-20: ABCD 方差分解绘图脚本改用 `mgcv::gamm` 拟合纵向数据（random intercept=`subID`）计算 drop-one Delta R²。
 - 2026-01-20: 新增 ABCD baseline `age+sex+meanFD` 纵向 ComBat（不保护 cognition）脚本与 sbatch：`combat_gam/scripts/run_abcd_nonlinear_combat_gam_baseline_age_sex_meanfd.R`、`combat_gam/sbatch/abcd_combat_gam_baseline_age_sex_meanfd.sbatch`。
 - 2026-01-20: 统一 sbatch 使用多分区 `q_fat_c,q_fat,q_fat_l`；ABCD/HCPD/Chinese 的方差分解绘图 sbatch 提升到 72 核以加速 mclapply。
 - 2026-01-20: 方差分解绘图更新为序列（sequential）R²，按 `age→sex→mean_fd→表型→site` 顺序计算变量解释量；ABCD 采用 `gamm4` 拟合纵向数据并对拟合失败的边执行跳过策略。
+- 2026-01-20: 修复 ABCD 方差分解绘图在 baseline-only 或缺乏重复测量时 `gamm4` random intercept 不可用导致的崩溃：自动回退到 `mgcv::gam` 并对空结果安全退出。
 - 2026-01-20: 补充 `docs/workflow.md` 的可复用经验：R ABI 隔离、并行/BLAS 线程、neuroHarmonize 平滑项与 statsmodels spline 约束、以及绘图耗时的定量解释。

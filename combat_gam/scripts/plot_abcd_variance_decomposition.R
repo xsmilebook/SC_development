@@ -124,15 +124,47 @@ build_gam_terms <- function(vars) {
   }
 }
 
+can_use_random_intercept <- function(df, re_var) {
+  if (!re_var %in% names(df)) {
+    return(FALSE)
+  }
+  v <- df[[re_var]]
+  if (all(is.na(v))) {
+    return(FALSE)
+  }
+  v <- as.factor(v)
+  n_obs <- nrow(df)
+  n_levels <- nlevels(v)
+  if (n_levels < 2) {
+    return(FALSE)
+  }
+  if (n_levels >= n_obs) {
+    return(FALSE)
+  }
+  if (anyDuplicated(v) == 0) {
+    return(FALSE)
+  }
+  TRUE
+}
+
 fit_r2_gamm4_abcd <- function(df, vars, re_var = "subID") {
   terms <- build_gam_terms(vars)
-  if (!re_var %in% names(df)) {
-    fit <- mgcv::gam(as.formula(paste0("y ~ ", terms)), data = df, method = "REML")
+  form <- as.formula(paste0("y ~ ", terms))
+  if (!can_use_random_intercept(df, re_var)) {
+    fit <- mgcv::gam(form, data = df, method = "REML")
     return(calc_r2(df$y, fitted(fit)))
   }
+
   df[[re_var]] <- as.factor(df[[re_var]])
-  form <- as.formula(paste0("y ~ ", terms))
-  fit <- gamm4::gamm4(form, random = stats::as.formula(paste0("~(1|", re_var, ")")), data = df)
+  fit <- tryCatch(
+    gamm4::gamm4(form, random = stats::as.formula(paste0("~(1|", re_var, ")")), data = df),
+    error = function(e) NULL
+  )
+  if (is.null(fit)) {
+    fit2 <- mgcv::gam(form, data = df, method = "REML")
+    return(calc_r2(df$y, fitted(fit2)))
+  }
+
   calc_r2(df$y, fitted(fit$mer))
 }
 
@@ -187,7 +219,21 @@ compute_variance_decomp <- function(df, sc_cols, label, predictors, strip_suffix
       check.names = FALSE
     )
   }, mc.cores = cores)
-  bind_rows(Filter(Negate(is.null), results))
+  rows <- Filter(Negate(is.null), results)
+  if (length(rows) == 0) {
+    empty <- data.frame(
+      edge = character(),
+      edge_base = character(),
+      condition = character(),
+      total_r2 = numeric(),
+      check.names = FALSE
+    )
+    for (p in predictors) {
+      empty[[p]] <- numeric()
+    }
+    return(empty)
+  }
+  bind_rows(rows)
 }
 
 palette <- c(
@@ -206,9 +252,18 @@ plot_variant <- function(label, raw_path, combat_path, predictors, include_cogni
   raw_results <- compute_variance_decomp(raw_data$df, raw_data$sc_cols, "Raw", predictors, strip_suffix = FALSE)
   combat_results <- compute_variance_decomp(combat_data$df, combat_data$sc_cols, "ComBat", predictors, strip_suffix = TRUE)
 
-  order_edges <- raw_results %>%
-    arrange(desc(total_r2)) %>%
-    pull(edge_base)
+  if (nrow(raw_results) > 0) {
+    order_edges <- raw_results %>%
+      arrange(desc(total_r2)) %>%
+      pull(edge_base)
+  } else if (nrow(combat_results) > 0) {
+    order_edges <- combat_results %>%
+      arrange(desc(total_r2)) %>%
+      pull(edge_base)
+  } else {
+    message(sprintf("[plot_abcd_variance_decomposition] no valid edges for %s; skip plotting", label))
+    return(invisible(NULL))
+  }
 
   combined <- bind_rows(raw_results, combat_results)
   combined$edge_base <- factor(combined$edge_base, levels = order_edges)
