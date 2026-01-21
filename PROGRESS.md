@@ -124,3 +124,4 @@
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在保存图片时 ggplot guide 计算异常导致的崩溃（`add_guides` 下标比较错误）：对相关 scale 显式设置 `guide=\"none\"`，避免无图例场景进入 guide 布局分支。
 - 2026-01-21: DemodfScreenFinal 增补 NIH Toolbox total cognition（age-corrected）列：将 `demopath/nc_y_nihtb.csv` 的 `nihtbx_totalcomp_agecorrected` 合并到 `demopath/DemodfScreenFinal.csv`（按 `src_subject_id+eventname` 对齐）。
 - 2026-01-21: 新增 ABCD 纵向 Nonlinear-ComBat-GAM 变体脚本与 sbatch：CBCL total problems（参考 pfactor，不做 baseline-only）与 NIH Toolbox total cognition age-corrected（参考 cognition，baseline-only）。
+- 2026-01-21: 修复 ABCD Nonlinear-ComBat-GAM（CBCL/total cognition age-corrected）因输入 RDS 缺少表型列而失败：脚本检测到缺列时按 `scanID` 从 `demopath/DemodfScreenFinal.csv` 自动回填协变量并继续运行。

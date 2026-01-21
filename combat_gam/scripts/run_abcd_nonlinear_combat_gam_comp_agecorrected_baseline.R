@@ -26,7 +26,35 @@ if (length(sc_cols) == 0) {
   stop("No SC.* columns found in input.")
 }
 
-needed <- c(sc_cols, "subID", "scanID", "siteID", "age", "sex", "mean_fd", "eventname", "nihtbx_totalcomp_agecorrected")
+base_needed <- c(sc_cols, "subID", "scanID", "siteID", "age", "sex", "mean_fd", "eventname")
+missing_base <- setdiff(base_needed, names(scdata))
+if (length(missing_base) > 0) {
+  stop(paste("Missing columns:", paste(missing_base, collapse = ", ")))
+}
+
+if (!"nihtbx_totalcomp_agecorrected" %in% names(scdata)) {
+  demo_path <- file.path("demopath", "DemodfScreenFinal.csv")
+  if (!file.exists(demo_path)) {
+    stop(paste0(
+      "Missing column: nihtbx_totalcomp_agecorrected. ",
+      "Tried to backfill from ", demo_path, " but file not found."
+    ))
+  }
+
+  demo <- read.csv(demo_path, stringsAsFactors = FALSE)
+  if (!all(c("scanID", "nihtbx_totalcomp_agecorrected") %in% names(demo))) {
+    stop(paste0(
+      "Missing column: nihtbx_totalcomp_agecorrected. ",
+      "Backfill failed because demopath/DemodfScreenFinal.csv lacks scanID and/or nihtbx_totalcomp_agecorrected."
+    ))
+  }
+
+  demo <- demo[, c("scanID", "nihtbx_totalcomp_agecorrected"), drop = FALSE]
+  demo <- demo[!duplicated(demo$scanID), , drop = FALSE]
+  scdata <- scdata %>% left_join(demo, by = "scanID")
+}
+
+needed <- c(base_needed, "nihtbx_totalcomp_agecorrected")
 missing <- setdiff(needed, names(scdata))
 if (length(missing) > 0) {
   stop(paste("Missing columns:", paste(missing, collapse = ", ")))
@@ -90,4 +118,3 @@ if (!dir.exists(out_dir)) {
   dir.create(out_dir, recursive = TRUE)
 }
 saveRDS(out, output_rds)
-

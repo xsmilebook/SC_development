@@ -26,7 +26,35 @@ if (length(sc_cols) == 0) {
   stop("No SC.* columns found in input.")
 }
 
-needed <- c(sc_cols, "subID", "scanID", "siteID", "age", "sex", "mean_fd", "cbcl_scr_syn_totprob_r")
+base_needed <- c(sc_cols, "subID", "scanID", "siteID", "age", "sex", "mean_fd")
+missing_base <- setdiff(base_needed, names(scdata))
+if (length(missing_base) > 0) {
+  stop(paste("Missing columns:", paste(missing_base, collapse = ", ")))
+}
+
+if (!"cbcl_scr_syn_totprob_r" %in% names(scdata)) {
+  demo_path <- file.path("demopath", "DemodfScreenFinal.csv")
+  if (!file.exists(demo_path)) {
+    stop(paste0(
+      "Missing column: cbcl_scr_syn_totprob_r. ",
+      "Tried to backfill from ", demo_path, " but file not found."
+    ))
+  }
+
+  demo <- read.csv(demo_path, stringsAsFactors = FALSE)
+  if (!all(c("scanID", "cbcl_scr_syn_totprob_r") %in% names(demo))) {
+    stop(paste0(
+      "Missing column: cbcl_scr_syn_totprob_r. ",
+      "Backfill failed because demopath/DemodfScreenFinal.csv lacks scanID and/or cbcl_scr_syn_totprob_r."
+    ))
+  }
+
+  demo <- demo[, c("scanID", "cbcl_scr_syn_totprob_r"), drop = FALSE]
+  demo <- demo[!duplicated(demo$scanID), , drop = FALSE]
+  scdata <- scdata %>% left_join(demo, by = "scanID")
+}
+
+needed <- c(base_needed, "cbcl_scr_syn_totprob_r")
 missing <- setdiff(needed, names(scdata))
 if (length(missing) > 0) {
   stop(paste("Missing columns:", paste(missing, collapse = ", ")))
@@ -88,4 +116,3 @@ if (!dir.exists(out_dir)) {
   dir.create(out_dir, recursive = TRUE)
 }
 saveRDS(out, output_rds)
-

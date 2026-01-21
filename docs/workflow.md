@@ -36,6 +36,7 @@
 - ABCD 纵向 Nonlinear-ComBat-GAM（新增变体）：
   - CBCL total problems：`sbatch combat_gam/sbatch/abcd_combat_gam_cbcl.sbatch`，输出 `*combatgam_cbcl.rds`（协变量列：`cbcl_scr_syn_totprob_r`；不做 baseline-only）。
   - NIH Toolbox total cognition（age-corrected，baseline-only）：`sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch`，输出 `*combatgam_comp_agecorrected_baseline.rds`（协变量列：`nihtbx_totalcomp_agecorrected`；仅保留 baseline 与 cognition 方案一致）。
+  - 注：ABCD 的 `input_rds` 常仅包含 SC 与基础协变量；若缺少上述表型列，脚本会按 `scanID` 从 `demopath/DemodfScreenFinal.csv` 自动回填后再运行（回填失败会给出明确报错）。
 - ABCD 的 Nonlinear-ComBat-GAM 支持并行：`nlongcombat` 使用 `mclapply`，核数由 `SLURM_CPUS_PER_TASK` 控制；未设置时默认单核。
 - 结构连接 R² 方差分解图（Raw vs ComBat）由 `combat_gam/scripts/plot_abcd_variance_decomposition.R` 生成，输出在 `outputs/figures/combat_gam/`，包含：
   - `abcd_variance_decomp_base`（age+sex+meanFD）
