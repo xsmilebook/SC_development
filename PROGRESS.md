@@ -106,4 +106,5 @@
 - 2026-01-20: 修复容器内 `gamm4` 不可用：CRAN 当前版本要求 R>=4.4，容器改为安装 CRAN Archive `gamm4==0.2-6` 以兼容 R 4.1.3。
 - 2026-01-20: 基于 `development_script/` 与 `gamfunction/` 的静态扫描扩展容器预装 R 包集合（如 `lme4`、`pbkrtest`、`reshape2`、`ggcorrplot`、`geomtextpath`、`paletteer`、`pals`、`visreg`、`gdata`、`rjson`、`tableone`、`knitr`），减少运行时缺包。
 - 2026-01-20: 将容器依赖改为“最大稳定性”策略：对脚本依赖包及关键工具链包（如 `Rcpp/cli/farver/stringi/rlang/vctrs`、tidyverse 组件、绘图链条）使用 `remotes::install_version()` 显式固定版本，降低 CRAN 漂移风险。
+- 2026-01-20: 修复容器构建时 R 包编译失败：为 `nloptr` 增加 `cmake`，为 `ragg` 增加 `libwebp-dev`；同时补齐并固定 `RcppEigen/minqa/nloptr` 以保证 `lme4/gamm4` 可编译安装。
 - 2026-01-20: 简化容器 sbatch 的 module 加载逻辑：移除 Modules 初始化探测，直接使用 `module load singularity/3.7.0`。
