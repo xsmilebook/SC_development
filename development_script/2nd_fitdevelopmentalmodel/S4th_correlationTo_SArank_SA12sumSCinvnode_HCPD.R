@@ -38,6 +38,7 @@ project_root <- normalizePath(if (!is.null(args$project_root)) args$project_root
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
+force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 ds.resolution <- 12
@@ -91,6 +92,12 @@ EuricDistance <- read.csv(euclid_csv)
 
 message(sum(gamresult$sig), " edges have significant developmental effects.")
 
+out_summary <- file.path(resultFolder, "SCrank_correlation_summary.csv")
+if (!force && file.exists(out_summary)) {
+  message("[INFO] S4 summary exists, skipping: ", out_summary, " (set --force=1 to re-run)")
+  quit(save = "no", status = 0)
+}
+
 ## description
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
 if (length(sc_cols) == 0) stop("No SC.* columns found in input_rds: ", input_rds)
@@ -139,7 +146,7 @@ SCrank_correlation <- rbind(
   SCrankcorr(gamresult, "meanderv2_control_distance", ds.resolution, dsdata = FALSE),
   SCrankcorr(gamresult, "partialRsq_control_distance", ds.resolution, dsdata = FALSE)
 )
-write.csv(SCrank_correlation, file.path(resultFolder, "SCrank_correlation_summary.csv"), row.names = FALSE)
+write.csv(SCrank_correlation, out_summary, row.names = FALSE)
 
 ## scatter plots
 FigCorrFolder <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank")

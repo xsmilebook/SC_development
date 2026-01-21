@@ -58,6 +58,14 @@
 
 ## 分析流程（对应现有脚本）
 1) 数据整理与 SC 强度提取（`development_script/1st_dataclean`）
+
+## 发育模型脚本的“存在即跳过”约定（HCP-D）
+- 为避免重复计算（尤其是 S1 拟合与 S2 posterior derivative），`development_script/2nd_fitdevelopmentalmodel` 的 HCP-D Rscript 版本默认采用 **存在即跳过**：
+  - S1：当 `gamresults*.rds` 与 `gammodel*.rds` 对应输出已存在时跳过重新拟合；其他中间文件（如 `plotdatasum.df_*`、`SCdata.diw_*`、`*_scale_TRUE.rds`）同理按文件存在判断跳过。
+  - S2：当 `derivative.df*.rds`（以及 posterior 的 `derivative.posterior*.rds`）存在时跳过。
+  - S3：当 `plotdatasum_scale_TRUE_SA12.rds` 与关键图（`devcurve_Rsq_fit.ratio.tiff`、`devcurve_meanderv2_fit.Z.tiff`）存在时跳过。
+  - S4：当 `SCrank_correlation_summary.csv` 存在时跳过。
+- 强制重跑：为任一步脚本增加 `--force=1`（例如：`Rscript .../S3rd_visualizationfitSCcurves_SA12sumSCinvnode_HCPD.R --force=1`）。
    - 合并数据与一致性阈值筛选。
    - 提取大尺度 SC 矩阵并生成汇总数据。
    - 进行站点/批次 harmonize（ComBat，待按评论更新）；CBCL total raw 可用 `S3rd_combat_controlsite_ABCD_CBCLtotalraw.R` 的测试参数先小样本跑通。

@@ -39,6 +39,7 @@ project_root <- normalizePath(if (!is.null(args$project_root)) args$project_root
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
+force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 ds.resolution <- 12
@@ -71,6 +72,21 @@ gamresultsum.SAorder.delLM <- readRDS(file.path(interfileFolder, paste0("gamresu
 gammodelsum <- readRDS(file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
 derivative <- readRDS(file.path(resultFolder, paste0("derivative.df", elementnum, "_CV", CVthr, ".rds")))
 
+FigureFolder <- file.path(FigureRoot, paste0("CV", CVthr))
+FigureFolder_SCfit <- file.path(FigureFolder, "SA12_sumSCinvnode_fit")
+FigureFolder_SCdecile <- file.path(FigureFolder, "SA12_decile_sumSCinvnode_fit")
+dir.create(FigureFolder_SCfit, showWarnings = FALSE, recursive = TRUE)
+dir.create(FigureFolder_SCdecile, showWarnings = FALSE, recursive = TRUE)
+
+out_plotdatasum_list <- file.path(interfileFolder, "plotdatasum_scale_TRUE_SA12.rds")
+out_fig1 <- file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff")
+out_fig2 <- file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff")
+
+if (!force && file.exists(out_plotdatasum_list) && file.exists(out_fig1) && file.exists(out_fig2)) {
+  message("[INFO] S3 outputs exist; skipping S3. Set --force=1 to re-run.")
+  quit(save = "no", status = 0)
+}
+
 ## generate fitted values for developmental trajectories
 if (nrow(gamresultsum.SAorder.delLM) == 0 || length(gammodelsum) == 0) {
   stop("Empty inputs: gamresults or gammodels. Check upstream S1/S2 outputs under: ", interfileFolder)
@@ -97,7 +113,7 @@ plot_one <- function(idx) {
 }
 
 plotdatasum <- mclapply(seq_len(n_edges), plot_one, mc.cores = n_cores)
-saveRDS(plotdatasum, file.path(interfileFolder, "plotdatasum_scale_TRUE_SA12.rds"))
+saveRDS(plotdatasum, out_plotdatasum_list)
 
 ## SA12 index & SC rank
 Matrix12 <- matrix(NA, nrow = 12, ncol = 12)
@@ -130,13 +146,6 @@ plotdatasum.df <- dplyr::bind_rows(lapply(ok_plot_idx, function(i) {
   tmp$meanderiv2 <- gamresultsum.SAorder.delLM$meanderv2[[i]]
   tmp
 }))
-
-## figure folders (match historical subfolder names)
-FigureFolder <- file.path(FigureRoot, paste0("CV", CVthr))
-FigureFolder_SCfit <- file.path(FigureFolder, "SA12_sumSCinvnode_fit")
-FigureFolder_SCdecile <- file.path(FigureFolder, "SA12_decile_sumSCinvnode_fit")
-dir.create(FigureFolder_SCfit, showWarnings = FALSE, recursive = TRUE)
-dir.create(FigureFolder_SCdecile, showWarnings = FALSE, recursive = TRUE)
 
 ## Plots: 78 developmental trajectories (fit.ratio colored by partial R^2)
 lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq))

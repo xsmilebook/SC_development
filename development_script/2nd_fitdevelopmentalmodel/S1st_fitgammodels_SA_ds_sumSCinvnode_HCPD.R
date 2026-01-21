@@ -33,6 +33,7 @@ project_root <- normalizePath(if (!is.null(args$project_root)) args$project_root
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
+force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
 # set resolution
 ds.resolution <- 12
@@ -76,10 +77,14 @@ if (length(sc_cols) != elementnum) {
 source(file.path(functionFolder, "gamsmooth.R"))
 source(file.path(functionFolder, "plotdata_generate.R"))
 
-## calculate gam results
-covariates <- "sex+mean_fd"
-dataname <- "SCdata.sum.merge"
-smooth_var <- "age"
+out_gamresults_raw <- file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, ".rds"))
+out_gammodel_raw <- file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, ".rds"))
+out_plotdatasum_df <- file.path(interfileFolder, paste0("plotdatasum.df_SA", ds.resolution, "_sumSCinvnode_CV", CVthr, ".rds"))
+out_scdata_diw <- file.path(interfileFolder, paste0("SCdata.diw_SA", ds.resolution, "CV", CVthr, ".rds"))
+out_gammodel_scaled <- file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
+out_gamresults_scaled <- file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
+
+should_run <- function(path) force || !file.exists(path)
 
 safe_fit_row <- function(SClabel, dataname, smooth_var, covariates) {
   tryCatch(
@@ -97,84 +102,103 @@ safe_fit_row <- function(SClabel, dataname, smooth_var, covariates) {
   )
 }
 
-result_rows <- mclapply(sc_cols[seq_len(n_edges)], function(SClabel) {
-  safe_fit_row(SClabel, dataname, smooth_var, covariates)
-}, mc.cores = n_cores)
+## calculate gam results/models (skip if both exist)
+covariates <- "sex+mean_fd"
+dataname <- "SCdata.sum.merge"
+smooth_var <- "age"
 
-## Models are fitted separately (historical behavior) but we must keep alignment:
-## only keep edges that succeeded in BOTH the stats pass and the model pass.
-model_objs <- mclapply(sc_cols[seq_len(n_edges)], function(SClabel) {
-  tryCatch(
-    gam.fit.smooth(
-      SClabel, dataname, smooth_var, covariates,
-      knots = 3, set_fx = TRUE, stats_only = TRUE, mod_only = TRUE
-    ),
-    error = function(e) {
-      message("[WARN] gam model fit failed for ", SClabel, ": ", conditionMessage(e))
-      NULL
-    }
-  )
-}, mc.cores = n_cores)
+if (should_run(out_gamresults_raw) || should_run(out_gammodel_raw)) {
+  result_rows <- mclapply(sc_cols[seq_len(n_edges)], function(SClabel) {
+    safe_fit_row(SClabel, dataname, smooth_var, covariates)
+  }, mc.cores = n_cores)
 
-ok_idx <- which(!vapply(result_rows, is.null, logical(1)) & !vapply(model_objs, is.null, logical(1)))
-sc_cols_ok <- sc_cols[ok_idx]
-if (length(ok_idx) == 0) stop("All GAM fits failed; see warnings above.")
-if (length(ok_idx) < n_edges) {
-  failed <- setdiff(sc_cols[seq_len(n_edges)], sc_cols_ok)
-  writeLines(failed, file.path(interfileFolder, paste0("failed_edges_sumSCinvnode_CV", CVthr, ".txt")))
-  saveRDS(ok_idx, file.path(interfileFolder, paste0("ok_edge_index_sumSCinvnode_CV", CVthr, ".rds")))
-  message("[INFO] Successful edges: ", length(ok_idx), " / ", n_edges)
+  ## Models are fitted separately (historical behavior) but we must keep alignment:
+  ## only keep edges that succeeded in BOTH the stats pass and the model pass.
+  model_objs <- mclapply(sc_cols[seq_len(n_edges)], function(SClabel) {
+    tryCatch(
+      gam.fit.smooth(
+        SClabel, dataname, smooth_var, covariates,
+        knots = 3, set_fx = TRUE, stats_only = TRUE, mod_only = TRUE
+      ),
+      error = function(e) {
+        message("[WARN] gam model fit failed for ", SClabel, ": ", conditionMessage(e))
+        NULL
+      }
+    )
+  }, mc.cores = n_cores)
+
+  ok_idx <- which(!vapply(result_rows, is.null, logical(1)) & !vapply(model_objs, is.null, logical(1)))
+  sc_cols_ok <- sc_cols[ok_idx]
+  if (length(ok_idx) == 0) stop("All GAM fits failed; see warnings above.")
+  if (length(ok_idx) < n_edges) {
+    failed <- setdiff(sc_cols[seq_len(n_edges)], sc_cols_ok)
+    writeLines(failed, file.path(interfileFolder, paste0("failed_edges_sumSCinvnode_CV", CVthr, ".txt")))
+    saveRDS(ok_idx, file.path(interfileFolder, paste0("ok_edge_index_sumSCinvnode_CV", CVthr, ".rds")))
+    message("[INFO] Successful edges: ", length(ok_idx), " / ", n_edges)
+  }
+
+  gamresultsum.df <- dplyr::bind_rows(result_rows[ok_idx])
+  num_cols <- setdiff(names(gamresultsum.df), "parcel")
+  gamresultsum.df[num_cols] <- lapply(gamresultsum.df[num_cols], as.numeric)
+  gamresultsum.df$pfdr <- p.adjust(gamresultsum.df$anova.smooth.pvalue, method = "fdr")
+  gamresultsum.df$sig <- (gamresultsum.df$pfdr < 0.05)
+  gammodelsum <- model_objs[ok_idx]
+
+  saveRDS(gamresultsum.df, out_gamresults_raw)
+  saveRDS(gammodelsum, out_gammodel_raw)
+} else {
+  gamresultsum.df <- readRDS(out_gamresults_raw)
+  gammodelsum <- readRDS(out_gammodel_raw)
+  sc_cols_ok <- as.character(gamresultsum.df$parcel)
 }
-
-gamresultsum.df <- dplyr::bind_rows(result_rows[ok_idx])
-num_cols <- setdiff(names(gamresultsum.df), "parcel")
-gamresultsum.df[num_cols] <- lapply(gamresultsum.df[num_cols], as.numeric)
-gamresultsum.df$pfdr <- p.adjust(gamresultsum.df$anova.smooth.pvalue, method = "fdr")
-gamresultsum.df$sig <- (gamresultsum.df$pfdr < 0.05)
-saveRDS(gamresultsum.df, file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, ".rds")))
-
-## calculate gam models (only successful edges)
-gammodelsum <- model_objs[ok_idx]
-saveRDS(gammodelsum, file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, ".rds")))
 
 ## plot data raw (fitted values)
-plotdatasum <- mclapply(seq_len(length(gammodelsum)), function(x) {
-  modobj <- gammodelsum[[x]]
-  plotdata <- plotdata_generate(modobj, "age")
-  plotdata$SC_label <- sc_cols_ok[[x]]
-  plotdata
-}, mc.cores = n_cores)
-plotdatasum.df <- dplyr::bind_rows(plotdatasum)
-saveRDS(plotdatasum.df, file.path(interfileFolder, paste0("plotdatasum.df_SA", ds.resolution, "_sumSCinvnode_CV", CVthr, ".rds")))
+if (should_run(out_plotdatasum_df)) {
+  plotdatasum <- mclapply(seq_len(length(gammodelsum)), function(x) {
+    modobj <- gammodelsum[[x]]
+    plotdata <- plotdata_generate(modobj, "age")
+    plotdata$SC_label <- sc_cols_ok[[x]]
+    plotdata
+  }, mc.cores = n_cores)
+  plotdatasum.df <- dplyr::bind_rows(plotdatasum)
+  saveRDS(plotdatasum.df, out_plotdatasum_df)
+} else {
+  plotdatasum.df <- readRDS(out_plotdatasum_df)
+}
 
 # Scale SC strength by the fitted value at the youngest age point (used for derivatives and visualization).
-SCdata.diw <- SCdata.sum.merge
-for (SClabel in sc_cols_ok) {
-  plotdata.tmp <- plotdatasum.df[plotdatasum.df$SC_label == SClabel, ]
-  SCdata.diw[, SClabel] <- SCdata.sum.merge[, SClabel] / plotdata.tmp$fit[[1]]
+if (should_run(out_scdata_diw)) {
+  SCdata.diw <- SCdata.sum.merge
+  for (SClabel in sc_cols_ok) {
+    plotdata.tmp <- plotdatasum.df[plotdatasum.df$SC_label == SClabel, ]
+    SCdata.diw[, SClabel] <- SCdata.sum.merge[, SClabel] / plotdata.tmp$fit[[1]]
+  }
+  saveRDS(SCdata.diw, out_scdata_diw)
+} else {
+  SCdata.diw <- readRDS(out_scdata_diw)
 }
-saveRDS(SCdata.diw, file.path(interfileFolder, paste0("SCdata.diw_SA", ds.resolution, "CV", CVthr, ".rds")))
 
 ## scaled gam models
 covariates <- "sex+mean_fd"
 dataname <- "SCdata.diw"
 smooth_var <- "age"
-scaled_models <- mclapply(sc_cols_ok, function(SClabel) {
-  tryCatch(
-    gam.fit.smooth(
-      SClabel, dataname, smooth_var, covariates,
-      knots = 3, set_fx = TRUE, stats_only = TRUE, mod_only = TRUE
-    ),
-    error = function(e) {
-      message("[WARN] scaled gam model fit failed for ", SClabel, ": ", conditionMessage(e))
-      NULL
-    }
-  )
-}, mc.cores = n_cores)
-scaled_ok <- which(!vapply(scaled_models, is.null, logical(1)))
-if (length(scaled_ok) == 0) stop("All scaled GAM fits failed; see warnings above.")
-sc_cols_scaled_ok <- sc_cols_ok[scaled_ok]
-scaled_models <- scaled_models[scaled_ok]
+if (should_run(out_gammodel_scaled) || should_run(out_gamresults_scaled)) {
+  scaled_models <- mclapply(sc_cols_ok, function(SClabel) {
+    tryCatch(
+      gam.fit.smooth(
+        SClabel, dataname, smooth_var, covariates,
+        knots = 3, set_fx = TRUE, stats_only = TRUE, mod_only = TRUE
+      ),
+      error = function(e) {
+        message("[WARN] scaled gam model fit failed for ", SClabel, ": ", conditionMessage(e))
+        NULL
+      }
+    )
+  }, mc.cores = n_cores)
+  scaled_ok <- which(!vapply(scaled_models, is.null, logical(1)))
+  if (length(scaled_ok) == 0) stop("All scaled GAM fits failed; see warnings above.")
+  sc_cols_scaled_ok <- sc_cols_ok[scaled_ok]
+  scaled_models <- scaled_models[scaled_ok]
 
 ## scaled gam results
 scaled_rows <- mclapply(sc_cols_scaled_ok, function(SClabel) {
@@ -193,8 +217,11 @@ sc_cols_scaled_ok <- sc_cols_scaled_ok[scaled_ok2]
 scaled_models <- scaled_models[scaled_ok2]
 scaled_rows <- scaled_rows[scaled_ok2]
 
-gamresultsum.df <- dplyr::bind_rows(scaled_rows)
-num_cols <- setdiff(names(gamresultsum.df), "parcel")
-gamresultsum.df[num_cols] <- lapply(gamresultsum.df[num_cols], as.numeric)
-saveRDS(gamresultsum.df, file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
-saveRDS(scaled_models, file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
+  gamresultsum.df <- dplyr::bind_rows(scaled_rows)
+  num_cols <- setdiff(names(gamresultsum.df), "parcel")
+  gamresultsum.df[num_cols] <- lapply(gamresultsum.df[num_cols], as.numeric)
+  saveRDS(gamresultsum.df, out_gamresults_scaled)
+  saveRDS(scaled_models, out_gammodel_scaled)
+} else {
+  # both scaled outputs exist and force=0: skip scaled fitting
+}

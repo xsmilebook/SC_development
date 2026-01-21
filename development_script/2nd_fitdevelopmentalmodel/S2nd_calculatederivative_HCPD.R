@@ -36,6 +36,7 @@ project_root <- normalizePath(if (!is.null(args$project_root)) args$project_root
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
+force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
 # set resolution
 ds.resolution <- 12
@@ -65,6 +66,9 @@ n_cores <- max(1L, n_cores)
 #### load data (scaled models)
 gamresultsum <- readRDS(file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
 gammodelsum <- readRDS(file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
+if (nrow(gamresultsum) == 0 || length(gammodelsum) == 0) {
+  stop("Empty inputs: gamresults or gammodels. Check upstream outputs under: ", interfileFolder)
+}
 
 SCrank <- matrix(NA, ds.resolution, ds.resolution)
 for (x in 1:ds.resolution) {
@@ -79,6 +83,12 @@ SCrank.df <- data.frame(parcel = paste0("SC.", 1:elementnum, "_h"), SCrank = SCr
 source(file.path(functionFolder, "gamderivatives.R"))
 
 ## derivative
+out_derivative <- file.path(resultFolder, paste0("derivative.df", elementnum, "_CV", CVthr, ".rds"))
+out_derivative_posterior <- file.path(resultFolder, paste0("derivative.posterior.df.SA", ds.resolution, "_CV", CVthr, ".rds"))
+
+if (!force && file.exists(out_derivative)) {
+  message("[INFO] derivative.df exists, skipping: ", out_derivative)
+} else {
 derivative.sum <- mclapply(seq_len(min(n_edges, nrow(gamresultsum))), function(x) {
   SClabel.tmp <- gamresultsum$parcel[[x]]
   modobj <- gammodelsum[[x]]
@@ -92,10 +102,14 @@ derivative.sum <- mclapply(seq_len(min(n_edges, nrow(gamresultsum))), function(x
 }, mc.cores = n_cores)
 
 derivative.df <- do.call(rbind, lapply(derivative.sum, function(x) data.frame(x)))
-saveRDS(derivative.df, file.path(resultFolder, paste0("derivative.df", elementnum, "_CV", CVthr, ".rds")))
+saveRDS(derivative.df, out_derivative)
+}
 
 ## posterior derivative (optional; heavy)
 if (!skip_posterior) {
+  if (!force && file.exists(out_derivative_posterior)) {
+    message("[INFO] posterior derivative exists, skipping: ", out_derivative_posterior)
+  } else {
   derivative.posterior.sum <- mclapply(seq_len(min(n_edges, nrow(gamresultsum))), function(x) {
     modobj <- gammodelsum[[x]]
     draws <- 1000
@@ -109,5 +123,6 @@ if (!skip_posterior) {
     derivdata$maxSC <- maxSC
     derivdata
   }, mc.cores = n_cores)
-  saveRDS(derivative.posterior.sum, file.path(resultFolder, paste0("derivative.posterior.df.SA", ds.resolution, "_CV", CVthr, ".rds")))
+  saveRDS(derivative.posterior.sum, out_derivative_posterior)
+  }
 }
