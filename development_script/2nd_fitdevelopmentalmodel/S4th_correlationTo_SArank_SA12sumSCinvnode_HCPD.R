@@ -156,8 +156,23 @@ plot_one_scatter <- function(computevar, ylab) {
   df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
   names(df) <- c("SCrank", computevar)
   ct <- suppressWarnings(corr.test(df$SCrank, df[[computevar]], method = "spearman"))
-  r <- ct$r[[1, 2]]
-  p <- ct$p[[1, 2]]
+  extract_corr <- function(ct_obj) {
+    r_obj <- ct_obj$r
+    p_obj <- ct_obj$p
+    if (is.matrix(r_obj) || is.data.frame(r_obj)) {
+      r_val <- if (ncol(r_obj) >= 2) r_obj[1, 2] else r_obj[1, 1]
+      p_val <- if (is.matrix(p_obj) || is.data.frame(p_obj)) {
+        if (ncol(p_obj) >= 2) p_obj[1, 2] else p_obj[1, 1]
+      } else {
+        as.numeric(p_obj)[1]
+      }
+      return(list(r = as.numeric(r_val), p = as.numeric(p_val)))
+    }
+    list(r = as.numeric(r_obj)[1], p = as.numeric(p_obj)[1])
+  }
+  rp <- extract_corr(ct)
+  r <- rp$r
+  p <- rp$p
   ggplot(df, aes(x = SCrank, y = .data[[computevar]])) +
     geom_point(alpha = 0.9, size = 2) +
     geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +

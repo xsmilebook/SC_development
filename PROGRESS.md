@@ -119,3 +119,4 @@
 - 2026-01-21: 修复容器/环境缺少 `svglite` 导致 `.svg` 保存失败：HCP-D 发育模型 S3/S4 默认输出改为 `.pdf`（保留 `.tiff`）。
 - 2026-01-21: 将本次容器/依赖/并行/容错/对齐/QC 等可复用经验整理补充到 `docs/workflow.md`，作为后续排错与复现的优先清单。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在 `derivative.df` 缺少 `significant.derivative_fdr` 列时的崩溃：S3 自动补齐该列（优先使用 `significance_pvalue_fdr`，否则用 `significant`/`significant.derivative` 回退）。
+- 2026-01-21: 修复 HCP-D 发育模型容器作业 S4 在 `psych::corr.test()` 返回标量时的崩溃：散点图标题相关性提取兼容矩阵/标量两种返回结构，避免 `ct$r[[1,2]]` 下标错误。
