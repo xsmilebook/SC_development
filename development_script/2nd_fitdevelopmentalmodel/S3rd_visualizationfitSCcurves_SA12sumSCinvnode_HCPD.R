@@ -72,6 +72,42 @@ gamresultsum.SAorder.delLM <- readRDS(file.path(interfileFolder, paste0("gamresu
 gammodelsum <- readRDS(file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
 derivative <- readRDS(file.path(resultFolder, paste0("derivative.df", elementnum, "_CV", CVthr, ".rds")))
 
+ensure_sig_derivative_fdr <- function(derivative_df) {
+  if (!is.data.frame(derivative_df) || nrow(derivative_df) == 0) return(derivative_df)
+  if ("significant.derivative_fdr" %in% names(derivative_df) &&
+    length(derivative_df$significant.derivative_fdr) == nrow(derivative_df)) {
+    return(derivative_df)
+  }
+
+  if ("derivative" %in% names(derivative_df) && "significance_pvalue_fdr" %in% names(derivative_df)) {
+    sig_val <- as.numeric(derivative_df$derivative)
+    sig_mask <- as.logical(derivative_df$significance_pvalue_fdr)
+    sig_val[which(is.na(sig_mask) | !sig_mask)] <- NA_real_
+    derivative_df$significant.derivative_fdr <- sig_val
+    return(derivative_df)
+  }
+
+  if ("derivative" %in% names(derivative_df) && "significant" %in% names(derivative_df)) {
+    sig_val <- as.numeric(derivative_df$derivative)
+    sig_mask <- as.logical(derivative_df$significant)
+    sig_val[which(is.na(sig_mask) | !sig_mask)] <- NA_real_
+    derivative_df$significant.derivative_fdr <- sig_val
+    return(derivative_df)
+  }
+
+  if ("significant.derivative" %in% names(derivative_df)) {
+    sig_val <- as.numeric(derivative_df$significant.derivative)
+    derivative_df$significant.derivative_fdr <- sig_val
+    return(derivative_df)
+  }
+
+  warning("Missing significance columns in derivative.df; setting significant.derivative_fdr to NA.")
+  derivative_df$significant.derivative_fdr <- rep(NA_real_, nrow(derivative_df))
+  derivative_df
+}
+
+derivative <- ensure_sig_derivative_fdr(derivative)
+
 FigureFolder <- file.path(FigureRoot, paste0("CV", CVthr))
 FigureFolder_SCfit <- file.path(FigureFolder, "SA12_sumSCinvnode_fit")
 FigureFolder_SCdecile <- file.path(FigureFolder, "SA12_decile_sumSCinvnode_fit")
@@ -230,7 +266,6 @@ for (SClabel in c("SC.2_h", "SC.77_h")) {
       legend.position = "none"
     )
 
-  derivative$significant.derivative_fdr <- as.numeric(derivative$significant.derivative_fdr)
   deriv.SA12.tmp <- derivative[derivative$label_ID == SClabel, ]
   deriv.SA12.tmp$h <- 1
   derivplot <- ggplot(data = deriv.SA12.tmp) +
