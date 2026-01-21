@@ -28,11 +28,26 @@ dir.create(figureFolderInteraction, showWarnings = FALSE, recursive = TRUE)
 source(paste0(functionFolder, "/gamminteraction.R"))
 source(paste0(functionFolder, "/SCrankcorr.R"))
 
-input_rds <- file.path(combatFolder, "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatCBCLtotalraw.rds")
+input_rds <- file.path(
+  wdpath, "outputs", "results", "combat_gam", "abcd",
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cbcl.rds"
+)
 SCdata <- readRDS(input_rds)
-if (is.data.frame(SCdata$age) || !is.numeric(SCdata$age)) {
+
+need_demo <- (is.data.frame(SCdata$age) || !is.numeric(SCdata$age)) ||
+  !all(c("handness", "race_ethnicity") %in% names(SCdata))
+if (need_demo) {
   demodf <- read.csv(file.path(wdpath, "demopath", "DemodfScreenFinal.csv"))
-  SCdata$age <- demodf$age[match(SCdata$scanID, demodf$scanID)]
+  key <- match(SCdata$scanID, demodf$scanID)
+  if (is.data.frame(SCdata$age) || !is.numeric(SCdata$age)) {
+    SCdata$age <- demodf$age[key]
+  }
+  if (!"handness" %in% names(SCdata)) {
+    SCdata$handness <- demodf$handness[key]
+  }
+  if (!"race_ethnicity" %in% names(SCdata)) {
+    SCdata$race_ethnicity <- demodf$race_ethnicity[key]
+  }
 }
 SCdata[, c("sex", "handness", "race_ethnicity")] <- lapply(SCdata[, c("sex", "handness", "race_ethnicity")], as.factor)
 SCdata$age <- SCdata$age / 12

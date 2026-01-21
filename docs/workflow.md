@@ -99,6 +99,7 @@
 
 ## Conda 环境运行（CBCL 关联）
 - 统一使用本地 conda 环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment_r41`（R 4.1.3）。
+- CBCL 关联分析默认输入（ABCD Nonlinear-ComBat-GAM 输出）：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cbcl.rds`。
 - 小样本测试作业脚本：`sbatch/run_cbcl_assoc_smalltest.sbatch`（脚本内已 `conda activate`）。
 - 全量作业脚本：`sbatch/run_cbcl_assoc_full.sbatch`（脚本内已 `conda activate`）。
 - 运行前确认 `outputs/logs/` 存在，脚本内会自动创建。
