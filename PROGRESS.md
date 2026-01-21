@@ -116,3 +116,4 @@
 - 2026-01-21: 加固 `plotdata_generate()`：强制使用 `mgcv::predict.gam()` 并对齐 newdata 的 factor level/类型，避免 `se.fit=TRUE` 路径触发 `qr` 相关错误导致的警告与失败。
 - 2026-01-21: HCP-D 发育模型 S1-S4 默认改为“存在即跳过”（逐步跳过），并提供 `--force=1` 强制重跑开关，便于从失败步骤续跑并减少重复计算。
 - 2026-01-21: 新增 conda 环境下的 HCP-D 发育模型输出 QC：检查 `gamresults/gammodel` 一致性与 `predict.gam` 可用性（屏蔽用户/系统 R 包路径），并输出 QC 报告到 `outputs/results/.../qc/`。
+- 2026-01-21: 修复容器/环境缺少 `svglite` 导致 `.svg` 保存失败：HCP-D 发育模型 S3/S4 默认输出改为 `.pdf`（保留 `.tiff`）。

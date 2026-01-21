@@ -118,6 +118,8 @@
   - 处理：S3 改为按可用边数迭代（`min(length(gammodelsum), nrow(gamresults))`），对 `plotdata_generate()` 增加 `tryCatch`；删列按响应列名（与 `parcel` 同名）删除，避免依赖固定列位置。
 - `plotdatasum_scale_TRUE_SA12.rds` 中出现 `try-error` 且报 `lm object does not have a proper 'qr' component`：通常是 `plotdata_generate()` 内部 `predict(..., se.fit=TRUE)` 在少数模型上失败导致。
   - 处理：`gamfunction/plotdata_generate.R` 对 `se.fit=TRUE` 增加容错，失败时回退到 `se.fit=FALSE`（仅保留 `fit`，CI 列为 NA），确保后续流程可继续运行。
+- `ggsave()` 报 `The package "svglite" is required to save as SVG`：当前环境/容器未安装 `svglite`。
+  - 处理：HCP-D 的 S3/S4 脚本默认不再输出 `.svg`，改为输出无需额外依赖的 `.pdf`（同时保留 `.tiff`）。
 - `gratia` 报 `there is no package called 'mvnfast'`：这是 `gratia` 的依赖缺失；若仅运行 CBCL 关联分析，已移除 `gamfunction/gamminteraction.R` 对 `gratia` 的依赖以避免该类问题。
 - `tidyverse` 报 `readr/forcats/lubridate` 缺失：在 `scdevelopment` 环境安装 `r-tidyverse`（或补装 `r-readr`、`r-forcats`）。
 - CBCL ComBat 输出中 `age` 列为嵌套 data.frame：在 CBCL 关联脚本中从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填 `age`。

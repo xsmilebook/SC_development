@@ -11,7 +11,7 @@
 ##
 ## Outputs:
 ## - outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/SCrank_correlation_summary.csv
-## - outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/correlation_sumSCinvnode_SCrank/*.tiff + *.svg
+## - outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/correlation_sumSCinvnode_SCrank/*.tiff + *.pdf
 ## - (optional) outputs/figures/.../Matrix12_sumSCinvnode_gamstats_Age8_22/*.tiff
 
 rm(list = ls())
@@ -190,7 +190,7 @@ for (nm in names(scatter_targets)) {
   if (!nm %in% names(gamresult)) next
   p <- plot_one_scatter(nm, scatter_targets[[nm]])
   ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")), p, dpi = 600, width = 20, height = 12, units = "cm", bg = "transparent")
-  ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".svg")), p, dpi = 600, width = 16, height = 14, units = "cm", bg = "transparent")
+  ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf")), p, dpi = 600, width = 16, height = 14, units = "cm", bg = "transparent")
 }
 
 ## matrix graphs for resolution of 12 (optional; heavy)
