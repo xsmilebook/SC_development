@@ -125,6 +125,6 @@
 - 2026-01-21: DemodfScreenFinal 增补 NIH Toolbox total cognition（age-corrected）列：将 `demopath/nc_y_nihtb.csv` 的 `nihtbx_totalcomp_agecorrected` 合并到 `demopath/DemodfScreenFinal.csv`（按 `src_subject_id+eventname` 对齐）。
 - 2026-01-21: 新增 ABCD 纵向 Nonlinear-ComBat-GAM 变体脚本与 sbatch：CBCL total problems（参考 pfactor，不做 baseline-only）与 NIH Toolbox total cognition age-corrected（参考 cognition，baseline-only）。
 - 2026-01-21: 修复 ABCD Nonlinear-ComBat-GAM（CBCL/total cognition age-corrected）因输入 RDS 缺少表型列而失败：脚本检测到缺列时按 `scanID` 从 `demopath/DemodfScreenFinal.csv` 自动回填协变量并继续运行。
-- 2026-01-21: 修复 HCP-D 发育模型容器作业保存图片时 `add_guides` 崩溃（`Ops.data.frame(guide_loc, panel_loc)`）：容器定义将 `ggplot2` 固定到 `3.5.0` 并将 `patchwork` 更新到 `1.3.0`，需重建新 SIF 并用 `SIF_PATH` 复跑。
+- 2026-01-21: 修复 HCP-D 发育模型容器作业保存图片时 `add_guides` 崩溃（`Ops.data.frame(guide_loc, panel_loc)`）：容器定义将 `ggplot2` 固定到 `3.5.2` 并将 `patchwork` 更新到 `1.3.0`（同时满足 `geomtextpath` 对 `ggplot2>=3.5.2` 的依赖），需重建新 SIF 并用 `SIF_PATH` 复跑。
 - 2026-01-21: CBCL total raw 关联分析输入切换为 ABCD Nonlinear-ComBat-GAM 输出：`development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD*.R` 默认读取 `outputs/results/combat_gam/abcd/*combatgam_cbcl.rds`（缺少 `handness/race_ethnicity` 时按 `scanID` 从 demopath 自动回填）。
 - 2026-01-21: CBCL 全量关联作业脚本改为容器版：`sbatch/run_cbcl_assoc_full.sbatch` 使用 `outputs/containers/scdevelopment_r41.sif`；并删除 `sbatch/run_cbcl_assoc_smalltest.sbatch`。

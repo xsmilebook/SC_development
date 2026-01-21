@@ -121,7 +121,7 @@
   - 处理：对边级拟合使用 `tryCatch` 并跳过失败边；合并时用 `dplyr::bind_rows()`；将失败边标签写入 `failed_edges_*.txt` 便于追踪与复跑。
 - HCP-D 发育模型容器作业在保存图片时报 `Error in Ops.data.frame(guide_loc, panel_loc) : '==' only defined for equally-sized data frames`（`ggsave -> add_guides`）：
   - 常见触发：容器内 `ggplot2`/`patchwork` 版本组合不稳定（特别是 `ggplot2 4.x`）。
-  - 处理：使用已固定到稳定版本的容器重新构建镜像（当前定义中 `ggplot2==3.5.0`、`patchwork==1.3.0`），然后用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch` 指向新镜像执行。
+  - 处理：使用已固定到稳定版本的容器重新构建镜像（当前定义中 `ggplot2==3.5.2`、`patchwork==1.3.0`），然后用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch` 指向新镜像执行。
 - HCP-D 发育模型容器作业在 S3（可视化）报 `Error in plotdatasum[[i]][, -14] : incorrect number of dimensions` 且伴随 `all scheduled cores encountered errors`：常见于 **上游 S1 跳过部分边导致 `gammodelsum`/`gamresults` 不再满 78 条**，但 S3 仍按固定 `elementnum` 遍历并用固定列号删列。
   - 处理：S3 改为按可用边数迭代（`min(length(gammodelsum), nrow(gamresults))`），对 `plotdata_generate()` 增加 `tryCatch`；删列按响应列名（与 `parcel` 同名）删除，避免依赖固定列位置。
 - `plotdatasum_scale_TRUE_SA12.rds` 中出现 `try-error` 且报 `lm object does not have a proper 'qr' component`：通常是 `plotdata_generate()` 内部 `predict(..., se.fit=TRUE)` 在少数模型上失败导致。
