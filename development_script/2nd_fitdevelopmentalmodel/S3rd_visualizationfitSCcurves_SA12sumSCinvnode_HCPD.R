@@ -187,7 +187,7 @@ plotdatasum.df <- dplyr::bind_rows(lapply(ok_plot_idx, function(i) {
 lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq))
 p1 <- ggplot() +
   geom_line(data = plotdatasum.df, aes(x = age, y = fit.ratio, group = SC_label, color = PartialRsq), linewidth = 0.8, alpha = 0.8) +
-  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr)) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr), guide = "none") +
   labs(x = "Age (years)", y = "SC strength (ratio)") +
   theme_classic() +
   theme(
@@ -211,7 +211,7 @@ SC_label_derv2_order <- gamresultsum.SAorder.delLM$parcel[order(gamresultsum.SAo
 plotdatasum.df$SC_label2 <- factor(plotdatasum.df$SC_label, levels = SC_label_derv2_order)
 p2 <- ggplot() +
   geom_line(data = plotdatasum.df, aes(x = age, y = fit.Z, group = SC_label2, color = meanderiv2), linewidth = 0.8, alpha = 0.8) +
-  scale_color_distiller(type = "seq", palette = "RdBu", values = colorbarvalues.meanderiv2, direction = -1) +
+  scale_color_distiller(type = "seq", palette = "RdBu", values = colorbarvalues.meanderiv2, direction = -1, guide = "none") +
   labs(x = "Age (years)", y = "SC strength (z-score)") +
   scale_y_continuous(breaks = c(-1.5, 0.0, 1.5)) +
   theme_classic() +
@@ -270,8 +270,8 @@ for (SClabel in c("SC.2_h", "SC.77_h")) {
   deriv.SA12.tmp$h <- 1
   derivplot <- ggplot(data = deriv.SA12.tmp) +
     geom_bar(aes(x = age, y = 1, fill = significant.derivative_fdr, color = significant.derivative_fdr), stat = "identity", position = "stack") +
-    scale_fill_gradient2(high = colorID, low = "white", midpoint = 0, na.value = "white", labels = NULL) +
-    scale_color_gradient2(high = colorID, low = "white", midpoint = 0, na.value = "white", labels = NULL) +
+    scale_fill_gradient2(high = colorID, low = "white", midpoint = 0, na.value = "white", labels = NULL, guide = "none") +
+    scale_color_gradient2(high = colorID, low = "white", midpoint = 0, na.value = "white", labels = NULL, guide = "none") +
     scale_y_continuous(breaks = NULL) +
     ylab(NULL) + xlab("Age (years)") +
     scale_x_continuous(breaks = NULL) +
@@ -308,7 +308,7 @@ plotdatasum.df.decile <- plotdatasum.df.decile %>%
 
 p3 <- ggplot(data = plotdatasum.df.decile, aes(x = age, y = fit.Z, group = decile, color = decile)) +
   geom_line(linewidth = 1.5, alpha = 0.8) +
-  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
   labs(x = "Age (years)", y = "SC strength (z-score)") +
   theme_classic() +
   theme(

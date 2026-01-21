@@ -121,3 +121,4 @@
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在 `derivative.df` 缺少 `significant.derivative_fdr` 列时的崩溃：S3 自动补齐该列（优先使用 `significance_pvalue_fdr`，否则用 `significant`/`significant.derivative` 回退）。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S4 在 `psych::corr.test()` 返回标量时的崩溃：散点图标题相关性提取兼容矩阵/标量两种返回结构，避免 `ct$r[[1,2]]` 下标错误。
 - 2026-01-21: 加固容器 sbatch：当 S3 decile 图或 S4 相关性散点图缺失时，自动对对应步骤启用 `--force=1` 回填图片（支持 `FORCE_S3/FORCE_S4` 覆盖），避免 “哨兵/summary 存在但图片目录为空”。
+- 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在保存图片时 ggplot guide 计算异常导致的崩溃（`add_guides` 下标比较错误）：对相关 scale 显式设置 `guide=\"none\"`，避免无图例场景进入 guide 布局分支。
