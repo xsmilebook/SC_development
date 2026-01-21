@@ -7,7 +7,8 @@
 set -euo pipefail
 
 project_root="/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment"
-sif="${project_root}/outputs/containers/scdevelopment_r41.sif"
+# Default to the "stable" SIF path; allow overriding for testing a newly built image.
+sif="${SIF_PATH:-${project_root}/outputs/containers/scdevelopment_r41.sif}"
 
 CVTHR="${CVTHR:-75}"
 INPUT_RDS="${INPUT_RDS:-${project_root}/outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds}"
@@ -25,6 +26,7 @@ singularity --version
 if [ ! -f "${sif}" ]; then
   echo "[ERROR] Missing SIF: ${sif}"
   echo "[HINT] Build it first: sbatch sbatch/build_scdevelopment_r41_container.sbatch"
+  echo "[HINT] Or pass a versioned image via: SIF_PATH=/path/to/scdevelopment_r41_<tag>.sif sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch"
   exit 1
 fi
 

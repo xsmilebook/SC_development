@@ -109,3 +109,4 @@
 - 2026-01-20: 修复容器构建时 R 包编译失败：为 `nloptr` 增加 `cmake`，为 `ragg` 增加 `libwebp-dev`；同时补齐并固定 `RcppEigen/minqa/nloptr` 以保证 `lme4/gamm4` 可编译安装。
 - 2026-01-20: 简化容器 sbatch 的 module 加载逻辑：移除 Modules 初始化探测，直接使用 `module load singularity/3.7.0`。
 - 2026-01-21: 修复容器构建中 `knitr` lazy-load 失败（`xfun` API 不匹配）：在 `containers/scdevelopment_r41.def` 中提前固定 `xfun==0.52`/`knitr==1.43` 并限制依赖安装范围，避免 CRAN 漂移导致的频繁构建失败；同步更新 `docs/workflow.md` 与会话记录说明。
+- 2026-01-21: 容器构建脚本改为每次生成新 SIF（`scdevelopment_r41_<tag>.sif`），避免覆盖正在用于任务执行的旧镜像；容器运行脚本支持 `SIF_PATH` 选择镜像。

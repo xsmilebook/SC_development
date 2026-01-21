@@ -8,7 +8,10 @@ set -euo pipefail
 
 project_root="/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment"
 def_file="${project_root}/containers/scdevelopment_r41.def"
-sif_out="${project_root}/outputs/containers/scdevelopment_r41.sif"
+# Do NOT overwrite the existing SIF used by running pipelines.
+# Generate a new image name per build; you can override by setting SIF_TAG.
+tag="${SIF_TAG:-${SLURM_JOB_ID:-$(date +%Y%m%d_%H%M%S)}}"
+sif_out="${project_root}/outputs/containers/scdevelopment_r41_${tag}.sif"
 
 mkdir -p "${project_root}/outputs/logs/containers"
 mkdir -p "${project_root}/outputs/containers"
@@ -56,3 +59,5 @@ fi
 
 echo "[INFO] Building with: singularity build --remote ${sif_out} ${def_file}"
 singularity build --remote "${sif_out}" "${def_file}"
+
+echo "[INFO] Build done: ${sif_out}"
