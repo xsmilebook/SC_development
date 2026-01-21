@@ -132,6 +132,16 @@
 - **sbatch 入参约定**：若脚本要求输出路径（如 Chinese ComBat），sbatch 模板应显式传参并将日志写到 `outputs/logs/`，避免默认 `slurm-*.out` 分散且误判为“无日志”。  
 - **R ABI 报错排查**：出现 `rlang.so undefined symbol`、`GLIBC` 不匹配等问题时，优先排查作业是否误加载用户库（如 `/GPFS/.../R/packages`）；在 sbatch 内用 `Rscript --vanilla` 并显式设置 `R_LIBS_USER` 到 conda 库可显著降低此类问题。
 - **并行与线程**：脚本并行尽量从 `SLURM_CPUS_PER_TASK` 读取核数（如 `mclapply`/`nlongcombat`）；同时限制 `OPENBLAS_NUM_THREADS/OMP_NUM_THREADS/MKL_NUM_THREADS=1` 避免线程过订阅导致性能下降或报错。
+- **先隔离再诊断**：计算节点/登录节点差异（GLIBC、CRAN 访问）会把“包缺失/不可用”伪装为各种运行时错误；优先确保作业屏蔽 `R_LIBS_USER/R_LIBS` 并固定 `.libPaths()`，再判断是真缺包还是 ABI/网络问题。
+- **容器优先补齐系统依赖**：`nloptr/lme4/gamm4/ragg/textshaping` 等失败常源于系统库缺失（如 `cmake/libwebp-dev/harfbuzz/freetype`），应优先写入 `containers/*.def`，比反复补装 R 包更稳定可复现。
+- **版本固定优于“装最新版”**：R 4.1.x 下 CRAN 当前包常提高 R 版本门槛或发生 API 漂移（如 `gamm4`、`xfun/knitr`）；对关键链条使用 CRAN Archive 固定版本可显著降低构建/运行波动。
+- **避免嵌套并行**：外层 `mclapply` 已并行时，`ecostats::anovaPB()` 等内部并行应显式收敛到单核（如 `ncpus=1`），避免序列化/worker 环境不一致导致的随机失败。
+- **边级结果合并要容错**：边级拟合/预测一旦出现失败对象，`do.call(rbind, ...)` 容易整体崩溃；推荐 `tryCatch` 捕获失败并输出失败边清单，同时用 `dplyr::bind_rows()` 合并。
+- **按标签对齐而非按序号**：下游步骤（S3/S4）不要假设永远有 78 条边且顺序固定；对 `SCrank`、欧氏距离、meanSC 等应按 `parcel` 映射对齐以兼容“部分缺失/跳过”的情况。
+- **预测显式使用 mgcv 方法**：绘图预测应显式调用 `mgcv::predict.gam()`，并确保 `newdata` 的 factor level 与拟合数据一致；`se.fit=TRUE` 路径不稳定时提供回退（仅输出 `fit`、CI 为 NA）。
+- **输出格式减少额外依赖**：`ggsave(.svg)` 依赖 `svglite`，在 HPC/容器环境中常缺；默认采用 `tiff + pdf` 更稳，降低系统依赖与编译链风险。
+- **默认“存在即跳过”，保留强制重跑**：按步骤检测输出文件存在即可从失败点续跑并节省计算资源；同时提供 `--force=1` 便于单步重跑。
+- **把排错固化为 QC**：用 conda 环境直接读取 RDS 做一致性与 `predict.gam` 可用性检查，可快速区分“模型问题”与“下游计算/绘图问题”，并输出可追踪的 QC 报告供复跑与比较。
 - **neuroHarmonize 平滑项**：若通过 `smoothCon(... )$X` 手动构造基函数并作为线性协变量输入，`fx` 的影响通常不会体现在 `X` 上；要让固定/惩罚平滑生效，应使用 neuroHarmonize 原生 `smooth_terms`（`smooth_fx`）。
 - **statsmodels spline 约束**：使用 `harmonizationLearn(..., smooth_terms=...)` 时，`smooth_df` 需满足 `smooth_df >= smooth_degree + 1`（例如三次样条 `degree=3` 时 `df>=4`）。
 - **方差分解图耗时**：绘图阶段会对每条边重复拟合多次模型（Raw/ComBat × 多个 covariate 集合），通常远慢于一次性 ComBat；序列（sequential）R² 相比全子集方法更可控，且可通过并行显著缩短总耗时。
