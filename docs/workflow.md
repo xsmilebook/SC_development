@@ -100,7 +100,7 @@
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`
      - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
      - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
-     - 报告（渲染 html）：`outputs/reports/5th_cognition/abcd/comp_agecorrected/`
+     - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
 
 ## CBCL 关联运行
 - 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。

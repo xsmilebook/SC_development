@@ -18,7 +18,6 @@ ABCD_EUCLID_CSV="${ABCD_EUCLID_CSV:-/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_developmen
 FORCE="${FORCE:-0}"
 
 mkdir -p "${project_root}/outputs/logs"
-mkdir -p "${project_root}/outputs/reports/5th_cognition/abcd/comp_agecorrected"
 cd "${project_root}"
 
 module load singularity/3.7.0
@@ -55,17 +54,4 @@ singularity exec --cleanenv \
   --bind "${project_root}:/work" \
   --pwd /work \
   "${sif}" \
-  bash -lc 'Rscript --vanilla - << "RS"
-out_dir <- "/work/outputs/reports/5th_cognition/abcd/comp_agecorrected"
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-rmarkdown::render(
-  "/work/development_script/5th_cognition/S1st_testCog_correlation_wholesample_ABCD.Rmd",
-  output_dir = out_dir,
-  quiet = TRUE
-)
-rmarkdown::render(
-  "/work/development_script/5th_cognition/S2nd_compositescorePlot_scatterplot_ABCD.Rmd",
-  output_dir = out_dir,
-  quiet = TRUE
-)
-RS'
+  bash -lc 'Rscript --vanilla /work/development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_S1.R && Rscript --vanilla /work/development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_S2.R'

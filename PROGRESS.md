@@ -129,3 +129,4 @@
 - 2026-01-21: CBCL total raw 关联分析输入切换为 ABCD Nonlinear-ComBat-GAM 输出：`development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD*.R` 默认读取 `outputs/results/combat_gam/abcd/*combatgam_cbcl.rds`（缺少 `handness/race_ethnicity` 时按 `scanID` 从 demopath 自动回填）。
 - 2026-01-21: CBCL 全量关联作业脚本改为容器版：`sbatch/run_cbcl_assoc_full.sbatch` 使用 `outputs/containers/scdevelopment_r41.sif`；并删除 `sbatch/run_cbcl_assoc_smalltest.sbatch`。
 - 2026-01-21: ABCD total cognition（age-corrected，baseline-only）复现入口：更新 `development_script/5th_cognition` 的 ABCD Rmd 以读取 `*combatgam_comp_agecorrected_baseline.rds` 并输出 tiff+pdf；新增容器 sbatch `sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`（72 核）渲染报告到 `outputs/reports/`。
+- 2026-01-21: 由于容器缺少 `pandoc`，将上述复现入口从 `rmarkdown::render` 调整为纯 `Rscript`（新增 `run_abcd_cognition_comp_agecorrected_{S1,S2}.R`；sbatch 同步改为直接运行 Rscript），避免 `pandoc version 1.12.3+ required` 报错。
