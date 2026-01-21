@@ -64,6 +64,7 @@ if (!force && file.exists(qc_out_summary) && file.exists(qc_out_edges) && file.e
 }
 
 suppressPackageStartupMessages(library(mgcv))
+suppressPackageStartupMessages(library(dplyr))
 
 functionFolder <- file.path(project_root, "gamfunction")
 source(file.path(functionFolder, "plotdata_generate.R"))
