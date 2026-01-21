@@ -39,6 +39,25 @@ echo "[INFO] N_EDGES=${N_EDGES:-<unset>}"
 echo "[INFO] SKIP_POSTERIOR=${SKIP_POSTERIOR}"
 echo "[INFO] MAKE_MATRIX_GRAPHS=${MAKE_MATRIX_GRAPHS}"
 
+# If figure directories are empty but upstream sentinel outputs exist, S3/S4 will
+# currently skip and won't backfill missing plots. Auto-enable --force for S3/S4
+# only when their expected figure outputs are missing.
+FORCE_S3="${FORCE_S3:-0}"
+FORCE_S4="${FORCE_S4:-0}"
+
+decile_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV${CVTHR}/SA12_decile_sumSCinvnode_fit/devcurve_SCrank_fit.Z_SCtype10.tiff"
+if [ ! -f "${decile_tiff}" ]; then
+  FORCE_S3=1
+fi
+
+corr_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV${CVTHR}/correlation_sumSCinvnode_SCrank/meanpartialRsq_SCrankcorr_n12.tiff"
+if [ ! -f "${corr_tiff}" ]; then
+  FORCE_S4=1
+fi
+
+echo "[INFO] FORCE_S3=${FORCE_S3} (set FORCE_S3=0/1 to override)"
+echo "[INFO] FORCE_S4=${FORCE_S4} (set FORCE_S4=0/1 to override)"
+
 exec_sif() {
   singularity exec --cleanenv \
     --bind "${project_root}:/work" \
@@ -61,11 +80,13 @@ exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S2
 
 exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S3rd_visualizationfitSCcurves_SA12sumSCinvnode_HCPD.R \
   --project_root=/work \
-  --cvthr="${CVTHR}"
+  --cvthr="${CVTHR}" \
+  --force="${FORCE_S3}"
 
 exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S4th_correlationTo_SArank_SA12sumSCinvnode_HCPD.R \
   --project_root=/work \
   --cvthr="${CVTHR}" \
   --input_rds="/work/${INPUT_RDS#${project_root}/}" \
   --euclid_csv="/work/${EUCLID_CSV#${project_root}/}" \
-  --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}"
+  --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}" \
+  --force="${FORCE_S4}"
