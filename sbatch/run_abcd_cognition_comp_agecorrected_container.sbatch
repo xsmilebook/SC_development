@@ -12,7 +12,7 @@ project_root="/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment"
 sif="${SIF_PATH:-${project_root}/outputs/containers/scdevelopment_r41.sif}"
 
 # External ABCD reference file used for Euclidean-distance control (existing pipeline path).
-ABCD_EUCLID_CSV="${ABCD_EUCLID_CSV:-${project_root}/wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv}"
+ABCD_EUCLID_CSV_HOST="${ABCD_EUCLID_CSV:-${project_root}/wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv}"
 
 # Force recomputation (0=use cached results when available).
 FORCE="${FORCE:-0}"
@@ -30,8 +30,8 @@ if [ ! -f "${sif}" ]; then
   exit 1
 fi
 
-if [ ! -f "${ABCD_EUCLID_CSV}" ]; then
-  echo "[ERROR] Missing ABCD_EUCLID_CSV: ${ABCD_EUCLID_CSV}"
+if [ ! -f "${ABCD_EUCLID_CSV_HOST}" ]; then
+  echo "[ERROR] Missing ABCD_EUCLID_CSV: ${ABCD_EUCLID_CSV_HOST}"
   exit 1
 fi
 
@@ -41,9 +41,20 @@ export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
+# Ensure the Euclidean-distance CSV path is visible inside the container.
+# If it's under project_root, access it via /work/... after bind.
+binds="${project_root}:/work"
+if [[ "${ABCD_EUCLID_CSV_HOST}" == "${project_root}/"* ]]; then
+  ABCD_EUCLID_CSV_CONTAINER="/work/${ABCD_EUCLID_CSV_HOST#${project_root}/}"
+else
+  extra_dir="$(dirname "${ABCD_EUCLID_CSV_HOST}")"
+  binds="${binds},${extra_dir}:${extra_dir}"
+  ABCD_EUCLID_CSV_CONTAINER="${ABCD_EUCLID_CSV_HOST}"
+fi
+
 # Pass required env vars into the container even under --cleanenv.
 export SINGULARITYENV_SLURM_CPUS_PER_TASK="${SLURM_CPUS_PER_TASK:-72}"
-export SINGULARITYENV_ABCD_EUCLID_CSV="${ABCD_EUCLID_CSV}"
+export SINGULARITYENV_ABCD_EUCLID_CSV="${ABCD_EUCLID_CSV_CONTAINER}"
 export SINGULARITYENV_FORCE="${FORCE}"
 export SINGULARITYENV_OMP_NUM_THREADS=1
 export SINGULARITYENV_OPENBLAS_NUM_THREADS=1
@@ -51,7 +62,7 @@ export SINGULARITYENV_MKL_NUM_THREADS=1
 export SINGULARITYENV_NUMEXPR_NUM_THREADS=1
 
 singularity exec --cleanenv \
-  --bind "${project_root}:/work" \
+  --bind "${binds}" \
   --pwd /work \
   "${sif}" \
   bash -lc 'Rscript --vanilla /work/development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_S1.R && Rscript --vanilla /work/development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_S2.R'
