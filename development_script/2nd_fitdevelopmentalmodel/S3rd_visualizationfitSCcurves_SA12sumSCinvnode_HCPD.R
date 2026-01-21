@@ -72,15 +72,32 @@ gammodelsum <- readRDS(file.path(interfileFolder, paste0("gammodel", elementnum,
 derivative <- readRDS(file.path(resultFolder, paste0("derivative.df", elementnum, "_CV", CVthr, ".rds")))
 
 ## generate fitted values for developmental trajectories
-plotdatasum <- mclapply(seq_len(elementnum), function(x) {
-  modobj <- gammodelsum[[x]]
-  plotdata <- plotdata_generate(modobj, "age")
-  plotdata
-}, mc.cores = n_cores)
-saveRDS(plotdatasum, file.path(interfileFolder, "plotdatasum_scale_TRUE_SA12.rds"))
+if (nrow(gamresultsum.SAorder.delLM) == 0 || length(gammodelsum) == 0) {
+  stop("Empty inputs: gamresults or gammodels. Check upstream S1/S2 outputs under: ", interfileFolder)
+}
+if (length(gammodelsum) != nrow(gamresultsum.SAorder.delLM)) {
+  message(
+    "[WARN] gammodels length (", length(gammodelsum),
+    ") != gamresults rows (", nrow(gamresultsum.SAorder.delLM),
+    "). Using min() and skipping missing models."
+  )
+}
+n_edges <- min(length(gammodelsum), nrow(gamresultsum.SAorder.delLM))
 
-plotdatasum.df <- as.data.frame(matrix(NA, nrow = 1, ncol = 17))
-names(plotdatasum.df) <- c(names(plotdatasum[[2]])[1:13], "SC_label", "SCrank", "PartialRsq", "meanderiv2")
+plot_one <- function(idx) {
+  modobj <- gammodelsum[[idx]]
+  if (is.null(modobj)) return(NULL)
+  tryCatch(
+    plotdata_generate(modobj, "age"),
+    error = function(e) {
+      message("[WARN] plotdata_generate failed for idx=", idx, ": ", conditionMessage(e))
+      NULL
+    }
+  )
+}
+
+plotdatasum <- mclapply(seq_len(n_edges), plot_one, mc.cores = n_cores)
+saveRDS(plotdatasum, file.path(interfileFolder, "plotdatasum_scale_TRUE_SA12.rds"))
 
 ## SA12 index & SC rank
 Matrix12 <- matrix(NA, nrow = 12, ncol = 12)
@@ -95,15 +112,24 @@ for (x in 1:12) {
 Matrix12.SCrank[indexup12] <- NA
 Matrix12.SCrank[indexsave12] <- rank(Matrix12.SCrank[indexsave12], ties.method = "average")
 
-for (i in seq_len(elementnum)) {
-  tmp <- plotdatasum[[i]][, -14]
-  tmp$SC_label <- gamresultsum.SAorder.delLM$parcel[[i]]
-  tmp$SCrank <- Matrix12.SCrank[indexsave12][[i]]
+parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
+SCrank_map <- setNames(Matrix12.SCrank[indexsave12], parcel_all)
+
+ok_plot_idx <- which(!vapply(plotdatasum, is.null, logical(1)))
+if (length(ok_plot_idx) == 0) stop("All plotdata_generate() calls failed; see warnings above.")
+
+plotdatasum.df <- dplyr::bind_rows(lapply(ok_plot_idx, function(i) {
+  tmp <- as.data.frame(plotdatasum[[i]])
+  sc_label <- gamresultsum.SAorder.delLM$parcel[[i]]
+  if (!is.null(sc_label) && sc_label %in% names(tmp)) {
+    tmp <- tmp[, setdiff(names(tmp), sc_label), drop = FALSE]
+  }
+  tmp$SC_label <- sc_label
+  tmp$SCrank <- unname(SCrank_map[[sc_label]])
   tmp$PartialRsq <- gamresultsum.SAorder.delLM$partialRsq[[i]]
   tmp$meanderiv2 <- gamresultsum.SAorder.delLM$meanderv2[[i]]
-  plotdatasum.df <- rbind(plotdatasum.df, tmp)
-}
-plotdatasum.df <- plotdatasum.df[-1, ]
+  tmp
+}))
 
 ## figure folders (match historical subfolder names)
 FigureFolder <- file.path(FigureRoot, paste0("CV", CVthr))
@@ -158,8 +184,12 @@ ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.svg"), p2, dpi = 
 
 ## Example edges (SC.2_h and SC.77_h)
 BuRd <- rev(brewer.pal(10, "RdBu"))
-for (i in c(2, 77)) {
-  SClabel <- paste0("SC.", i, "_h")
+for (SClabel in c("SC.2_h", "SC.77_h")) {
+  idx <- which(gamresultsum.SAorder.delLM$parcel == SClabel)[1]
+  if (is.na(idx) || length(idx) == 0) {
+    message("[WARN] Example edge not available in gamresults (skipping): ", SClabel)
+    next
+  }
   rangev <- max(gamresultsum.SAorder.delLM$meanderv2) - min(gamresultsum.SAorder.delLM$meanderv2)
   coloridx <- round((gamresultsum.SAorder.delLM$meanderv2[gamresultsum.SAorder.delLM$parcel == SClabel] - min(gamresultsum.SAorder.delLM$meanderv2)) / rangev * 10)
   if (is.na(coloridx) || coloridx == 0) coloridx <- 1
@@ -167,7 +197,11 @@ for (i in c(2, 77)) {
   colorID <- BuRd[[coloridx]]
 
   plotdatasum.df.tmp <- plotdatasum.df[plotdatasum.df$SC_label == SClabel, ]
-  scatterdata <- gammodelsum[[i]]$model
+  if (idx > length(gammodelsum) || is.null(gammodelsum[[idx]])) {
+    message("[WARN] Example edge model not available (skipping): ", SClabel)
+    next
+  }
+  scatterdata <- gammodelsum[[idx]]$model
   scatterdata$SC <- scatterdata[, 1]
   Scatter_Fig <- ggplot() +
     geom_ribbon(data = plotdatasum.df.tmp, aes(x = age, ymin = selo, ymax = sehi), alpha = 0.3, fill = colorID) +
@@ -244,4 +278,3 @@ p3 <- ggplot(data = plotdatasum.df.decile, aes(x = age, y = fit.Z, group = decil
   )
 ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.tiff"), p3, dpi = 600, width = 20, height = 14, units = "cm", bg = "transparent")
 ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.svg"), p3, dpi = 600, width = 15, height = 13, units = "cm", bg = "transparent")
-

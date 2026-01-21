@@ -111,3 +111,4 @@
 - 2026-01-21: 修复容器构建中 `knitr` lazy-load 失败（`xfun` API 不匹配）：在 `containers/scdevelopment_r41.def` 中提前固定 `xfun==0.52`/`knitr==1.43` 并限制依赖安装范围，避免 CRAN 漂移导致的频繁构建失败；同步更新 `docs/workflow.md` 与会话记录说明。
 - 2026-01-21: 容器构建脚本改为每次生成新 SIF（`scdevelopment_r41_<tag>.sif`），避免覆盖正在用于任务执行的旧镜像；容器运行脚本支持 `SIF_PATH` 选择镜像。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业的 `rbind` 崩溃（`names do not match previous names`）：S1 脚本对边级拟合加入 `tryCatch` 并跳过失败边，改用 `bind_rows` 合并并输出失败边清单；同步更新工作流与会话记录。
+- 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 可视化崩溃（`plotdatasum[[i]][, -14] : incorrect number of dimensions`）：S3 改为按可用边数迭代、对 `plotdata_generate()` 增加容错并按列名删除响应列；S4 的欧氏距离与均值强度改为按 `parcel` 映射对齐以兼容“部分边缺失”。

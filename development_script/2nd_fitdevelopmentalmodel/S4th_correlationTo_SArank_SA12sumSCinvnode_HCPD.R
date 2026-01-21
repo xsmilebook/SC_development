@@ -95,11 +95,25 @@ message(sum(gamresult$sig), " edges have significant developmental effects.")
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
 if (length(sc_cols) == 0) stop("No SC.* columns found in input_rds: ", input_rds)
 meanSC <- colMeans(SCdata[, sc_cols, drop = FALSE])
-corr.test(meanSC, gamresult$partialRsq)
-corr.test(meanSC, EuricDistance$Edistance)
+
+parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
+meanSC_map <- setNames(meanSC, parcel_all)
+
+if (!"Edistance" %in% names(EuricDistance)) stop("Euclidean distance CSV missing column 'Edistance': ", euclid_csv)
+if (nrow(EuricDistance) == elementnum) {
+  Edist_map <- setNames(EuricDistance$Edistance, parcel_all)
+} else if ("parcel" %in% names(EuricDistance)) {
+  Edist_map <- setNames(EuricDistance$Edistance, as.character(EuricDistance$parcel))
+} else {
+  stop("Euclidean distance rows do not match elementnum and no 'parcel' column to align: ", euclid_csv)
+}
+
+meanSC_aligned <- meanSC_map[gamresult$parcel]
+corr.test(meanSC_aligned, gamresult$partialRsq)
+corr.test(meanSC, Edist_map[parcel_all])
 
 ## convert critical ages of insignificantly developmental edges to NA
-gamresult$EuricDistance <- EuricDistance$Edistance
+gamresult$EuricDistance <- unname(Edist_map[gamresult$parcel])
 gamresult$increase.onset[gamresult$sig == FALSE] <- NA
 gamresult$increase.onset2 <- gamresult$increase.onset
 gamresult$increase.onset2[round(gamresult$increase.onset2, 2) == 8.08] <- NA
@@ -279,4 +293,3 @@ if (make_matrix_graphs) {
     ggsave(file.path(FigMatrixFolder, paste0(computevar, "_12net_delLM_CV", CVthr, ".tiff")), Fig, height = 18, width = 20, units = "cm", bg = "transparent")
   }
 }
-

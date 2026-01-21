@@ -100,6 +100,8 @@
   - 现有实现：`sbatch/run_hcpd_devmodel_combatgam_CV75.sbatch` 会检查 `outputs/r_cran_repo/src/contrib/PACKAGES.gz` 是否存在；若存在则用离线 repo 安装缺失/载入失败的包到 `outputs/r_libs/scdevelopment_r41/`。
 - HCP-D 发育模型容器作业报 `Error in match.names(clabs, names(xi)) : names do not match previous names`（`do.call -> rbind`）：通常是某些边级模型拟合失败导致返回对象列名不一致，直接 `rbind` 合并会崩溃。
   - 处理：对边级拟合使用 `tryCatch` 并跳过失败边；合并时用 `dplyr::bind_rows()`；将失败边标签写入 `failed_edges_*.txt` 便于追踪与复跑。
+- HCP-D 发育模型容器作业在 S3（可视化）报 `Error in plotdatasum[[i]][, -14] : incorrect number of dimensions` 且伴随 `all scheduled cores encountered errors`：常见于 **上游 S1 跳过部分边导致 `gammodelsum`/`gamresults` 不再满 78 条**，但 S3 仍按固定 `elementnum` 遍历并用固定列号删列。
+  - 处理：S3 改为按可用边数迭代（`min(length(gammodelsum), nrow(gamresults))`），对 `plotdata_generate()` 增加 `tryCatch`；删列按响应列名（与 `parcel` 同名）删除，避免依赖固定列位置。
 - `gratia` 报 `there is no package called 'mvnfast'`：这是 `gratia` 的依赖缺失；若仅运行 CBCL 关联分析，已移除 `gamfunction/gamminteraction.R` 对 `gratia` 的依赖以避免该类问题。
 - `tidyverse` 报 `readr/forcats/lubridate` 缺失：在 `scdevelopment` 环境安装 `r-tidyverse`（或补装 `r-readr`、`r-forcats`）。
 - CBCL ComBat 输出中 `age` 列为嵌套 data.frame：在 CBCL 关联脚本中从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填 `age`。
