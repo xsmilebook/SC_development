@@ -56,8 +56,18 @@ From: rocker/r-ver:4.1.3
     library(remotes)
 
     pin <- function(pkg, ver) {
-      install_version(pkg, version = ver, upgrade = "never")
+      install_version(
+        pkg,
+        version = ver,
+        upgrade = "never",
+        dependencies = c("Depends", "Imports", "LinkingTo")
+      )
     }
+
+    # knitr requires xfun; pin xfun early to avoid API mismatches during build.
+    # (Observed failure: `object 'attr' is not exported by 'namespace:xfun'` when xfun drifts.)
+    pin("xfun", "0.52")
+    pin("knitr", "1.43")
 
     # Base toolchain-ish packages to stabilize tidyverse compilation & loading
     # (versions aligned to the existing scdevelopment_r41 workflow).
@@ -106,7 +116,6 @@ From: rocker/r-ver:4.1.3
     pin("reshape2", "1.4.5")
     pin("R.matlab", "3.7.0")
     pin("psych", "2.3.3")
-    pin("knitr", "1.43")
     pin("tableone", "0.13.2")
 
     # Mixed models and related inference
@@ -122,6 +131,10 @@ From: rocker/r-ver:4.1.3
 
     # CRAN current gamm4 requires R >= 4.4; pin an archive version compatible with R 4.1.x.
     pin("gamm4", "0.2-6")
+
+    # Re-assert xfun/knitr pins at end in case any dependency attempted to change versions.
+    pin("xfun", "0.52")
+    pin("knitr", "1.43")
 RS
     Rscript --vanilla /tmp/install_r_pkgs.R
     rm -f /tmp/install_r_pkgs.R
