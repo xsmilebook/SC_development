@@ -66,6 +66,12 @@
   - S3：当 `plotdatasum_scale_TRUE_SA12.rds` 与关键图（`devcurve_Rsq_fit.ratio.tiff`、`devcurve_meanderv2_fit.Z.tiff`）存在时跳过。
   - S4：当 `SCrank_correlation_summary.csv` 存在时跳过。
 - 强制重跑：为任一步脚本增加 `--force=1`（例如：`Rscript .../S3rd_visualizationfitSCcurves_SA12sumSCinvnode_HCPD.R --force=1`）。
+
+## HCP-D 发育模型输出 QC（conda 环境）
+- 目的：在 **conda R 环境** 下检查已生成的 `gamresults/gammodel`（raw+scaled）是否一致、是否为 `mgcv::gam` 对象、以及 `mgcv::predict.gam()` 是否可用（含 `se.fit` 路径）。
+- 脚本：`development_script/2nd_fitdevelopmentalmodel/QC_check_gam_outputs_HCPD.R`
+- 集群提交：`sbatch sbatch/qc_hcpd_devmodel_outputs_condenv.sbatch`（日志：`outputs/logs/qc_hcpd_gamout_%j.log`）
+- 输出：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/qc/`
    - 合并数据与一致性阈值筛选。
    - 提取大尺度 SC 矩阵并生成汇总数据。
    - 进行站点/批次 harmonize（ComBat，待按评论更新）；CBCL total raw 可用 `S3rd_combat_controlsite_ABCD_CBCLtotalraw.R` 的测试参数先小样本跑通。

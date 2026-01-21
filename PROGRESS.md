@@ -115,3 +115,4 @@
 - 2026-01-21: 修复 `plotdata_generate()` 预测标准误失败导致的 `try-error`（`lm object does not have a proper 'qr' component`）：`predict(..., se.fit=TRUE)` 失败时回退到 `se.fit=FALSE`，保证 `plotdatasum_scale_TRUE_SA12.rds` 可用并避免绘图阶段崩溃。
 - 2026-01-21: 加固 `plotdata_generate()`：强制使用 `mgcv::predict.gam()` 并对齐 newdata 的 factor level/类型，避免 `se.fit=TRUE` 路径触发 `qr` 相关错误导致的警告与失败。
 - 2026-01-21: HCP-D 发育模型 S1-S4 默认改为“存在即跳过”（逐步跳过），并提供 `--force=1` 强制重跑开关，便于从失败步骤续跑并减少重复计算。
+- 2026-01-21: 新增 conda 环境下的 HCP-D 发育模型输出 QC：检查 `gamresults/gammodel` 一致性与 `predict.gam` 可用性（屏蔽用户/系统 R 包路径），并输出 QC 报告到 `outputs/results/.../qc/`。
