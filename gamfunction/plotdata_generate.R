@@ -9,6 +9,9 @@ plotdata_generate <- function(modobj,smooth_var){
   } else {
     stop("Can't find a gam object to plot")
   }
+  if (!inherits(model, "gam")) {
+    stop("model is not a mgcv::gam object; got class: ", paste(class(model), collapse = ","))
+  }
   
   np <- 1000 #number of predicted values
   df = model$model
@@ -39,18 +42,29 @@ plotdata_generate <- function(modobj,smooth_var){
     }
   }
   pred <- thisPred %>% dplyr::select(-init)
+
+  # Ensure newdata matches training data classes/levels (especially factors).
+  for (v in theseVars) {
+    if (!v %in% names(df) || !v %in% names(pred)) next
+    if (is.factor(df[[v]])) {
+      pred[[v]] <- factor(as.character(pred[[v]]), levels = levels(df[[v]]))
+    } else if (is.ordered(df[[v]])) {
+      pred[[v]] <- factor(as.character(pred[[v]]), levels = levels(df[[v]]), ordered = TRUE)
+    } else if (is.numeric(df[[v]])) {
+      pred[[v]] <- as.numeric(pred[[v]])
+    }
+  }
   
   #pred$Sex<-levels(Behavior$Sex)[2]
   #pred$handnessfactor<-levels(Behavior$handnessfactor)[3]
   # NOTE: In some environments/models, `predict(..., se.fit=TRUE)` can fail with:
   # `lm object does not have a proper 'qr' component` (rank zero / qr=FALSE).
   # For robustness we fall back to `se.fit=FALSE` and keep CI columns as NA.
-  p <- tryCatch(
-    data.frame(predict(model, pred, se.fit = TRUE)),
-    error = function(e) NULL
-  )
+  # Also force the correct mgcv method to avoid accidental dispatch to other
+  # predict() methods from attached packages.
+  p <- tryCatch(data.frame(mgcv::predict.gam(model, pred, se.fit = TRUE)), error = function(e) NULL)
   if (is.null(p) || !all(c("fit", "se.fit") %in% names(p))) {
-    fit_only <- as.numeric(predict(model, pred, se.fit = FALSE))
+    fit_only <- as.numeric(mgcv::predict.gam(model, pred, se.fit = FALSE))
     p <- data.frame(fit = fit_only, se.fit = rep(NA_real_, length(fit_only)))
   }
   pred <- cbind(pred,p)
@@ -65,4 +79,3 @@ plotdata_generate <- function(modobj,smooth_var){
   pred[,thisResp] = 1
   return(pred)
 }
-
