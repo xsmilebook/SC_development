@@ -42,7 +42,17 @@ plotdata_generate <- function(modobj,smooth_var){
   
   #pred$Sex<-levels(Behavior$Sex)[2]
   #pred$handnessfactor<-levels(Behavior$handnessfactor)[3]
-  p<-data.frame(predict(model,pred,se.fit = T))
+  # NOTE: In some environments/models, `predict(..., se.fit=TRUE)` can fail with:
+  # `lm object does not have a proper 'qr' component` (rank zero / qr=FALSE).
+  # For robustness we fall back to `se.fit=FALSE` and keep CI columns as NA.
+  p <- tryCatch(
+    data.frame(predict(model, pred, se.fit = TRUE)),
+    error = function(e) NULL
+  )
+  if (is.null(p) || !all(c("fit", "se.fit") %in% names(p))) {
+    fit_only <- as.numeric(predict(model, pred, se.fit = FALSE))
+    p <- data.frame(fit = fit_only, se.fit = rep(NA_real_, length(fit_only)))
+  }
   pred <- cbind(pred,p)
   pred$selo <- pred$fit - 1.96*pred$se.fit
   pred$sehi <- pred$fit + 1.96*pred$se.fit
@@ -55,5 +65,4 @@ plotdata_generate <- function(modobj,smooth_var){
   pred[,thisResp] = 1
   return(pred)
 }
-
 

@@ -112,3 +112,4 @@
 - 2026-01-21: 容器构建脚本改为每次生成新 SIF（`scdevelopment_r41_<tag>.sif`），避免覆盖正在用于任务执行的旧镜像；容器运行脚本支持 `SIF_PATH` 选择镜像。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业的 `rbind` 崩溃（`names do not match previous names`）：S1 脚本对边级拟合加入 `tryCatch` 并跳过失败边，改用 `bind_rows` 合并并输出失败边清单；同步更新工作流与会话记录。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 可视化崩溃（`plotdatasum[[i]][, -14] : incorrect number of dimensions`）：S3 改为按可用边数迭代、对 `plotdata_generate()` 增加容错并按列名删除响应列；S4 的欧氏距离与均值强度改为按 `parcel` 映射对齐以兼容“部分边缺失”。
+- 2026-01-21: 修复 `plotdata_generate()` 预测标准误失败导致的 `try-error`（`lm object does not have a proper 'qr' component`）：`predict(..., se.fit=TRUE)` 失败时回退到 `se.fit=FALSE`，保证 `plotdatasum_scale_TRUE_SA12.rds` 可用并避免绘图阶段崩溃。
