@@ -108,3 +108,4 @@
 - 2026-01-20: 将容器依赖改为“最大稳定性”策略：对脚本依赖包及关键工具链包（如 `Rcpp/cli/farver/stringi/rlang/vctrs`、tidyverse 组件、绘图链条）使用 `remotes::install_version()` 显式固定版本，降低 CRAN 漂移风险。
 - 2026-01-20: 修复容器构建时 R 包编译失败：为 `nloptr` 增加 `cmake`，为 `ragg` 增加 `libwebp-dev`；同时补齐并固定 `RcppEigen/minqa/nloptr` 以保证 `lme4/gamm4` 可编译安装。
 - 2026-01-20: 简化容器 sbatch 的 module 加载逻辑：移除 Modules 初始化探测，直接使用 `module load singularity/3.7.0`。
+- 2026-01-21: 修复容器构建中 `knitr` lazy-load 失败（`xfun` API 不匹配）：在 `containers/scdevelopment_r41.def` 中提前固定 `xfun==0.52`/`knitr==1.43` 并限制依赖安装范围，避免 CRAN 漂移导致的频繁构建失败；同步更新 `docs/workflow.md` 与会话记录说明。
