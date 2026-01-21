@@ -55,10 +55,17 @@ singularity exec --cleanenv \
   --bind "${project_root}:/work" \
   --pwd /work \
   "${sif}" \
-  Rscript --vanilla -e ' \
-    out_dir <- "/work/outputs/reports/5th_cognition/abcd/comp_agecorrected"; \
-    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE); \
-    rmarkdown::render("/work/development_script/5th_cognition/S1st_testCog_correlation_wholesample_ABCD.Rmd", output_dir = out_dir, quiet = TRUE); \
-    rmarkdown::render("/work/development_script/5th_cognition/S2nd_compositescorePlot_scatterplot_ABCD.Rmd", output_dir = out_dir, quiet = TRUE); \
-  '
-
+  bash -lc 'Rscript --vanilla - << "RS"
+out_dir <- "/work/outputs/reports/5th_cognition/abcd/comp_agecorrected"
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+rmarkdown::render(
+  "/work/development_script/5th_cognition/S1st_testCog_correlation_wholesample_ABCD.Rmd",
+  output_dir = out_dir,
+  quiet = TRUE
+)
+rmarkdown::render(
+  "/work/development_script/5th_cognition/S2nd_compositescorePlot_scatterplot_ABCD.Rmd",
+  output_dir = out_dir,
+  quiet = TRUE
+)
+RS'
