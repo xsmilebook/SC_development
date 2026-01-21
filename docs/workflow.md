@@ -101,6 +101,7 @@
      - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
      - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
      - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
+     - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
 
 ## CBCL 关联运行
 - 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。

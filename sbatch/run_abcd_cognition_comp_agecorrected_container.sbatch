@@ -12,7 +12,7 @@ project_root="/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment"
 sif="${SIF_PATH:-${project_root}/outputs/containers/scdevelopment_r41.sif}"
 
 # External ABCD reference file used for Euclidean-distance control (existing pipeline path).
-ABCD_EUCLID_CSV="${ABCD_EUCLID_CSV:-/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/average_EuclideanDistance_12.csv}"
+ABCD_EUCLID_CSV="${ABCD_EUCLID_CSV:-${project_root}/wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv}"
 
 # Force recomputation (0=use cached results when available).
 FORCE="${FORCE:-0}"

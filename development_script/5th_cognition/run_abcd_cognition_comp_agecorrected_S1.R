@@ -33,7 +33,10 @@ if (!file.exists(input_rds)) {
   stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch")
 }
 
-euclid_csv <- Sys.getenv("ABCD_EUCLID_CSV", unset = "/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/average_EuclideanDistance_12.csv")
+euclid_csv <- Sys.getenv(
+  "ABCD_EUCLID_CSV",
+  unset = file.path(project_root, "wd", "interdataFolder_ABCD", "average_EuclideanDistance_12.csv")
+)
 if (!file.exists(euclid_csv)) {
   stop("Missing ABCD_EUCLID_CSV: ", euclid_csv)
 }
@@ -256,4 +259,3 @@ p_scatter2 <- ggplot(data = correlation.df2) +
 
 ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall_control_distance.tiff"), p_scatter2, width = 13, height = 13, units = "cm", bg = "transparent")
 ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall_control_distance.pdf"), p_scatter2, dpi = 600, width = 15, height = 13.5, units = "cm", bg = "transparent")
-
