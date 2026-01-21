@@ -122,3 +122,5 @@
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S4 在 `psych::corr.test()` 返回标量时的崩溃：散点图标题相关性提取兼容矩阵/标量两种返回结构，避免 `ct$r[[1,2]]` 下标错误。
 - 2026-01-21: 加固容器 sbatch：当 S3 decile 图或 S4 相关性散点图缺失时，自动对对应步骤启用 `--force=1` 回填图片（支持 `FORCE_S3/FORCE_S4` 覆盖），避免 “哨兵/summary 存在但图片目录为空”。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在保存图片时 ggplot guide 计算异常导致的崩溃（`add_guides` 下标比较错误）：对相关 scale 显式设置 `guide=\"none\"`，避免无图例场景进入 guide 布局分支。
+- 2026-01-21: DemodfScreenFinal 增补 NIH Toolbox total cognition（age-corrected）列：将 `demopath/nc_y_nihtb.csv` 的 `nihtbx_totalcomp_agecorrected` 合并到 `demopath/DemodfScreenFinal.csv`（按 `src_subject_id+eventname` 对齐）。
+- 2026-01-21: 新增 ABCD 纵向 Nonlinear-ComBat-GAM 变体脚本与 sbatch：CBCL total problems（参考 pfactor，不做 baseline-only）与 NIH Toolbox total cognition age-corrected（参考 cognition，baseline-only）。
