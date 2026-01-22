@@ -139,3 +139,4 @@
 - 2026-01-22: 为避免覆盖历史输出，ABCD cognition（age-corrected）关联分析的结果与图片文件名加入 `COG_ASSOC_TAG` 后缀（默认 `meanfd_only`），并在 `docs/workflow.md` 中补充使用方式。
 - 2026-01-22: 方差分解绘图脚本改为直接使用 `summary(fit$gam)$r.sq`（mgcv 的 R² 指标）提取 R²：`combat_gam/scripts/plot_abcd_variance_decomposition.R` 与 `combat_gam/scripts/plot_hcpd_chinese_variance_decomposition.R` 不再使用自定义 RSS/TSS 公式计算。
 - 2026-01-22: 方差分解绘图在日志中增加每个变量的 R² 输出：对 Raw/ComBat 分别汇总每个 predictor 的顺序贡献（mean/median）与 total R²（mean/median），便于在 slurm log 直接核对。
+- 2026-01-22: `combat_gam/scripts/plot_abcd_variance_decomposition.R` 扩展 ABCD 方差分解绘图：新增 CBCL total problems（`abcd_variance_decomp_cbcl_totprob`）与 total cognition age-corrected（`abcd_variance_decomp_totalcomp_agecorrected`）两种变体，并在 Raw 输入缺少表型列时尝试从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填。

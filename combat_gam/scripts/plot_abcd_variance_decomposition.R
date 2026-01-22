@@ -6,6 +6,8 @@ combat_base <- if (length(args) >= 2) args[[2]] else "outputs/results/combat_gam
 combat_cog <- if (length(args) >= 3) args[[3]] else "outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds"
 combat_pfactor <- if (length(args) >= 4) args[[4]] else "outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_pfactor.rds"
 out_dir <- if (length(args) >= 5) args[[5]] else "outputs/figures/combat_gam"
+combat_cbcl <- if (length(args) >= 6) args[[6]] else "outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cbcl.rds"
+combat_comp_agecorrected <- if (length(args) >= 7) args[[7]] else "outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_comp_agecorrected_baseline.rds"
 
 conda_prefix <- Sys.getenv("CONDA_PREFIX")
 if (nzchar(conda_prefix)) {
@@ -28,20 +30,59 @@ suppressPackageStartupMessages({
 base_predictors <- c("age", "sex", "mean_fd", "siteID")
 cog_predictors <- c("age", "sex", "mean_fd", "cognition", "siteID")
 pfactor_predictors <- c("age", "sex", "mean_fd", "pfactor", "siteID")
+cbcl_predictors <- c("age", "sex", "mean_fd", "cbcl_totprob", "siteID")
+comp_agecorrected_predictors <- c("age", "sex", "mean_fd", "totalcomp_agecorrected", "siteID")
 
-prepare_raw <- function(path, include_cognition = FALSE, include_pfactor = FALSE, baseline_only = FALSE) {
+maybe_backfill_abcd_from_demopath <- function(dat, needed_cols, demo_path = file.path("demopath", "DemodfScreenFinal.csv")) {
+  if (all(needed_cols %in% names(dat))) {
+    return(dat)
+  }
+  if (!"scanID" %in% names(dat)) {
+    return(dat)
+  }
+  if (!file.exists(demo_path)) {
+    return(dat)
+  }
+  demo <- read.csv(demo_path, stringsAsFactors = FALSE)
+  join_cols <- intersect(c("scanID", needed_cols), names(demo))
+  if (!("scanID" %in% join_cols) || length(join_cols) < 2) {
+    return(dat)
+  }
+  demo <- demo[, join_cols, drop = FALSE]
+  demo <- demo[!duplicated(demo$scanID), , drop = FALSE]
+  dat %>% left_join(demo, by = "scanID")
+}
+
+prepare_raw <- function(path,
+                        include_cognition = FALSE,
+                        include_pfactor = FALSE,
+                        include_cbcl = FALSE,
+                        include_comp_agecorrected = FALSE,
+                        baseline_only = FALSE) {
   dat <- readRDS(path)
   sc_cols <- grep("^SC\\.", names(dat), value = TRUE)
   needed <- c(sc_cols, "scanID", "siteID", "age", "sex", "mean_fd", "eventname")
   if ("subID" %in% names(dat)) {
     needed <- c(needed, "subID")
   }
+  backfill_cols <- character()
   if (include_cognition) {
     needed <- c(needed, "nihtbx_fluidcomp_uncorrected")
+    backfill_cols <- c(backfill_cols, "nihtbx_fluidcomp_uncorrected")
   }
   if (include_pfactor) {
     needed <- c(needed, "GENERAL")
+    backfill_cols <- c(backfill_cols, "GENERAL")
   }
+  if (include_cbcl) {
+    needed <- c(needed, "cbcl_scr_syn_totprob_r")
+    backfill_cols <- c(backfill_cols, "cbcl_scr_syn_totprob_r")
+  }
+  if (include_comp_agecorrected) {
+    needed <- c(needed, "nihtbx_totalcomp_agecorrected")
+    backfill_cols <- c(backfill_cols, "nihtbx_totalcomp_agecorrected")
+  }
+  dat <- maybe_backfill_abcd_from_demopath(dat, unique(backfill_cols))
   missing <- setdiff(needed, names(dat))
   if (length(missing) > 0) {
     stop(paste("Missing columns in raw ABCD:", paste(missing, collapse = ", ")))
@@ -62,10 +103,20 @@ prepare_raw <- function(path, include_cognition = FALSE, include_pfactor = FALSE
   if (include_pfactor) {
     dat$pfactor <- dat$GENERAL
   }
+  if (include_cbcl) {
+    dat$cbcl_totprob <- dat$cbcl_scr_syn_totprob_r
+  }
+  if (include_comp_agecorrected) {
+    dat$totalcomp_agecorrected <- dat$nihtbx_totalcomp_agecorrected
+  }
   list(df = dat, sc_cols = sc_cols)
 }
 
-prepare_combat <- function(path, include_cognition = FALSE, include_pfactor = FALSE) {
+prepare_combat <- function(path,
+                           include_cognition = FALSE,
+                           include_pfactor = FALSE,
+                           include_cbcl = FALSE,
+                           include_comp_agecorrected = FALSE) {
   dat <- readRDS(path)
   sc_cols <- grep("^SC\\..*_h$", names(dat), value = TRUE)
   needed <- c(sc_cols, "scanID", "siteID", "age", "sex", "mean_fd")
@@ -77,6 +128,12 @@ prepare_combat <- function(path, include_cognition = FALSE, include_pfactor = FA
   }
   if (include_pfactor) {
     needed <- c(needed, "GENERAL")
+  }
+  if (include_cbcl) {
+    needed <- c(needed, "cbcl_scr_syn_totprob_r")
+  }
+  if (include_comp_agecorrected) {
+    needed <- c(needed, "nihtbx_totalcomp_agecorrected")
   }
   missing <- setdiff(needed, names(dat))
   if (length(missing) > 0) {
@@ -93,6 +150,12 @@ prepare_combat <- function(path, include_cognition = FALSE, include_pfactor = FA
   }
   if (include_pfactor) {
     dat$pfactor <- dat$GENERAL
+  }
+  if (include_cbcl) {
+    dat$cbcl_totprob <- dat$cbcl_scr_syn_totprob_r
+  }
+  if (include_comp_agecorrected) {
+    dat$totalcomp_agecorrected <- dat$nihtbx_totalcomp_agecorrected
   }
   list(df = dat, sc_cols = sc_cols)
 }
@@ -236,9 +299,11 @@ compute_variance_decomp <- function(df, sc_cols, label, predictors, strip_suffix
 palette <- c(
   siteID = "#F8766D",
   cognition = "#B79F00",
+  totalcomp_agecorrected = "#E64B35",
   mean_fd = "#00BA38",
   sex = "#00B0F6",
   age = "#C77CFF",
+  cbcl_totprob = "#4DBBD5",
   pfactor = "#6A3D9A"
 )
 
@@ -282,9 +347,31 @@ log_r2_breakdown <- function(df, predictors, label) {
   invisible(summary_df)
 }
 
-plot_variant <- function(label, raw_path, combat_path, predictors, include_cognition, include_pfactor, baseline_only, out_prefix) {
-  raw_data <- prepare_raw(raw_path, include_cognition = include_cognition, include_pfactor = include_pfactor, baseline_only = baseline_only)
-  combat_data <- prepare_combat(combat_path, include_cognition = include_cognition, include_pfactor = include_pfactor)
+plot_variant <- function(label,
+                         raw_path,
+                         combat_path,
+                         predictors,
+                         include_cognition,
+                         include_pfactor,
+                         include_cbcl,
+                         include_comp_agecorrected,
+                         baseline_only,
+                         out_prefix) {
+  raw_data <- prepare_raw(
+    raw_path,
+    include_cognition = include_cognition,
+    include_pfactor = include_pfactor,
+    include_cbcl = include_cbcl,
+    include_comp_agecorrected = include_comp_agecorrected,
+    baseline_only = baseline_only
+  )
+  combat_data <- prepare_combat(
+    combat_path,
+    include_cognition = include_cognition,
+    include_pfactor = include_pfactor,
+    include_cbcl = include_cbcl,
+    include_comp_agecorrected = include_comp_agecorrected
+  )
 
   raw_results <- compute_variance_decomp(raw_data$df, raw_data$sc_cols, "Raw", predictors, strip_suffix = FALSE)
   combat_results <- compute_variance_decomp(combat_data$df, combat_data$sc_cols, "ComBat", predictors, strip_suffix = TRUE)
@@ -349,6 +436,8 @@ plot_variant(
   predictors = base_predictors,
   include_cognition = FALSE,
   include_pfactor = FALSE,
+  include_cbcl = FALSE,
+  include_comp_agecorrected = FALSE,
   baseline_only = FALSE,
   out_prefix = "abcd_variance_decomp_base"
 )
@@ -360,6 +449,8 @@ plot_variant(
   predictors = cog_predictors,
   include_cognition = TRUE,
   include_pfactor = FALSE,
+  include_cbcl = FALSE,
+  include_comp_agecorrected = FALSE,
   baseline_only = TRUE,
   out_prefix = "abcd_variance_decomp_cognition"
 )
@@ -371,6 +462,34 @@ plot_variant(
   predictors = pfactor_predictors,
   include_cognition = FALSE,
   include_pfactor = TRUE,
+  include_cbcl = FALSE,
+  include_comp_agecorrected = FALSE,
   baseline_only = FALSE,
   out_prefix = "abcd_variance_decomp_pfactor"
+)
+
+plot_variant(
+  label = "ABCD (CBCL total problems)",
+  raw_path = raw_rds,
+  combat_path = combat_cbcl,
+  predictors = cbcl_predictors,
+  include_cognition = FALSE,
+  include_pfactor = FALSE,
+  include_cbcl = TRUE,
+  include_comp_agecorrected = FALSE,
+  baseline_only = FALSE,
+  out_prefix = "abcd_variance_decomp_cbcl_totprob"
+)
+
+plot_variant(
+  label = "ABCD (total cognition age-corrected; baseline-only)",
+  raw_path = raw_rds,
+  combat_path = combat_comp_agecorrected,
+  predictors = comp_agecorrected_predictors,
+  include_cognition = FALSE,
+  include_pfactor = FALSE,
+  include_cbcl = FALSE,
+  include_comp_agecorrected = TRUE,
+  baseline_only = TRUE,
+  out_prefix = "abcd_variance_decomp_totalcomp_agecorrected"
 )

@@ -50,6 +50,8 @@
   - `abcd_variance_decomp_base`（age+sex+meanFD）
   - `abcd_variance_decomp_cognition`（含 cognition）
   - `abcd_variance_decomp_pfactor`（含 p-factor）
+  - `abcd_variance_decomp_cbcl_totprob`（含 CBCL total problems；读取 `cbcl_scr_syn_totprob_r`，必要时从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填）
+  - `abcd_variance_decomp_totalcomp_agecorrected`（含 NIH Toolbox total cognition age-corrected；读取 `nihtbx_totalcomp_agecorrected`，必要时从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填；Raw 侧按 baseline-only 过滤）
 - 方差分解的变量解释量采用 **序列（sequential）R²**：按 `age → sex → mean_fd → (cognition/pfactor/cbcl 等) → site` 顺序逐步加入变量，每一步的解释量为 `R²_k - R²_{k-1}`（不再计算所有子集 Shapley）。
 - 集群绘图可直接提交：
   - `combat_gam/sbatch/plot_abcd_variance_decomposition.sbatch`
