@@ -69,8 +69,9 @@ covariates <- "sex+mean_fd"
 knots <- 3
 corrmethod <- "pearson"
 
-num_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = "72"))
-if (is.na(num_cores) || num_cores < 1) num_cores <- 72
+num_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = "60"))
+if (is.na(num_cores) || num_cores < 1) num_cores <- 60
+num_cores <- min(num_cores, 60L)
 
 make_cluster_fallback <- function(n) {
   n <- as.integer(n)
