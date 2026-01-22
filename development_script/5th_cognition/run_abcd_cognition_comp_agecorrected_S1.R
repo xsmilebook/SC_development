@@ -13,6 +13,7 @@ rm(list = ls())
 
 CVthr <- 75
 Cogvar <- "nihtbx_totalcomp_agecorrected"
+variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "meanfd_only")
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -107,7 +108,10 @@ make_error_row <- function(parcel, cognition_var, err) {
 }
 
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
-out_rds <- file.path(resultFolder, paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected.rds"))
+out_rds <- file.path(
+  resultFolder,
+  paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected_", variant_tag, ".rds")
+)
 
 if (force || !file.exists(out_rds)) {
   sc_labels <- grep("SC\\.", names(SCdata), value = TRUE)
@@ -192,7 +196,10 @@ saveRDS(
     SCrankresult.whole = SCrankresult.whole,
     SCrankresult.whole.controllength = SCrankresult.whole.controllength
   ),
-  file.path(resultFolder, paste0("SCrankcorr_summary_", Cogvar, "_CV", CVthr, "_comp_agecorrected.rds"))
+  file.path(
+    resultFolder,
+    paste0("SCrankcorr_summary_", Cogvar, "_CV", CVthr, "_comp_agecorrected_", variant_tag, ".rds")
+  )
 )
 
 fig_dir <- file.path(FigureFolder, Cogvar)
@@ -235,8 +242,23 @@ p_scatter <- ggplot(data = SC_Cog_results.tmp) +
   labs(x = "S-A connectional axis rank", y = expression("Cognitive association (" * italic("T") * " value)")) +
   theme_classic() + mytheme
 
-ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall.tiff"), p_scatter, width = 17, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall.pdf"), p_scatter, dpi = 600, width = width, height = height, units = "cm", bg = "transparent")
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_", variant_tag, ".tiff")),
+  p_scatter,
+  width = 17,
+  height = 14,
+  units = "cm",
+  bg = "transparent"
+)
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_", variant_tag, ".pdf")),
+  p_scatter,
+  dpi = 600,
+  width = width,
+  height = height,
+  units = "cm",
+  bg = "transparent"
+)
 
 Matrix.tmp.T <- Matrix.tmp
 Matrix.tmp.T[lower.tri(Matrix.tmp.T, diag = TRUE)] <- SC_Cog_results.tmp$gam.smooth.t
@@ -287,8 +309,23 @@ p_matrix <- ggplot(data = matrixtmp.df.melt) +
     panel.grid.minor = element_line(linewidth = 1)
   )
 
-ggsave(file.path(fig_dir, "CorrTvalue_Matrix_n12_siteall.tiff"), p_matrix, height = 15, width = 16, units = "cm", bg = "transparent")
-ggsave(file.path(fig_dir, "CorrTvalue_Matrix_n12_siteall.pdf"), p_matrix, dpi = 600, height = 15, width = 16, units = "cm", bg = "transparent")
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_Matrix_n12_siteall_", variant_tag, ".tiff")),
+  p_matrix,
+  height = 15,
+  width = 16,
+  units = "cm",
+  bg = "transparent"
+)
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_Matrix_n12_siteall_", variant_tag, ".pdf")),
+  p_matrix,
+  dpi = 600,
+  height = 15,
+  width = 16,
+  units = "cm",
+  bg = "transparent"
+)
 
 correlation.df2 <- SCrankcorr(SC_Cog_results.df.whole, "gam.smooth.t_control_distance", 12, dsdata = TRUE)
 lwth2 <- abs(min(SC_Cog_results.df.whole$gam.smooth.t_control_distance, na.rm = TRUE))
@@ -310,5 +347,20 @@ p_scatter2 <- ggplot(data = correlation.df2) +
     legend.position = "none"
   )
 
-ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall_control_distance.tiff"), p_scatter2, width = 13, height = 13, units = "cm", bg = "transparent")
-ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall_control_distance.pdf"), p_scatter2, dpi = 600, width = 15, height = 13.5, units = "cm", bg = "transparent")
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_control_distance_", variant_tag, ".tiff")),
+  p_scatter2,
+  width = 13,
+  height = 13,
+  units = "cm",
+  bg = "transparent"
+)
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_control_distance_", variant_tag, ".pdf")),
+  p_scatter2,
+  dpi = 600,
+  width = 15,
+  height = 13.5,
+  units = "cm",
+  bg = "transparent"
+)

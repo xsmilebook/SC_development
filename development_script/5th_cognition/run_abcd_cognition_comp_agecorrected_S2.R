@@ -16,6 +16,7 @@ rm(list = ls())
 
 CVthr <- 75
 Cogvar <- "nihtbx_totalcomp_agecorrected"
+variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "meanfd_only")
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -43,7 +44,10 @@ if (!file.exists(input_rds)) {
 SCdata <- readRDS(input_rds)
 SCdata$age <- as.numeric(SCdata$age) / 12
 
-in_rds <- file.path(resultFolder, paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected.rds"))
+in_rds <- file.path(
+  resultFolder,
+  paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected_", variant_tag, ".rds")
+)
 if (!file.exists(in_rds)) {
   stop("Missing S1 output: ", in_rds, "\nRun first: Rscript development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_S1.R")
 }
@@ -68,8 +72,23 @@ p_comp <- ggplot(comp_plot, aes(x = category, y = value)) +
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
   )
-ggsave(file.path(FigureFolder, "NTB_totalcognition_agecorrected_component.tiff"), p_comp, width = 16, height = 6, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, "NTB_totalcognition_agecorrected_component.pdf"), p_comp, dpi = 600, width = 16, height = 6, units = "cm", bg = "transparent")
+ggsave(
+  file.path(FigureFolder, paste0("NTB_totalcognition_agecorrected_component_", variant_tag, ".tiff")),
+  p_comp,
+  width = 16,
+  height = 6,
+  units = "cm",
+  bg = "transparent"
+)
+ggsave(
+  file.path(FigureFolder, paste0("NTB_totalcognition_agecorrected_component_", variant_tag, ".pdf")),
+  p_comp,
+  dpi = 600,
+  width = 16,
+  height = 6,
+  units = "cm",
+  bg = "transparent"
+)
 
 ## 2) Scatter plots (3 example connections at ~10/50/90% SCrank)
 nonna_index <- which(!is.na(SCdata[, Cogvar]))
@@ -168,8 +187,23 @@ for (k in seq_along(edge_idx)) {
       legend.position = "none"
     )
 
-  ggsave(file.path(sc_fig_dir, paste0("SC", N, "_scatterplot.tiff")), p_sc, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
-  ggsave(file.path(sc_fig_dir, paste0("SC", N, "_scatterplot.pdf")), p_sc, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+  ggsave(
+    file.path(sc_fig_dir, paste0("SC", N, "_scatterplot_", variant_tag, ".tiff")),
+    p_sc,
+    width = 13.5,
+    height = 13.5,
+    units = "cm",
+    bg = "transparent"
+  )
+  ggsave(
+    file.path(sc_fig_dir, paste0("SC", N, "_scatterplot_", variant_tag, ".pdf")),
+    p_sc,
+    dpi = 600,
+    width = 13.5,
+    height = 13.5,
+    units = "cm",
+    bg = "transparent"
+  )
 }
 
 ## 3) Distribution of significant correlations
@@ -189,5 +223,20 @@ p_hist <- ggplot(data = SC_Cog_results.df.sig, aes(correstimate, y = ..count..))
     panel.background = element_rect(fill = "transparent", color = NA),
     legend.position = "none"
   )
-ggsave(file.path(sc_fig_dir, "SigCorrestimateDistribution.tiff"), p_hist, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
-ggsave(file.path(sc_fig_dir, "SigCorrestimateDistribution.pdf"), p_hist, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+ggsave(
+  file.path(sc_fig_dir, paste0("SigCorrestimateDistribution_", variant_tag, ".tiff")),
+  p_hist,
+  width = 13.5,
+  height = 13.5,
+  units = "cm",
+  bg = "transparent"
+)
+ggsave(
+  file.path(sc_fig_dir, paste0("SigCorrestimateDistribution_", variant_tag, ".pdf")),
+  p_hist,
+  dpi = 600,
+  width = 13.5,
+  height = 13.5,
+  units = "cm",
+  bg = "transparent"
+)
