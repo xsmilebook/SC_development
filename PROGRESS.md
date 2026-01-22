@@ -133,3 +133,5 @@
 - 2026-01-21: 为避免计算节点进程数限制导致 `Cannot fork`，ABCD comp_agecorrected 复现脚本默认并行 worker 上限设为 60（作业仍申请 72 CPU），并在创建失败时按 60→50→40→30→20→… 逐步降档。
 - 2026-01-21: 修复 ABCD cognition 并行运行中 `ecostats::anovaPB` 报 `object 'nbinom2' not found` 导致全边失败：`gamfunction/gamcog.R` 强制 `anovaPB(..., ncpus=1)` 并对失败回退为 `p=1`，保证流水线可运行。
 - 2026-01-22: 排查并修复 ABCD cognition 旧列名引用：`development_script/5th_cognition/S2nd_compositescorePlot_scatterplot_ABCD.Rmd` 将 `gam.cog.t` 更新为 `gam.smooth.t`，与 `gamfunction/gamcog.R` 输出列保持一致。
+- 2026-01-22: 回退 `combat_gam/sbatch/*.sbatch` 的容器化改动，恢复为 conda 环境提交（按需求不使用容器运行 ComBat-GAM/绘图作业）。
+- 2026-01-22: 为规避计算节点 `GLIBC_2.32 not found` 导致的 `dplyr/cli` 加载失败，`combat_gam/sbatch/plot_*_variance_decomposition.sbatch` 默认改用 `CONDA_ENV=scdevelopment`（可覆盖）。

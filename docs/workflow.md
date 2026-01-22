@@ -38,6 +38,14 @@
   - NIH Toolbox total cognition（age-corrected，baseline-only）：`sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch`，输出 `*combatgam_comp_agecorrected_baseline.rds`（协变量列：`nihtbx_totalcomp_agecorrected`；仅保留 baseline 与 cognition 方案一致）。
   - 注：ABCD 的 `input_rds` 常仅包含 SC 与基础协变量；若缺少上述表型列，脚本会按 `scanID` 从 `demopath/DemodfScreenFinal.csv` 自动回填后再运行（回填失败会给出明确报错）。
 - ABCD 的 Nonlinear-ComBat-GAM 支持并行：`nlongcombat` 使用 `mclapply`，核数由 `SLURM_CPUS_PER_TASK` 控制；未设置时默认单核。
+
+### 非容器作业的 GLIBC 报错处理
+- 典型报错：`/lib64/libc.so.6: version 'GLIBC_2.32' not found (required by .../cli.so)`（常由 `dplyr/cli` 等包触发）。
+- 根因：在登录节点编译/安装的 R 包会链接登录节点的 GLIBC；当计算节点 GLIBC 更旧时，作业在 `dyn.load()` 阶段直接失败。
+- 推荐做法（不使用容器时）：
+  - 优先使用已在计算节点验证可用的 conda 环境（本项目默认 `scdevelopment`）。
+  - 若必须使用 `scdevelopment_r41` 一类新环境，请在计算节点上重新安装触发问题的 R 包（从源码编译），或在同一 GLIBC 版本的节点上完成安装后再提交作业。
+  - `combat_gam/sbatch/plot_*_variance_decomposition.sbatch` 已默认使用 `CONDA_ENV=scdevelopment`（可通过 `CONDA_ENV=scdevelopment_r41` 覆盖）；当出现 GLIBC 报错时请不要在计算节点继续使用会触发报错的环境。
 - 结构连接 R² 方差分解图（Raw vs ComBat）由 `combat_gam/scripts/plot_abcd_variance_decomposition.R` 生成，输出在 `outputs/figures/combat_gam/`，包含：
   - `abcd_variance_decomp_base`（age+sex+meanFD）
   - `abcd_variance_decomp_cognition`（含 cognition）
