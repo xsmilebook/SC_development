@@ -129,6 +129,9 @@
 - HCP-D 发育模型容器作业在保存图片时报 `Error in Ops.data.frame(guide_loc, panel_loc) : '==' only defined for equally-sized data frames`（`ggsave -> add_guides`）：
   - 常见触发：容器内 `ggplot2`/`patchwork` 版本组合不稳定（特别是 `ggplot2 4.x`）。
   - 处理：使用已固定到稳定版本的容器重新构建镜像（当前定义中 `ggplot2==3.5.2`、`patchwork==1.3.0`），然后用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch` 指向新镜像执行。
+- ABCD cognition（`gamfunction/gamcog.R`）在并行/集群环境下报 `object 'nbinom2' not found`（来自 `ecostats::anovaPB`）：
+  - 原因：`anovaPB` 内部并行或对象序列化在某些节点上不稳定。
+  - 处理：在 `gamfunction/gamcog.R` 中强制 `anovaPB(..., ncpus=1)` 并对失败回退为 `NA`（后续按 `p=1` 处理），避免全边失败。
 - HCP-D 发育模型容器作业在 S3（可视化）报 `Error in plotdatasum[[i]][, -14] : incorrect number of dimensions` 且伴随 `all scheduled cores encountered errors`：常见于 **上游 S1 跳过部分边导致 `gammodelsum`/`gamresults` 不再满 78 条**，但 S3 仍按固定 `elementnum` 遍历并用固定列号删列。
   - 处理：S3 改为按可用边数迭代（`min(length(gammodelsum), nrow(gamresults))`），对 `plotdata_generate()` 增加 `tryCatch`；删列按响应列名（与 `parcel` 同名）删除，避免依赖固定列位置。
 - `plotdatasum_scale_TRUE_SA12.rds` 中出现 `try-error` 且报 `lm object does not have a proper 'qr' component`：通常是 `plotdata_generate()` 内部 `predict(..., se.fit=TRUE)` 在少数模型上失败导致。

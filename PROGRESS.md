@@ -131,3 +131,4 @@
 - 2026-01-21: ABCD total cognition（age-corrected，baseline-only）复现入口：更新 `development_script/5th_cognition` 的 ABCD Rmd 以读取 `*combatgam_comp_agecorrected_baseline.rds` 并输出 tiff+pdf；新增容器 sbatch `sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`（72 核）渲染报告到 `outputs/reports/`。
 - 2026-01-21: 由于容器缺少 `pandoc`，将上述复现入口从 `rmarkdown::render` 调整为纯 `Rscript`（新增 `run_abcd_cognition_comp_agecorrected_{S1,S2}.R`；sbatch 同步改为直接运行 Rscript），避免 `pandoc version 1.12.3+ required` 报错。
 - 2026-01-21: 为避免计算节点进程数限制导致 `Cannot fork`，ABCD comp_agecorrected 复现脚本默认并行 worker 上限设为 60（作业仍申请 72 CPU），并在创建失败时按 60→50→40→30→20→… 逐步降档。
+- 2026-01-21: 修复 ABCD cognition 并行运行中 `ecostats::anovaPB` 报 `object 'nbinom2' not found` 导致全边失败：`gamfunction/gamcog.R` 强制 `anovaPB(..., ncpus=1)` 并对失败回退为 `p=1`，保证流水线可运行。
