@@ -129,7 +129,7 @@ for (Interest.var in plot_vars) {
   limthr <- max(abs(tmpvar), na.rm = TRUE)
   ytitle <- Interest.var
   if (grepl("T.disease", Interest.var, fixed = TRUE)) {
-    ytitle <- expression("CBCL total raw association (" * italic("T") * " value)")
+    ytitle <- expression("CBCL score association (" * italic("T") * " value)")
   }
 
   if (grepl("_control_distance", Interest.var, fixed = TRUE)) {
