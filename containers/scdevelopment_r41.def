@@ -87,7 +87,11 @@ From: rocker/r-ver:4.1.3
     pin("mvnfast", "0.2.8")
 
     # Tidyverse components (pin individually + meta package)
-    pin("ggplot2", "4.0.1")
+    # NOTE: ggplot2 4.x triggered `add_guides` layout failures in our HCP-D S3
+    # plotting (see logs: hcpd_devmodel_combatgam_CV75_container_*). Keep a
+    # stable 3.x series to avoid `Ops.data.frame(guide_loc, panel_loc)` crashes.
+    # geomtextpath requires ggplot2 >= 3.5.2.
+    pin("ggplot2", "3.5.2")
     pin("dplyr", "1.1.2")
     pin("tidyr", "1.3.0")
     pin("stringr", "1.5.0")
@@ -99,7 +103,9 @@ From: rocker/r-ver:4.1.3
 
     # Plot helpers used in scripts
     pin("scales", "1.4.0")
-    pin("patchwork", "1.1.2")
+    # Keep patchwork aligned with ggplot2; newer patchwork contains fixes for
+    # guide/layout handling and remains compatible with ggplot2 >= 3.0.0.
+    pin("patchwork", "1.3.0")
     pin("corrplot", "0.95")
     pin("ggcorrplot", "0.1.4.1")
     pin("geomtextpath", "0.2.0")

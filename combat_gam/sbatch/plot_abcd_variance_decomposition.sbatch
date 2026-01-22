@@ -15,7 +15,10 @@ mkdir -p "${project_root}/outputs/logs/combat_gam"
 cd "${project_root}"
 
 source "${conda_root}/etc/profile.d/conda.sh"
-conda activate scdevelopment_r41
+# NOTE: `scdevelopment_r41` may fail on some compute nodes due to GLIBC mismatch
+# (e.g., `GLIBC_2.32 not found` when loading `cli.so`). Default to the older
+# `scdevelopment` env that previously worked on compute nodes; allow override.
+conda activate "${CONDA_ENV:-scdevelopment}"
 
 # Avoid user-level R libraries overriding conda packages (ABI mismatch).
 export R_LIBS_USER="${CONDA_PREFIX}/lib/R/library"

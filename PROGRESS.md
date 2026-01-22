@@ -124,3 +124,14 @@
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在保存图片时 ggplot guide 计算异常导致的崩溃（`add_guides` 下标比较错误）：对相关 scale 显式设置 `guide=\"none\"`，避免无图例场景进入 guide 布局分支。
 - 2026-01-21: DemodfScreenFinal 增补 NIH Toolbox total cognition（age-corrected）列：将 `demopath/nc_y_nihtb.csv` 的 `nihtbx_totalcomp_agecorrected` 合并到 `demopath/DemodfScreenFinal.csv`（按 `src_subject_id+eventname` 对齐）。
 - 2026-01-21: 新增 ABCD 纵向 Nonlinear-ComBat-GAM 变体脚本与 sbatch：CBCL total problems（参考 pfactor，不做 baseline-only）与 NIH Toolbox total cognition age-corrected（参考 cognition，baseline-only）。
+- 2026-01-21: 修复 ABCD Nonlinear-ComBat-GAM（CBCL/total cognition age-corrected）因输入 RDS 缺少表型列而失败：脚本检测到缺列时按 `scanID` 从 `demopath/DemodfScreenFinal.csv` 自动回填协变量并继续运行。
+- 2026-01-21: 修复 HCP-D 发育模型容器作业保存图片时 `add_guides` 崩溃（`Ops.data.frame(guide_loc, panel_loc)`）：容器定义将 `ggplot2` 固定到 `3.5.2` 并将 `patchwork` 更新到 `1.3.0`（同时满足 `geomtextpath` 对 `ggplot2>=3.5.2` 的依赖），需重建新 SIF 并用 `SIF_PATH` 复跑。
+- 2026-01-21: CBCL total raw 关联分析输入切换为 ABCD Nonlinear-ComBat-GAM 输出：`development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD*.R` 默认读取 `outputs/results/combat_gam/abcd/*combatgam_cbcl.rds`（缺少 `handness/race_ethnicity` 时按 `scanID` 从 demopath 自动回填）。
+- 2026-01-21: CBCL 全量关联作业脚本改为容器版：`sbatch/run_cbcl_assoc_full.sbatch` 使用 `outputs/containers/scdevelopment_r41.sif`；并删除 `sbatch/run_cbcl_assoc_smalltest.sbatch`。
+- 2026-01-21: ABCD total cognition（age-corrected，baseline-only）复现入口：更新 `development_script/5th_cognition` 的 ABCD Rmd 以读取 `*combatgam_comp_agecorrected_baseline.rds` 并输出 tiff+pdf；新增容器 sbatch `sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`（72 核）渲染报告到 `outputs/reports/`。
+- 2026-01-21: 由于容器缺少 `pandoc`，将上述复现入口从 `rmarkdown::render` 调整为纯 `Rscript`（新增 `run_abcd_cognition_comp_agecorrected_{S1,S2}.R`；sbatch 同步改为直接运行 Rscript），避免 `pandoc version 1.12.3+ required` 报错。
+- 2026-01-21: 为避免计算节点进程数限制导致 `Cannot fork`，ABCD comp_agecorrected 复现脚本默认并行 worker 上限设为 60（作业仍申请 72 CPU），并在创建失败时按 60→50→40→30→20→… 逐步降档。
+- 2026-01-21: 修复 ABCD cognition 并行运行中 `ecostats::anovaPB` 报 `object 'nbinom2' not found` 导致全边失败：`gamfunction/gamcog.R` 强制 `anovaPB(..., ncpus=1)` 并对失败回退为 `p=1`，保证流水线可运行。
+- 2026-01-22: 排查并修复 ABCD cognition 旧列名引用：`development_script/5th_cognition/S2nd_compositescorePlot_scatterplot_ABCD.Rmd` 将 `gam.cog.t` 更新为 `gam.smooth.t`，与 `gamfunction/gamcog.R` 输出列保持一致。
+- 2026-01-22: 回退 `combat_gam/sbatch/*.sbatch` 的容器化改动，恢复为 conda 环境提交（按需求不使用容器运行 ComBat-GAM/绘图作业）。
+- 2026-01-22: 为规避计算节点 `GLIBC_2.32 not found` 导致的 `dplyr/cli` 加载失败，`combat_gam/sbatch/plot_*_variance_decomposition.sbatch` 默认改用 `CONDA_ENV=scdevelopment`（可覆盖）。

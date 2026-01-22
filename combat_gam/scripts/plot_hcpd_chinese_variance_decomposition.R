@@ -88,9 +88,9 @@ compute_sequential_r2 <- function(y, df, ordered_predictors) {
 compute_variance_decomp <- function(df, sc_cols, label, strip_suffix = FALSE) {
   cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "72"))
   if (is.na(cores) || cores < 1) {
-    cores <- 72
+    cores <- 40
   }
-  cores <- min(cores, 72)
+  cores <- min(cores, 40)
   results <- mclapply(sc_cols, function(col) {
     y <- df[[col]]
     res <- tryCatch(

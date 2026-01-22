@@ -39,7 +39,17 @@ gam.fit.cognition <- function(region, dataname, cognition_var, smooth_var, covar
   #Full versus reduced model anova p-value
   #anova.cov.pvalue <- anova.gam(gam.model.null,gam.model,test='Chisq')$`Pr(>Chi)`[2]
   if (stats_only){
-    anova.cov.pvalue <- anovaPB(gam.model.null,gam.model, n.sim = 1000,test='Chisq')$`Pr(>Chi)`[2]
+    anova.cov.pvalue <- tryCatch(
+      {
+        # Avoid internal parallelism / serialization issues on clusters.
+        # Observed failure mode: `object 'nbinom2' not found` when ncpus > 1.
+        anovaPB(gam.model.null, gam.model, n.sim = 1000, test = 'Chisq', ncpus = 1)$`Pr(>Chi)`[2]
+      },
+      error = function(e) {
+        warning("anovaPB failed (set anova.cov.pvalue=NA): ", conditionMessage(e))
+        NA_real_
+      }
+    )
   }else{anova.cov.pvalue <- NA}
   if(is.na(anova.cov.pvalue)){ #if residual deviance is exactly equal between full and reduced models and p=value = NA, set p = 1
     anova.cov.pvalue <- 1}
@@ -78,7 +88,6 @@ gam.fit.cognition <- function(region, dataname, cognition_var, smooth_var, covar
   if(stats_only == FALSE)
     return(data.results)
 }
-
 
 
 

@@ -36,7 +36,16 @@
 - ABCD 纵向 Nonlinear-ComBat-GAM（新增变体）：
   - CBCL total problems：`sbatch combat_gam/sbatch/abcd_combat_gam_cbcl.sbatch`，输出 `*combatgam_cbcl.rds`（协变量列：`cbcl_scr_syn_totprob_r`；不做 baseline-only）。
   - NIH Toolbox total cognition（age-corrected，baseline-only）：`sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch`，输出 `*combatgam_comp_agecorrected_baseline.rds`（协变量列：`nihtbx_totalcomp_agecorrected`；仅保留 baseline 与 cognition 方案一致）。
+  - 注：ABCD 的 `input_rds` 常仅包含 SC 与基础协变量；若缺少上述表型列，脚本会按 `scanID` 从 `demopath/DemodfScreenFinal.csv` 自动回填后再运行（回填失败会给出明确报错）。
 - ABCD 的 Nonlinear-ComBat-GAM 支持并行：`nlongcombat` 使用 `mclapply`，核数由 `SLURM_CPUS_PER_TASK` 控制；未设置时默认单核。
+
+### 非容器作业的 GLIBC 报错处理
+- 典型报错：`/lib64/libc.so.6: version 'GLIBC_2.32' not found (required by .../cli.so)`（常由 `dplyr/cli` 等包触发）。
+- 根因：在登录节点编译/安装的 R 包会链接登录节点的 GLIBC；当计算节点 GLIBC 更旧时，作业在 `dyn.load()` 阶段直接失败。
+- 推荐做法（不使用容器时）：
+  - 优先使用已在计算节点验证可用的 conda 环境（本项目默认 `scdevelopment`）。
+  - 若必须使用 `scdevelopment_r41` 一类新环境，请在计算节点上重新安装触发问题的 R 包（从源码编译），或在同一 GLIBC 版本的节点上完成安装后再提交作业。
+  - `combat_gam/sbatch/plot_*_variance_decomposition.sbatch` 已默认使用 `CONDA_ENV=scdevelopment`（可通过 `CONDA_ENV=scdevelopment_r41` 覆盖）；当出现 GLIBC 报错时请不要在计算节点继续使用会触发报错的环境。
 - 结构连接 R² 方差分解图（Raw vs ComBat）由 `combat_gam/scripts/plot_abcd_variance_decomposition.R` 生成，输出在 `outputs/figures/combat_gam/`，包含：
   - `abcd_variance_decomp_base`（age+sex+meanFD）
   - `abcd_variance_decomp_cognition`（含 cognition）
@@ -95,13 +104,20 @@
    - CBCL total raw 关联分析脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R`。
    - 小样本验证脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R`。
    - CBCL 关联分析绘图输出（t-value matrix、S-A rank 散点、分位数组轨迹）写入 `outputs/figures/cbcl_totprob/`。
+   - ABCD total cognition（age-corrected，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_comp_agecorrected_baseline.rds`）可复现入口：
+     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`
+     - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
+     - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
+     - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
+     - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
+     - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
 
-## Conda 环境运行（CBCL 关联）
-- 统一使用本地 conda 环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment_r41`（R 4.1.3）。
-- 小样本测试作业脚本：`sbatch/run_cbcl_assoc_smalltest.sbatch`（脚本内已 `conda activate`）。
-- 全量作业脚本：`sbatch/run_cbcl_assoc_full.sbatch`（脚本内已 `conda activate`）。
+## CBCL 关联运行
+- 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。
+- CBCL 关联分析默认输入（ABCD Nonlinear-ComBat-GAM 输出）：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cbcl.rds`。
+- 全量作业脚本（容器版）：`sbatch/run_cbcl_assoc_full.sbatch`（使用 `outputs/containers/scdevelopment_r41.sif`；可用 `SIF_PATH` 指向新构建镜像）。
 - 运行前确认 `outputs/logs/` 存在，脚本内会自动创建。
-- 两个 sbatch 脚本均会显式设置 `R_LIBS_USER`/`R_PROFILE_USER`，避免作业环境误加载用户库（`/GPFS/.../R/packages`）导致 ABI 不一致报错。
+- 若需非容器运行，建议参考 `docs/workflow.md` 中关于 R ABI 隔离的说明，避免作业环境误加载用户库（`/GPFS/.../R/packages`）导致 ABI 不一致报错。
 
 ## 待补充说明
 - 根据 `docs/research/Comments.pdf` 与 `docs/research/Manurscript_20251112.pdf` 更新 harmonize/ComBat 的描述与使用场景。
@@ -118,6 +134,12 @@
   - 现有实现：`sbatch/run_hcpd_devmodel_combatgam_CV75.sbatch` 会检查 `outputs/r_cran_repo/src/contrib/PACKAGES.gz` 是否存在；若存在则用离线 repo 安装缺失/载入失败的包到 `outputs/r_libs/scdevelopment_r41/`。
 - HCP-D 发育模型容器作业报 `Error in match.names(clabs, names(xi)) : names do not match previous names`（`do.call -> rbind`）：通常是某些边级模型拟合失败导致返回对象列名不一致，直接 `rbind` 合并会崩溃。
   - 处理：对边级拟合使用 `tryCatch` 并跳过失败边；合并时用 `dplyr::bind_rows()`；将失败边标签写入 `failed_edges_*.txt` 便于追踪与复跑。
+- HCP-D 发育模型容器作业在保存图片时报 `Error in Ops.data.frame(guide_loc, panel_loc) : '==' only defined for equally-sized data frames`（`ggsave -> add_guides`）：
+  - 常见触发：容器内 `ggplot2`/`patchwork` 版本组合不稳定（特别是 `ggplot2 4.x`）。
+  - 处理：使用已固定到稳定版本的容器重新构建镜像（当前定义中 `ggplot2==3.5.2`、`patchwork==1.3.0`），然后用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch` 指向新镜像执行。
+- ABCD cognition（`gamfunction/gamcog.R`）在并行/集群环境下报 `object 'nbinom2' not found`（来自 `ecostats::anovaPB`）：
+  - 原因：`anovaPB` 内部并行或对象序列化在某些节点上不稳定。
+  - 处理：在 `gamfunction/gamcog.R` 中强制 `anovaPB(..., ncpus=1)` 并对失败回退为 `NA`（后续按 `p=1` 处理），避免全边失败。
 - HCP-D 发育模型容器作业在 S3（可视化）报 `Error in plotdatasum[[i]][, -14] : incorrect number of dimensions` 且伴随 `all scheduled cores encountered errors`：常见于 **上游 S1 跳过部分边导致 `gammodelsum`/`gamresults` 不再满 78 条**，但 S3 仍按固定 `elementnum` 遍历并用固定列号删列。
   - 处理：S3 改为按可用边数迭代（`min(length(gammodelsum), nrow(gamresults))`），对 `plotdata_generate()` 增加 `tryCatch`；删列按响应列名（与 `parcel` 同名）删除，避免依赖固定列位置。
 - `plotdatasum_scale_TRUE_SA12.rds` 中出现 `try-error` 且报 `lm object does not have a proper 'qr' component`：通常是 `plotdata_generate()` 内部 `predict(..., se.fit=TRUE)` 在少数模型上失败导致。
