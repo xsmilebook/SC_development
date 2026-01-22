@@ -109,6 +109,8 @@
    - ABCD p-factor（GENERAL；Nonlinear-ComBat-GAM 输出 `*combatgam_pfactor.rds`）S1 复现入口（连续效应 + age-by-pfactor smooth interaction）：
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_pfactor_effect_continuous_container.sbatch`
      - 结果：`outputs/results/6th_pfactor/abcd/pfactor/`
+     - 图像（tiff + svg/pdf）：`outputs/figures/6th_pfactor/abcd/pfactor/`
+     - 注：交互曲线图需要 `ABCD_PLOTDATASUM_RDS`（默认指向 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`；可在提交时覆盖）。
    - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
      - 结果：`outputs/results/5th_cognition/abcd/cognition/`

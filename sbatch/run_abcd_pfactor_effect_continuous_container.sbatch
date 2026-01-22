@@ -12,6 +12,7 @@ project_root="/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment"
 sif="${SIF_PATH:-${project_root}/outputs/containers/scdevelopment_r41.sif}"
 
 ABCD_EUCLID_CSV_HOST="${ABCD_EUCLID_CSV:-${project_root}/wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv}"
+ABCD_PLOTDATASUM_RDS_HOST="${ABCD_PLOTDATASUM_RDS:-/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds}"
 FORCE="${FORCE:-0}"
 
 mkdir -p "${project_root}/outputs/logs"
@@ -32,6 +33,11 @@ if [ ! -f "${ABCD_EUCLID_CSV_HOST}" ]; then
   exit 1
 fi
 
+if [ ! -f "${ABCD_PLOTDATASUM_RDS_HOST}" ]; then
+  echo "[ERROR] Missing ABCD_PLOTDATASUM_RDS: ${ABCD_PLOTDATASUM_RDS_HOST}"
+  exit 1
+fi
+
 export OMP_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
@@ -48,6 +54,7 @@ fi
 
 export SINGULARITYENV_SLURM_CPUS_PER_TASK="${SLURM_CPUS_PER_TASK:-72}"
 export SINGULARITYENV_ABCD_EUCLID_CSV="${ABCD_EUCLID_CSV_CONTAINER}"
+export SINGULARITYENV_ABCD_PLOTDATASUM_RDS="${ABCD_PLOTDATASUM_RDS_HOST}"
 export SINGULARITYENV_FORCE="${FORCE}"
 export SINGULARITYENV_OMP_NUM_THREADS=1
 export SINGULARITYENV_OPENBLAS_NUM_THREADS=1
@@ -56,7 +63,8 @@ export SINGULARITYENV_NUMEXPR_NUM_THREADS=1
 
 singularity exec --cleanenv \
   --bind "${binds}" \
+  --bind /ibmgpfs:/ibmgpfs \
+  --bind /GPFS:/GPFS \
   --pwd /work \
   "${sif}" \
   bash -lc 'Rscript --vanilla /work/development_script/6th_pfactor/run_abcd_pfactor_effect_continuous_S1.R'
-

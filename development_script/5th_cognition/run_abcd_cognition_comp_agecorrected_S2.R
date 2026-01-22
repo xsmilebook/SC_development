@@ -133,8 +133,8 @@ edge_idx <- unique(vapply(targets, pick_nearest, integer(1)))
 edge_idx <- edge_idx[seq_len(min(length(edge_idx), 3))]
 
 sc_labels <- grep("SC\\.", names(SCdata.cog), value = TRUE)
-plotdata_list <- run_mclapply_with_fallback(edge_idx, function(x) {
-  SClabel <- sc_labels[[x]]
+get_plotdata_for_edge <- function(edge_index) {
+  SClabel <- sc_labels[[edge_index]]
   tryCatch(
     {
       gamresult.df <- gam.fit.cognition(
@@ -150,26 +150,47 @@ plotdata_list <- run_mclapply_with_fallback(edge_idx, function(x) {
       )
       out <- as.data.frame(gamresult.df[[2]])
       out$SC_label <- SClabel
-      list(ok = TRUE, df = out, err = NA_character_)
+      list(ok = TRUE, idx = edge_index, label = SClabel, df = out, err = NA_character_)
     },
     error = function(e) {
-      list(ok = FALSE, df = NULL, err = conditionMessage(e))
+      list(ok = FALSE, idx = edge_index, label = SClabel, df = NULL, err = conditionMessage(e))
     }
   )
-}, num_cores)
+}
+
+pick_working_edge <- function(target_rank, max_try = 20) {
+  ord <- order(abs(SC_Cog_results.df$SCrank - target_rank))
+  ord <- ord[seq_len(min(length(ord), max_try))]
+  for (idx in ord) {
+    res <- get_plotdata_for_edge(idx)
+    if (isTRUE(res$ok)) return(res)
+    message("[WARN] Plotdata failed for edge ", idx, " (", res$label, "): ", res$err)
+  }
+  list(ok = FALSE, idx = NA_integer_, label = NA_character_, df = NULL, err = "no working edge found")
+}
 
 sc_fig_dir <- file.path(FigureFolder, Cogvar)
 dir.create(sc_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
-for (k in seq_along(edge_idx)) {
-  N <- edge_idx[[k]]
-  if (!isTRUE(plotdata_list[[k]]$ok)) {
-    message("[WARN] Skip scatterplot for edge ", N, " (error: ", plotdata_list[[k]]$err, ")")
+for (k in seq_along(targets)) {
+  target_rank <- targets[[k]]
+  res <- pick_working_edge(target_rank, max_try = 30)
+  if (!isTRUE(res$ok)) {
+    message("[WARN] No working edge found for quantile ", k, "; saving placeholder plot")
+    out_base <- file.path(sc_fig_dir, paste0("SC_missing_q", k, "_scatterplot_", variant_tag))
+    p_empty <- ggplot() +
+      geom_text(aes(x = 0, y = 0), label = paste0("No valid edge for q", k, " (", variant_tag, ")")) +
+      theme_void()
+    ggsave(paste0(out_base, ".tiff"), p_empty, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+    ggsave(paste0(out_base, ".pdf"), p_empty, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
     next
   }
-  plotdata_N <- plotdata_list[[k]]$df
+
+  plotdata_N <- res$df
+  N <- res$idx
   SCrank <- SC_Cog_results.df$SCrank[N]
-  message("Scatterplot for connection ", N, " with SCrank ", SCrank)
+  message("Scatterplot for connection ", N, " with SCrank ", SCrank, " (target=", target_rank, ")")
+  out_base <- file.path(sc_fig_dir, paste0("SC", N, "_scatterplot_", variant_tag))
 
   p_sc <- ggplot(data = plotdata_N) +
     geom_point(aes(x = SCres, y = cogres), color = "grey", size = 0.8) +
@@ -187,23 +208,8 @@ for (k in seq_along(edge_idx)) {
       legend.position = "none"
     )
 
-  ggsave(
-    file.path(sc_fig_dir, paste0("SC", N, "_scatterplot_", variant_tag, ".tiff")),
-    p_sc,
-    width = 13.5,
-    height = 13.5,
-    units = "cm",
-    bg = "transparent"
-  )
-  ggsave(
-    file.path(sc_fig_dir, paste0("SC", N, "_scatterplot_", variant_tag, ".pdf")),
-    p_sc,
-    dpi = 600,
-    width = 13.5,
-    height = 13.5,
-    units = "cm",
-    bg = "transparent"
-  )
+  ggsave(paste0(out_base, ".tiff"), p_sc, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+  ggsave(paste0(out_base, ".pdf"), p_sc, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
 }
 
 ## 3) Distribution of significant correlations
