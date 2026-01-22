@@ -242,6 +242,46 @@ palette <- c(
   pfactor = "#6A3D9A"
 )
 
+log_r2_breakdown <- function(df, predictors, label) {
+  if (is.null(df) || nrow(df) == 0) {
+    message(sprintf("[R2] %s: no results to summarize", label))
+    return(invisible(NULL))
+  }
+  needed <- c("condition", "total_r2", predictors)
+  missing <- setdiff(needed, names(df))
+  if (length(missing) > 0) {
+    message(sprintf("[R2] %s: missing columns: %s", label, paste(missing, collapse = ", ")))
+    return(invisible(NULL))
+  }
+
+  summary_df <- df %>%
+    group_by(condition) %>%
+    summarise(
+      n_edges = n(),
+      mean_total_r2 = mean(total_r2, na.rm = TRUE),
+      median_total_r2 = median(total_r2, na.rm = TRUE),
+      across(all_of(predictors), ~ mean(.x, na.rm = TRUE), .names = "mean_{.col}"),
+      across(all_of(predictors), ~ median(.x, na.rm = TRUE), .names = "median_{.col}"),
+      .groups = "drop"
+    )
+
+  message(sprintf("[R2] %s (mgcv summary r.sq; sequential contributions may be <0)", label))
+  for (i in seq_len(nrow(summary_df))) {
+    row <- summary_df[i, , drop = FALSE]
+    cond <- as.character(row$condition[[1]])
+    message(sprintf(
+      "[R2] %s | %s | n_edges=%d | total_r2 mean=%.4f median=%.4f",
+      label, cond, as.integer(row$n_edges[[1]]), row$mean_total_r2[[1]], row$median_total_r2[[1]]
+    ))
+    for (p in predictors) {
+      m <- row[[paste0("mean_", p)]][[1]]
+      md <- row[[paste0("median_", p)]][[1]]
+      message(sprintf("[R2]   %s: mean=%.4f median=%.4f", p, m, md))
+    }
+  }
+  invisible(summary_df)
+}
+
 plot_variant <- function(label, raw_path, combat_path, predictors, include_cognition, include_pfactor, baseline_only, out_prefix) {
   raw_data <- prepare_raw(raw_path, include_cognition = include_cognition, include_pfactor = include_pfactor, baseline_only = baseline_only)
   combat_data <- prepare_combat(combat_path, include_cognition = include_cognition, include_pfactor = include_pfactor)
@@ -264,6 +304,8 @@ plot_variant <- function(label, raw_path, combat_path, predictors, include_cogni
 
   combined <- bind_rows(raw_results, combat_results)
   combined$edge_base <- factor(combined$edge_base, levels = order_edges)
+
+  log_r2_breakdown(combined, predictors, label)
 
   plot_data <- combined %>%
     pivot_longer(cols = all_of(predictors), names_to = "predictor", values_to = "r2")
