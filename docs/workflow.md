@@ -14,6 +14,7 @@
 - 本仓库不使用 `configs/` 或 `src/` 结构，避免将现有脚本迁移导致路径失效。
 - `combat_gam/` 用于集中存放 ComBat-GAM 与纵向 ComBat 相关代码及其依赖。
 - ComBat 运行日志统一写入 `outputs/logs/combat_gam/`，输出结果保存到 `outputs/results/combat_gam/`。
+- ABCD 表型回填：`demopath/DemodfScreenFinal.csv` 用于按 `scanID` 回填部分表型列；其中 `nihtbx_fluidcomp_agecorrected` 来自 `demopath/nc_y_nihtb.csv` 并按 `src_subject_id + eventname` 合并。
 
 ## 容器运行（Singularity/Apptainer）
 - 背景：部分计算节点无法加载在登录节点安装/更新过的 conda R 包（GLIBC 版本不匹配），且计算节点常无法访问 CRAN，导致运行时反复报错（`GLIBC_2.xx not found` / `cannot open URL .../PACKAGES`）。
