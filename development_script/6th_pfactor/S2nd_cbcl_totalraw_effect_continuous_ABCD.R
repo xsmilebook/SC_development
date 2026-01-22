@@ -91,7 +91,7 @@ if (is_windows && file.exists(gamresult_file)) {
   gamresult.tmp <- readRDS(gamresult_file)
 } else {
   resultsum <- mclapply(1:78, function(x) {
-    region <- grep("SC.", names(SCdata), value = TRUE)[x]
+    region <- grep("SC\\.", names(SCdata), value = TRUE)[x]
     gamresult <- gamm.smooth.predict.covariateinteraction(region, dataname, smooth_var, int_var,
                                                           int_var.predict.percentile, covariates,
                                                           knots, set_fx, increments, stats_only)
