@@ -32,6 +32,11 @@ source(file.path(functionFolder, "SCrankcorr.R"))
 source(file.path(functionFolder, "gamcog.R"))
 source(file.path(functionFolder, "colorbarvalue.R"))
 
+# `gamcog.R` loads `ecostats` -> `mvabund`, which provides a `theme()` function
+# that can mask `ggplot2::theme()` and break plotting. Pin ggplot2 functions.
+theme <- ggplot2::theme
+theme_classic <- ggplot2::theme_classic
+
 input_rds <- file.path(
   project_root, "outputs", "results", "combat_gam", "abcd",
   "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds"
