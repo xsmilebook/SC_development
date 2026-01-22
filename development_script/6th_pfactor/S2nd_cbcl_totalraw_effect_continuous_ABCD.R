@@ -10,7 +10,7 @@ wdpath <- getwd()
 if (grepl("cuizaixu_lab", wdpath, fixed = TRUE)) {
   interfileFolder <- "/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD"
 } else {
-  interfileFolder <- file.path(wdpath, "interdataFolder_ABCD")
+  interfileFolder <- file.path(wdpath, "wd", "interdataFolder_ABCD")
 }
 functionFolder <- file.path(wdpath, "gamfunction")
 outputFolder <- file.path(wdpath, "outputs", "results", "cbcl_totprob")
@@ -43,11 +43,19 @@ SCdata$totalstrength <- rowMeans(SCdata[, sc_cols, drop = FALSE])
 meandistance <- read.csv(paste0(interfileFolder, "/average_EuclideanDistance_12.csv"))
 meandistance <- meandistance$Edistance
 
-cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
-if (is.na(cores) || cores < 1) {
+# Detect Windows system
+is_windows <- .Platform$OS.type == "windows"
+
+if (is_windows) {
+  message("Windows system detected - skipping parallel processing and using existing files")
   cores <- 1
+} else {
+  cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+  if (is.na(cores) || cores < 1) {
+    cores <- 1
+  }
+  cores <- min(cores, 50)
 }
-cores <- min(cores, 50)
 
 ## 1. CBCL total raw association
 dataname <- "SCdata"
@@ -60,27 +68,46 @@ increments <- 1000
 stats_only <- TRUE
 int_var <- "cbcl_scr_syn_totprob_r"
 
-resultsum <- mclapply(1:78, function(x) {
-  region <- grep("SC\\.", names(SCdata), value = TRUE)[x]
-  gamresult <- gamm.smooth.predict.covariateinteraction(region, dataname, smooth_var, int_var,
-                                                        int_var.predict.percentile, covariates,
-                                                        knots, set_fx, increments, stats_only)
-  gamresult <- as.data.frame(gamresult)
-  return(gamresult)
-}, mc.cores = cores)
+# Check if result file exists (for Windows)
+gamresult_file <- file.path(outputFolder, paste0("gamresult_Int_age_cbcl_totprob_raw_CV", CVthr, ".rds"))
 
-gamresult.tmp <- do.call(rbind, resultsum)
-gamresult.tmp[3:12] <- lapply(gamresult.tmp[3:12], as.numeric)
-gamresult.tmp$bootstrap_pvalue.fdr <- p.adjust(gamresult.tmp$bootstrap_pvalue, method = "fdr")
-gamresult.tmp$bootstrap.P.disease.fdr <- p.adjust(gamresult.tmp$bootstrap.P.disease, method = "fdr")
-
-print(paste0(sum(gamresult.tmp$bootstrap_pvalue.fdr < 0.05), " edges have significant age by ", int_var, " effect."))
-print(paste0(sum(gamresult.tmp$bootstrap.P.disease.fdr < 0.05), " edges have significant ", int_var, " effect."))
-
-saveRDS(gamresult.tmp, file.path(outputFolder, paste0("gamresult_Int_age_cbcl_totprob_raw_CV", CVthr, ".rds")))
+if (is_windows && file.exists(gamresult_file)) {
+  message("Using existing CBCL association results file on Windows")
+  gamresult.tmp <- readRDS(gamresult_file)
+} else {
+  resultsum <- mclapply(1:78, function(x) {
+    region <- grep("SC.", names(SCdata), value = TRUE)[x]
+    gamresult <- gamm.smooth.predict.covariateinteraction(region, dataname, smooth_var, int_var,
+                                                          int_var.predict.percentile, covariates,
+                                                          knots, set_fx, increments, stats_only)
+    gamresult <- as.data.frame(gamresult)
+    return(gamresult)
+  }, mc.cores = cores)
+  
+  gamresult.tmp <- do.call(rbind, resultsum)
+  gamresult.tmp[3:12] <- lapply(gamresult.tmp[3:12], as.numeric)
+  gamresult.tmp$bootstrap_pvalue.fdr <- p.adjust(gamresult.tmp$bootstrap_pvalue, method = "fdr")
+  gamresult.tmp$bootstrap.P.disease.fdr <- p.adjust(gamresult.tmp$bootstrap.P.disease, method = "fdr")
+  
+  print(paste0(sum(gamresult.tmp$bootstrap_pvalue.fdr < 0.05), " edges have significant age by ", int_var, " effect."))
+  print(paste0(sum(gamresult.tmp$bootstrap.P.disease.fdr < 0.05), " edges have significant ", int_var, " effect."))
+  
+  saveRDS(gamresult.tmp, gamresult_file)
+}
 
 ## 2. Correlation to S-A connectional axis
-gamresult.tmp <- readRDS(file.path(outputFolder, paste0("gamresult_Int_age_cbcl_totprob_raw_CV", CVthr, ".rds")))
+# Check if gamresult file exists, if not try to read from the variable created above
+if (exists("gamresult.tmp")) {
+  message("Using gamresult.tmp from previous step")
+} else {
+  gamresult_file <- file.path(outputFolder, paste0("gamresult_Int_age_cbcl_totprob_raw_CV", CVthr, ".rds"))
+  if (file.exists(gamresult_file)) {
+    gamresult.tmp <- readRDS(gamresult_file)
+    message("Reading existing gamresult file")
+  } else {
+    stop("No gamresult data available. Please run the analysis on a Linux system first.")
+  }
+}
 gamresult.tmp[3:12] <- lapply(gamresult.tmp[3:12], as.numeric)
 gamresult.tmp$bootstrap.P.disease.fdr <- p.adjust(gamresult.tmp$bootstrap.P.disease, method = "fdr")
 
@@ -88,7 +115,12 @@ SCrank.df.age <- SCrankcorr(gamresult.tmp, "IntpartialRsq", 12, dsdata = FALSE)
 SCrank.df.cbcl <- SCrankcorr(gamresult.tmp, "T.disease", 12, dsdata = FALSE)
 SCrank.df <- rbind(SCrank.df.age, SCrank.df.cbcl)
 SCrank.df$int_var <- int_var
-SCrank.df
+
+#  print correlation
+cat("\n=== correlation results ===\n")
+print(SCrank.df)
+cat("\n")
+
 
 SCrank.tmp <- SCrankcorr(gamresult.tmp, "IntpartialRsq", 12, dsdata = TRUE)
 gamresult.tmp$SCrank <- SCrank.tmp$SCrank
@@ -104,17 +136,27 @@ print(paste("Correlation coefficient between CBCL associations regressing out fi
             round(SCrankresult.whole.controldistance$p.spearman, 3)))
 print(SCrankresult.whole.controldistance)
 
+SCrank.df.controldistance <- SCrankresult.whole.controldistance
+SCrank.df.controldistance$Interest.var <- "T.disease_control_distance"
+SCrank.df.controldistance$int_var <- "cbcl_scr_syn_totprob_r"
+SCrank.df.all <- rbind(SCrank.df, SCrank.df.controldistance)
+
+print(SCrank.df.all)
+cat("\n")
+
 saveRDS(SCrankresult.whole.controldistance,
         file.path(outputFolder, paste0("SCrankcorr_cbcl_totprob_raw_CV", CVthr, ".rds")))
 
 ## 3. Plots: t-value matrix and S-A rank correlation
 plot_vars <- c("IntpartialRsq", "T.disease", "T.disease_control_distance")
 for (Interest.var in plot_vars) {
+  message(paste("Processing variable:", Interest.var))
   tmpvar <- gamresult.tmp[, Interest.var]
+  message(paste("Variable range:", min(tmpvar, na.rm = TRUE), "to", max(tmpvar, na.rm = TRUE)))
   limthr <- max(abs(tmpvar), na.rm = TRUE)
   ytitle <- Interest.var
   if (grepl("T.disease", Interest.var, fixed = TRUE)) {
-    ytitle <- expression("CBCL total raw association (" * italic("T") * " value)")
+    ytitle <- expression("CBCL score association (" * italic("T") * " value)")
   }
 
   if (grepl("_control_distance", Interest.var, fixed = TRUE)) {
@@ -127,8 +169,8 @@ for (Interest.var in plot_vars) {
                      plot.background = element_rect(fill = "transparent"),
                      panel.background = element_rect(fill = "transparent"),
                      legend.position = "none")
-    mywidth <- 13
-    myheight <- 13
+    mywidth <- 15
+    myheight <- 15
   } else {
     mytheme <- theme(axis.text = element_text(size = 23.4, color = "black"),
                      axis.title = element_text(size = 23.4),
@@ -139,8 +181,8 @@ for (Interest.var in plot_vars) {
                      plot.background = element_rect(fill = "transparent"),
                      panel.background = element_rect(fill = "transparent"),
                      legend.position = "none")
-    mywidth <- 15
-    myheight <- 15
+    mywidth <- 18
+    myheight <- 18
   }
 
   scatterFig <- ggplot(data = gamresult.tmp) +
@@ -149,12 +191,15 @@ for (Interest.var in plot_vars) {
     scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr, limthr)) +
     labs(x = "S-A connectional axis rank", y = ytitle) +
     theme_classic() +
-    mytheme
+    mytheme +
+    theme(axis.title.y = element_text(margin = margin(r = 10)))
   ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_", int_var, "_SCrankcorr.tiff")),
          scatterFig, width = mywidth, height = myheight, units = "cm")
-  ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_", int_var, "_SCrankcorr.svg")),
-         scatterFig, device = grDevices::svg, width = mywidth, height = myheight, units = "cm")
+  scatter_filename <- file.path(figureFolderAssociation, paste0(Interest.var, "_", int_var, "_SCrankcorr.svg"))
+  message(paste("Saving scatter plot:", scatter_filename))
+  ggsave(scatter_filename, scatterFig, device = grDevices::svg, width = mywidth, height = myheight, units = "cm")
 
+  ## Matrix plot generation for each variable
   Matrix.tmp.T <- matrix(NA, 12, 12)
   Matrix.tmp.T[lower.tri(Matrix.tmp.T, diag = TRUE)] <- tmpvar
   Matrix.tmp.T[upper.tri(Matrix.tmp.T)] <- t(Matrix.tmp.T)[upper.tri(Matrix.tmp.T)]
@@ -215,9 +260,11 @@ for (Interest.var in plot_vars) {
       panel.grid.major = element_line(linewidth = 0),
       panel.grid.minor = element_line(linewidth = 1)
     )
-  ggsave(file.path(figureFolderAssociation, paste0(Interest.var, "_", int_var, "_Matrix12.tiff")),
-         MatFig, height = 18, width = 20, units = "cm")
-}
+  matrix_filename <- file.path(figureFolderAssociation, paste0(Interest.var, "_", int_var, "_Matrix12.tiff"))
+  message(paste("Saving matrix plot:", matrix_filename))
+  ggsave(matrix_filename, MatFig, height = 18, width = 20, units = "cm")
+  
+} # End of for loop for plot_vars
 
 ## 4. Developmental trajectories: high (90th) vs low (10th) CBCL across five S-A deciles
 sa_path <- file.path(interfileFolder, "SA12_10.csv")
@@ -238,7 +285,10 @@ SCdata.diw[, grep("SC\\.", names(SCdata.diw), value = TRUE)] <- lapply(SCdata.di
 assign("SCdata.diw", SCdata.diw, envir = .GlobalEnv)
 
 trajectory_cache <- file.path(outputFolder, paste0("plotdata_high90_low10_cbcl_totprob_develop_CV", CVthr, ".rds"))
-if (!file.exists(trajectory_cache)) {
+
+if (is_windows && file.exists(trajectory_cache)) {
+  message("Using existing developmental trajectory results file on Windows")
+} else if (!file.exists(trajectory_cache)) {
   stats_only <- FALSE
   increments <- 200
   dataname <- "SCdata.diw"
@@ -266,6 +316,12 @@ if (!file.exists(trajectory_cache)) {
 }
 
 SA12_10 <- read.csv(sa_path)
+
+# Check if trajectory cache exists
+if (!file.exists(trajectory_cache)) {
+  stop("Trajectory data file not found. Please run the analysis on a Linux system first to generate the trajectory data.")
+}
+
 plotdata <- do.call(rbind, readRDS(trajectory_cache))
 plotdata <- merge(plotdata, SA12_10[, c("SC_label", "decile")], by = "SC_label")
 
