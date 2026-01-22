@@ -73,44 +73,27 @@ num_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = "60"))
 if (is.na(num_cores) || num_cores < 1) num_cores <- 60
 num_cores <- min(num_cores, 60L)
 
-make_cluster_fallback <- function(n) {
-  n <- as.integer(n)
-  if (is.na(n) || n < 1) n <- 1L
-  stepdowns <- c(60L, 50L, 40L, 30L, 20L)
-  stepdowns <- stepdowns[stepdowns < n]
-  tries <- unique(pmax(1L, c(n, stepdowns, 16L, 8L, 4L, 2L, 1L)))
+run_mclapply_with_fallback <- function(x, fun, n_workers) {
+  n_workers <- as.integer(n_workers)
+  if (is.na(n_workers) || n_workers < 1) n_workers <- 1L
+  tries <- c(n_workers, 60L, 50L, 40L, 30L, 20L, 16L, 8L, 4L, 2L, 1L)
+  tries <- unique(tries[tries <= n_workers])
   for (k in tries) {
-    cl <- try(parallel::makeCluster(k), silent = TRUE)
-    if (!inherits(cl, "try-error")) {
-      message("[INFO] Using PSOCK workers: ", k)
-      return(cl)
-    }
-    message("[WARN] makeCluster(", k, ") failed; retrying with fewer workers.")
+    message("[INFO] Trying mclapply with mc.cores=", k)
+    out <- try(parallel::mclapply(x, fun, mc.cores = k), silent = TRUE)
+    if (!inherits(out, "try-error")) return(out)
+    msg <- as.character(out)
+    message("[WARN] mclapply failed: ", msg)
+    message("[WARN] Retrying with fewer workers.")
   }
-  stop("Failed to create any PSOCK cluster (process limit or memory pressure).")
+  stop("mclapply failed for all worker settings; likely process/memory limits.")
 }
 
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
 out_rds <- file.path(resultFolder, paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected.rds"))
 
 if (force || !file.exists(out_rds)) {
-  cl <- make_cluster_fallback(num_cores)
-  on.exit(parallel::stopCluster(cl), add = TRUE)
-  clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
-  invisible(clusterEvalQ(cl, {
-    suppressPackageStartupMessages({
-      library(mgcv)
-      library(parallel)
-      library(psych)
-      library(reshape)
-      library(RColorBrewer)
-      library(tidyverse)
-    })
-    source(file.path(functionFolder, "gamcog.R"))
-    source(file.path(functionFolder, "plotdata_generate.R"))
-  }))
-
-  resultsum <- parLapply(cl, 1:78, function(x) {
+  resultsum <- run_mclapply_with_fallback(1:78, function(x) {
     SClabel <- grep("SC.", names(SCdata), value = TRUE)[x]
     gamresult <- gam.fit.cognition(
       SClabel,
@@ -124,7 +107,7 @@ if (force || !file.exists(out_rds)) {
       stats_only = TRUE
     )
     as.data.frame(gamresult)
-  })
+  }, num_cores)
 
   SC_Cog_results.df <- do.call(rbind, lapply(resultsum, function(x) data.frame(x)))
   SC_Cog_results.df[, c(3:10)] <- lapply(SC_Cog_results.df[, c(3:10)], as.numeric)

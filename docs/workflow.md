@@ -102,7 +102,7 @@
      - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
      - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
      - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
-     - 并行：sbatch 申请 72 CPU，但脚本默认最多使用 60 个 worker（避免部分节点进程数限制导致 `Cannot fork`）；如创建失败会继续按 60→50→40→30→20→… 自动降档直到可运行。
+     - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
 
 ## CBCL 关联运行
 - 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。
