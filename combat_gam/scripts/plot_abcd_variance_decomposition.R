@@ -452,7 +452,7 @@ plot_variant(
   include_cbcl = FALSE,
   include_comp_agecorrected = FALSE,
   baseline_only = TRUE,
-  out_prefix = "abcd_variance_decomp_cognition"
+  out_prefix = "abcd_variance_decomp_cognition_fluid_uncorrected"
 )
 
 plot_variant(
@@ -491,5 +491,5 @@ plot_variant(
   include_cbcl = FALSE,
   include_comp_agecorrected = TRUE,
   baseline_only = TRUE,
-  out_prefix = "abcd_variance_decomp_totalcomp_agecorrected"
+  out_prefix = "abcd_variance_decomp_cognition_totalcomp_agecorrected"
 )
