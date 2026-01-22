@@ -50,7 +50,7 @@ if (!file.exists(in_rds)) {
 SC_Cog_results.df <- readRDS(in_rds)
 
 SC_Cog_results.df$SClabelorder <- c(1:78)
-SCrank_df <- SCrankcorr(SC_Cog_results.df, "gam.cog.t", 12, dsdata = TRUE)
+SCrank_df <- SCrankcorr(SC_Cog_results.df, "gam.smooth.t", 12, dsdata = TRUE)
 SC_Cog_results.df$SCrank <- SCrank_df$SCrank
 
 ## 1) "component" plot (for this analysis, cognition measure is the age-corrected total score)

@@ -175,7 +175,7 @@ if (force || !file.exists(out_rds)) {
 message(sum(SC_Cog_results.df$anova.cov.p.fdr < 0.05), " edges have significant associations with ", Cogvar, ".")
 
 SC_Cog_results.df.whole <- SC_Cog_results.df
-SCrankresult.whole <- SCrankcorr(SC_Cog_results.df.whole, "gam.cog.t", 12)
+SCrankresult.whole <- SCrankcorr(SC_Cog_results.df.whole, "gam.smooth.t", 12)
 message(
   "Correlation coefficient between cognitive associations and connectional axis is ",
   round(SCrankresult.whole$r.spearman, 2), " with P=", round(SCrankresult.whole$p.spearman, 3)
@@ -183,9 +183,9 @@ message(
 
 message("Control Euclidean distance.")
 SC_Cog_results.df.whole$meandistance <- meandistance
-SC_Cog_results.df.whole$gam.cog.t_control_distance[which(!is.na(SC_Cog_results.df.whole$gam.cog.t))] <-
-  residuals(lm(gam.cog.t ~ meandistance, data = SC_Cog_results.df.whole))
-SCrankresult.whole.controllength <- SCrankcorr(SC_Cog_results.df.whole, "gam.cog.t_control_distance", 12, dsdata = FALSE)
+SC_Cog_results.df.whole$gam.smooth.t_control_distance[which(!is.na(SC_Cog_results.df.whole$gam.smooth.t))] <-
+  residuals(lm(gam.smooth.t ~ meandistance, data = SC_Cog_results.df.whole))
+SCrankresult.whole.controllength <- SCrankcorr(SC_Cog_results.df.whole, "gam.smooth.t_control_distance", 12, dsdata = FALSE)
 
 saveRDS(
   list(
@@ -198,7 +198,7 @@ saveRDS(
 fig_dir <- file.path(FigureFolder, Cogvar)
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 
-correlation.df <- SCrankcorr(SC_Cog_results.df, "gam.cog.t", 12, dsdata = TRUE)
+correlation.df <- SCrankcorr(SC_Cog_results.df, "gam.smooth.t", 12, dsdata = TRUE)
 correlation.df$sig <- (SC_Cog_results.df$anova.cov.p.fdr < 0.05)
 Matrix.tmp <- matrix(NA, nrow = 12, ncol = 12)
 linerange_frame <- data.frame(
@@ -212,7 +212,7 @@ linerange_frame <- data.frame(
 SC_Cog_results.tmp <- SC_Cog_results.df.whole
 SC_Cog_results.tmp$SCrank <- correlation.df$SCrank
 
-lwth <- min(SC_Cog_results.tmp$gam.cog.t, na.rm = TRUE)
+lwth <- min(SC_Cog_results.tmp$gam.smooth.t, na.rm = TRUE)
 mytheme <- theme(
   axis.text = element_text(size = 23.2, color = "black"),
   axis.title = element_text(size = 23.2),
@@ -229,8 +229,8 @@ mytheme <- theme(
 width <- height <- 16.5
 
 p_scatter <- ggplot(data = SC_Cog_results.tmp) +
-  geom_point(aes(x = SCrank, y = gam.cog.t, color = gam.cog.t), size = 5.5) +
-  geom_smooth(aes(x = SCrank, y = gam.cog.t), method = "lm", color = "black", linewidth = 1.4) +
+  geom_point(aes(x = SCrank, y = gam.smooth.t, color = gam.smooth.t), size = 5.5) +
+  geom_smooth(aes(x = SCrank, y = gam.smooth.t), method = "lm", color = "black", linewidth = 1.4) +
   scale_colour_distiller(type = "seq", palette = "RdBu", limits = c(lwth, -lwth), direction = -1) +
   labs(x = "S-A connectional axis rank", y = expression("Cognitive association (" * italic("T") * " value)")) +
   theme_classic() + mytheme
@@ -239,7 +239,7 @@ ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall.tiff"), p_scatter, 
 ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall.pdf"), p_scatter, dpi = 600, width = width, height = height, units = "cm", bg = "transparent")
 
 Matrix.tmp.T <- Matrix.tmp
-Matrix.tmp.T[lower.tri(Matrix.tmp.T, diag = TRUE)] <- SC_Cog_results.tmp$gam.cog.t
+Matrix.tmp.T[lower.tri(Matrix.tmp.T, diag = TRUE)] <- SC_Cog_results.tmp$gam.smooth.t
 Matrix.tmp.T[upper.tri(Matrix.tmp.T)] <- t(Matrix.tmp.T)[upper.tri(Matrix.tmp.T)]
 colnames(Matrix.tmp.T) <- seq(1, 12)
 rownames(Matrix.tmp.T) <- seq(1, 12)
@@ -290,11 +290,11 @@ p_matrix <- ggplot(data = matrixtmp.df.melt) +
 ggsave(file.path(fig_dir, "CorrTvalue_Matrix_n12_siteall.tiff"), p_matrix, height = 15, width = 16, units = "cm", bg = "transparent")
 ggsave(file.path(fig_dir, "CorrTvalue_Matrix_n12_siteall.pdf"), p_matrix, dpi = 600, height = 15, width = 16, units = "cm", bg = "transparent")
 
-correlation.df2 <- SCrankcorr(SC_Cog_results.df.whole, "gam.cog.t_control_distance", 12, dsdata = TRUE)
-lwth2 <- abs(min(SC_Cog_results.df.whole$gam.cog.t_control_distance, na.rm = TRUE))
+correlation.df2 <- SCrankcorr(SC_Cog_results.df.whole, "gam.smooth.t_control_distance", 12, dsdata = TRUE)
+lwth2 <- abs(min(SC_Cog_results.df.whole$gam.smooth.t_control_distance, na.rm = TRUE))
 p_scatter2 <- ggplot(data = correlation.df2) +
-  geom_point(aes(x = SCrank, y = gam.cog.t_control_distance, color = gam.cog.t_control_distance), size = 5) +
-  geom_smooth(aes(x = SCrank, y = gam.cog.t_control_distance), method = "lm", color = "black", linewidth = 1.4) +
+  geom_point(aes(x = SCrank, y = gam.smooth.t_control_distance, color = gam.smooth.t_control_distance), size = 5) +
+  geom_smooth(aes(x = SCrank, y = gam.smooth.t_control_distance), method = "lm", color = "black", linewidth = 1.4) +
   scale_colour_distiller(type = "seq", palette = "RdBu", limits = c(-lwth2, lwth2), direction = -1) +
   labs(x = "S-A connectional axis rank", y = expression("Cognitive association (" * italic("T") * " value)")) +
   theme_classic() +
