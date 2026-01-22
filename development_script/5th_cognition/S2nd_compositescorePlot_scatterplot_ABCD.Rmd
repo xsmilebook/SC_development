@@ -73,7 +73,7 @@ Residuals regressed out age, sex and head motions were used in these plots. Thre
 Cogvar <- "nihtbx_totalcomp_agecorrected"
 SC_Cog_results.df <- readRDS(file.path(resultFolder, paste0("SC_Cog_results_", Cogvar,"_CV", CVthr,"_comp_agecorrected.rds")))
 SC_Cog_results.df$SClabelorder <- c(1:78)
-SCrank_df <- SCrankcorr(SC_Cog_results.df, "gam.cog.t", 12, dsdata = TRUE)
+SCrank_df <- SCrankcorr(SC_Cog_results.df, "gam.smooth.t", 12, dsdata = TRUE)
 SC_Cog_results.df$SCrank <- SCrank_df$SCrank
 # plot data
 nonna_index<-which(!is.na(SCdata[ ,Cogvar]))
