@@ -29,15 +29,12 @@ suppressPackageStartupMessages({
 predictors <- c("siteID", "age", "sex", "mean_fd")
 predictors <- c("age", "sex", "mean_fd", "siteID")
 
-calc_r2 <- function(y, fitted) {
-  y <- as.numeric(y)
-  fitted <- as.numeric(fitted)
-  tss <- sum((y - mean(y))^2)
-  rss <- sum((y - fitted)^2)
-  if (tss == 0) {
+r2_from_gam <- function(fit) {
+  r2 <- tryCatch(summary(fit)$r.sq, error = function(e) NA_real_)
+  if (is.null(r2) || is.na(r2) || !is.finite(r2)) {
     return(0)
   }
-  1 - rss / tss
+  as.numeric(r2)
 }
 
 build_gam_terms <- function(vars) {
@@ -62,7 +59,7 @@ fit_r2_gam <- function(df, vars) {
   }
   formula <- as.formula(paste0("y ~ ", build_gam_terms(vars)))
   fit <- mgcv::gam(formula, data = df, method = "REML")
-  calc_r2(df$y, fitted(fit))
+  r2_from_gam(fit)
 }
 
 compute_sequential_r2 <- function(y, df, ordered_predictors) {

@@ -137,3 +137,4 @@
 - 2026-01-22: 为规避计算节点 `GLIBC_2.32 not found` 导致的 `dplyr/cli` 加载失败，`combat_gam/sbatch/plot_*_variance_decomposition.sbatch` 默认改用 `CONDA_ENV=scdevelopment`（可覆盖）。
 - 2026-01-22: ABCD cognition（age-corrected total cognition）新增的 SC–cognition 关联分析更新协变量：`development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_{S1,S2}.R` 不再加入 `s(age, ...)` 且不再包含 `sex`，仅控制 `mean_fd`；`gamfunction/gamcog.R` 同步支持“无 smooth 项”的模型分支。
 - 2026-01-22: 为避免覆盖历史输出，ABCD cognition（age-corrected）关联分析的结果与图片文件名加入 `COG_ASSOC_TAG` 后缀（默认 `meanfd_only`），并在 `docs/workflow.md` 中补充使用方式。
+- 2026-01-22: 方差分解绘图脚本改为直接使用 `summary(fit$gam)$r.sq`（mgcv 的 R² 指标）提取 R²：`combat_gam/scripts/plot_abcd_variance_decomposition.R` 与 `combat_gam/scripts/plot_hcpd_chinese_variance_decomposition.R` 不再使用自定义 RSS/TSS 公式计算。

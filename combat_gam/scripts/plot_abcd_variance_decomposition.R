@@ -97,15 +97,12 @@ prepare_combat <- function(path, include_cognition = FALSE, include_pfactor = FA
   list(df = dat, sc_cols = sc_cols)
 }
 
-calc_r2 <- function(y, fitted) {
-  y <- as.numeric(y)
-  fitted <- as.numeric(fitted)
-  tss <- sum((y - mean(y))^2)
-  rss <- sum((y - fitted)^2)
-  if (tss == 0) {
+r2_from_gam <- function(fit) {
+  r2 <- tryCatch(summary(fit)$r.sq, error = function(e) NA_real_)
+  if (is.null(r2) || is.na(r2) || !is.finite(r2)) {
     return(0)
   }
-  1 - rss / tss
+  as.numeric(r2)
 }
 
 build_gam_terms <- function(vars) {
@@ -152,7 +149,7 @@ fit_r2_gamm4_abcd <- function(df, vars, re_var = "subID") {
   form <- as.formula(paste0("y ~ ", terms))
   if (!can_use_random_intercept(df, re_var)) {
     fit <- mgcv::gam(form, data = df, method = "REML")
-    return(calc_r2(df$y, fitted(fit)))
+    return(r2_from_gam(fit))
   }
 
   df[[re_var]] <- as.factor(df[[re_var]])
@@ -162,10 +159,10 @@ fit_r2_gamm4_abcd <- function(df, vars, re_var = "subID") {
   )
   if (is.null(fit)) {
     fit2 <- mgcv::gam(form, data = df, method = "REML")
-    return(calc_r2(df$y, fitted(fit2)))
+    return(r2_from_gam(fit2))
   }
 
-  calc_r2(df$y, fitted(fit$mer))
+  r2_from_gam(fit$gam)
 }
 
 compute_sequential_r2 <- function(y, df, ordered_predictors, re_var = "subID") {
