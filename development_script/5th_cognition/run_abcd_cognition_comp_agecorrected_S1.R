@@ -59,13 +59,13 @@ if ("eventname" %in% names(SCdata.cog)) {
   SCdata.cog <- SCdata.cog[SCdata.cog$eventname == "baseline_year_1_arm_1", , drop = FALSE]
 }
 
-cogagemodel <- gam(stats::as.formula(paste0(Cogvar, "~ s(age,k=3, fx=TRUE)+sex+mean_fd")), data = SCdata.cog)
+cogagemodel <- gam(stats::as.formula(paste0(Cogvar, "~ mean_fd")), data = SCdata.cog)
 t <- summary(cogagemodel)
-message("age, sex, mean_fd can explain ", round(t$r.sq, 3), " variance of cognition.")
+message("mean_fd can explain ", round(t$r.sq, 3), " variance of cognition.")
 
 dataname <- "SCdata.cog"
-smooth_var <- "age"
-covariates <- "sex+mean_fd"
+smooth_var <- ""
+covariates <- "mean_fd"
 knots <- 3
 corrmethod <- "pearson"
 

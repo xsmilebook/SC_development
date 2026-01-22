@@ -135,3 +135,4 @@
 - 2026-01-22: 排查并修复 ABCD cognition 旧列名引用：`development_script/5th_cognition/S2nd_compositescorePlot_scatterplot_ABCD.Rmd` 将 `gam.cog.t` 更新为 `gam.smooth.t`，与 `gamfunction/gamcog.R` 输出列保持一致。
 - 2026-01-22: 回退 `combat_gam/sbatch/*.sbatch` 的容器化改动，恢复为 conda 环境提交（按需求不使用容器运行 ComBat-GAM/绘图作业）。
 - 2026-01-22: 为规避计算节点 `GLIBC_2.32 not found` 导致的 `dplyr/cli` 加载失败，`combat_gam/sbatch/plot_*_variance_decomposition.sbatch` 默认改用 `CONDA_ENV=scdevelopment`（可覆盖）。
+- 2026-01-22: ABCD cognition（age-corrected total cognition）新增的 SC–cognition 关联分析更新协变量：`development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_{S1,S2}.R` 不再加入 `s(age, ...)` 且不再包含 `sex`，仅控制 `mean_fd`；`gamfunction/gamcog.R` 同步支持“无 smooth 项”的模型分支。

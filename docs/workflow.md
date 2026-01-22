@@ -109,6 +109,7 @@
      - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
      - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
      - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
+     - 协变量设定（更新）：在 `run_abcd_cognition_comp_agecorrected_{S1,S2}.R` 中，新增的 SC–cognition 关联不再调整 `age`（不含 `s(age, ...)`）且不包含 `sex`；当前仅控制 `mean_fd`。
      - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
      - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
 

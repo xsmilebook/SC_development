@@ -80,8 +80,8 @@ if ("eventname" %in% names(SCdata.cog)) {
 
 SCdata.cog[, str_detect(names(SCdata.cog), "SC.")] <- lapply(SCdata.cog[, str_detect(names(SCdata.cog), "SC.")], as.numeric)
 dataname <- "SCdata.cog"
-smooth_var <- "age"
-covariates <- "sex+mean_fd"
+smooth_var <- ""
+covariates <- "mean_fd"
 knots <- 3
 corrmethod <- "pearson"
 
