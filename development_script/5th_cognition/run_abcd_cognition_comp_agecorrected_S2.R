@@ -113,22 +113,30 @@ targets <- as.numeric(stats::quantile(SC_Cog_results.df$SCrank, probs = c(0.1, 0
 edge_idx <- unique(vapply(targets, pick_nearest, integer(1)))
 edge_idx <- edge_idx[seq_len(min(length(edge_idx), 3))]
 
+sc_labels <- grep("SC\\.", names(SCdata.cog), value = TRUE)
 plotdata_list <- run_mclapply_with_fallback(edge_idx, function(x) {
-  SClabel <- grep("SC.", names(SCdata.cog), value = TRUE)[x]
-  gamresult.df <- gam.fit.cognition(
-    SClabel,
-    dataname,
-    Cogvar,
-    smooth_var,
-    covariates,
-    knots,
-    corrmethod,
-    set_fx = TRUE,
-    stats_only = FALSE
+  SClabel <- sc_labels[[x]]
+  tryCatch(
+    {
+      gamresult.df <- gam.fit.cognition(
+        SClabel,
+        dataname,
+        Cogvar,
+        smooth_var,
+        covariates,
+        knots,
+        corrmethod,
+        set_fx = TRUE,
+        stats_only = FALSE
+      )
+      out <- as.data.frame(gamresult.df[[2]])
+      out$SC_label <- SClabel
+      list(ok = TRUE, df = out, err = NA_character_)
+    },
+    error = function(e) {
+      list(ok = FALSE, df = NULL, err = conditionMessage(e))
+    }
   )
-  out <- as.data.frame(gamresult.df[[2]])
-  out$SC_label <- SClabel
-  out
 }, num_cores)
 
 sc_fig_dir <- file.path(FigureFolder, Cogvar)
@@ -136,7 +144,11 @@ dir.create(sc_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 for (k in seq_along(edge_idx)) {
   N <- edge_idx[[k]]
-  plotdata_N <- plotdata_list[[k]]
+  if (!isTRUE(plotdata_list[[k]]$ok)) {
+    message("[WARN] Skip scatterplot for edge ", N, " (error: ", plotdata_list[[k]]$err, ")")
+    next
+  }
+  plotdata_N <- plotdata_list[[k]]$df
   SCrank <- SC_Cog_results.df$SCrank[N]
   message("Scatterplot for connection ", N, " with SCrank ", SCrank)
 

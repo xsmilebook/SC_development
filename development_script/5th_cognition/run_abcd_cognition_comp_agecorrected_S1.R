@@ -89,27 +89,74 @@ run_mclapply_with_fallback <- function(x, fun, n_workers) {
   stop("mclapply failed for all worker settings; likely process/memory limits.")
 }
 
+make_error_row <- function(parcel, cognition_var, err) {
+  data.frame(
+    parcel = parcel,
+    cognition_var = cognition_var,
+    gam.smooth.t = NA_real_,
+    gam.smooth.pvalue = NA_real_,
+    anova.cov.pvalue = NA_real_,
+    anova.cov.int.pvalue = NA_real_,
+    partialRsq.int = NA_real_,
+    partialRsq = NA_real_,
+    correstimate = NA_real_,
+    corrp = NA_real_,
+    error = as.character(err),
+    stringsAsFactors = FALSE
+  )
+}
+
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
 out_rds <- file.path(resultFolder, paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected.rds"))
 
 if (force || !file.exists(out_rds)) {
-  resultsum <- run_mclapply_with_fallback(1:78, function(x) {
-    SClabel <- grep("SC.", names(SCdata), value = TRUE)[x]
-    gamresult <- gam.fit.cognition(
-      SClabel,
-      dataname,
-      Cogvar,
-      smooth_var,
-      covariates,
-      knots,
-      corrmethod,
-      set_fx = TRUE,
-      stats_only = TRUE
+  sc_labels <- grep("SC\\.", names(SCdata), value = TRUE)
+  if (length(sc_labels) < 78) stop("Expected >=78 SC.* columns, got: ", length(sc_labels))
+
+  resultsum <- run_mclapply_with_fallback(seq_len(78), function(i) {
+    SClabel <- sc_labels[[i]]
+    tryCatch(
+      {
+        gamresult <- gam.fit.cognition(
+          SClabel,
+          dataname,
+          Cogvar,
+          smooth_var,
+          covariates,
+          knots,
+          corrmethod,
+          set_fx = TRUE,
+          stats_only = TRUE
+        )
+        list(ok = TRUE, row = as.data.frame(gamresult), err = NA_character_)
+      },
+      error = function(e) {
+        list(ok = FALSE, row = NULL, err = conditionMessage(e))
+      }
     )
-    as.data.frame(gamresult)
   }, num_cores)
 
-  SC_Cog_results.df <- do.call(rbind, lapply(resultsum, function(x) data.frame(x)))
+  ok_mask <- vapply(resultsum, function(z) isTRUE(z$ok), logical(1))
+  if (!any(ok_mask)) {
+    errs <- unique(vapply(resultsum, function(z) as.character(z$err), character(1)))
+    stop("All edges failed inside mclapply. First errors:\n", paste(head(errs, 10), collapse = "\n"))
+  }
+
+  rows <- vector("list", length = 78)
+  for (i in seq_len(78)) {
+    if (isTRUE(resultsum[[i]]$ok)) {
+      rows[[i]] <- resultsum[[i]]$row
+    } else {
+      rows[[i]] <- make_error_row(sc_labels[[i]], Cogvar, resultsum[[i]]$err)
+    }
+  }
+  SC_Cog_results.df <- do.call(rbind, rows)
+
+  if ("error" %in% names(SC_Cog_results.df)) {
+    failed_n <- sum(!is.na(SC_Cog_results.df$error) & nzchar(SC_Cog_results.df$error))
+    message("[INFO] Edge-level failures: ", failed_n, " / 78")
+  }
+
   SC_Cog_results.df[, c(3:10)] <- lapply(SC_Cog_results.df[, c(3:10)], as.numeric)
   SC_Cog_results.df$corr.p.fdr <- p.adjust(SC_Cog_results.df$corrp, method = "fdr")
   SC_Cog_results.df$anova.cov.p.fdr <- p.adjust(SC_Cog_results.df$anova.cov.pvalue, method = "fdr")
