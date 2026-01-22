@@ -75,7 +75,9 @@ if (is.na(num_cores) || num_cores < 1) num_cores <- 72
 make_cluster_fallback <- function(n) {
   n <- as.integer(n)
   if (is.na(n) || n < 1) n <- 1L
-  tries <- unique(pmax(1L, c(n, floor(n / 2), floor(n / 4), 16L, 8L, 4L, 2L, 1L)))
+  stepdowns <- c(60L, 50L, 40L, 30L, 20L)
+  stepdowns <- stepdowns[stepdowns < n]
+  tries <- unique(pmax(1L, c(n, stepdowns, 16L, 8L, 4L, 2L, 1L)))
   for (k in tries) {
     cl <- try(parallel::makeCluster(k), silent = TRUE)
     if (!inherits(cl, "try-error")) {
