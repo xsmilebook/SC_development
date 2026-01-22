@@ -158,9 +158,14 @@ if (force || !file.exists(out_rds)) {
   }
 
   SC_Cog_results.df[, c(3:10)] <- lapply(SC_Cog_results.df[, c(3:10)], as.numeric)
-  SC_Cog_results.df$corr.p.fdr <- p.adjust(SC_Cog_results.df$corrp, method = "fdr")
-  SC_Cog_results.df$anova.cov.p.fdr <- p.adjust(SC_Cog_results.df$anova.cov.pvalue, method = "fdr")
-  SC_Cog_results.df$gam.smooth.p.fdr <- p.adjust(SC_Cog_results.df$gam.cog.pvalue, method = "fdr")
+
+  if (!"corrp" %in% names(SC_Cog_results.df)) stop("Missing column: corrp")
+  if (!"anova.cov.pvalue" %in% names(SC_Cog_results.df)) stop("Missing column: anova.cov.pvalue")
+  if (!"gam.smooth.pvalue" %in% names(SC_Cog_results.df)) stop("Missing column: gam.smooth.pvalue")
+
+  SC_Cog_results.df$corr.p.fdr <- p.adjust(as.numeric(SC_Cog_results.df$corrp), method = "fdr")
+  SC_Cog_results.df$anova.cov.p.fdr <- p.adjust(as.numeric(SC_Cog_results.df$anova.cov.pvalue), method = "fdr")
+  SC_Cog_results.df$gam.smooth.p.fdr <- p.adjust(as.numeric(SC_Cog_results.df$gam.smooth.pvalue), method = "fdr")
 
   saveRDS(SC_Cog_results.df, out_rds)
 } else {
