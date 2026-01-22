@@ -106,6 +106,10 @@
    - CBCL total raw 关联分析脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R`。
    - 小样本验证脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R`。
    - CBCL 关联分析绘图输出（t-value matrix、S-A rank 散点、分位数组轨迹）写入 `outputs/figures/cbcl_totprob/`。
+   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
+     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
+     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
+     - 图像：`outputs/figures/5th_cognition/abcd/cognition/`
    - ABCD total cognition（age-corrected，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_comp_agecorrected_baseline.rds`）可复现入口：
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`
      - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
