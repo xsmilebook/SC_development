@@ -88,6 +88,21 @@ corrmethod <- "pearson"
 num_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = "72"))
 if (is.na(num_cores) || num_cores < 1) num_cores <- 72
 
+make_cluster_fallback <- function(n) {
+  n <- as.integer(n)
+  if (is.na(n) || n < 1) n <- 1L
+  tries <- unique(pmax(1L, c(n, floor(n / 2), floor(n / 4), 16L, 8L, 4L, 2L, 1L)))
+  for (k in tries) {
+    cl <- try(parallel::makeCluster(k), silent = TRUE)
+    if (!inherits(cl, "try-error")) {
+      message("[INFO] Using PSOCK workers: ", k)
+      return(cl)
+    }
+    message("[WARN] makeCluster(", k, ") failed; retrying with fewer workers.")
+  }
+  stop("Failed to create any PSOCK cluster (process limit or memory pressure).")
+}
+
 pick_nearest <- function(target) {
   idx <- which.min(abs(SC_Cog_results.df$SCrank - target))
   idx[[1]]
@@ -96,8 +111,8 @@ targets <- as.numeric(stats::quantile(SC_Cog_results.df$SCrank, probs = c(0.1, 0
 edge_idx <- unique(vapply(targets, pick_nearest, integer(1)))
 edge_idx <- edge_idx[seq_len(min(length(edge_idx), 3))]
 
-cl <- makeCluster(num_cores)
-on.exit(stopCluster(cl), add = TRUE)
+cl <- make_cluster_fallback(num_cores)
+on.exit(parallel::stopCluster(cl), add = TRUE)
 clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
 invisible(clusterEvalQ(cl, {
   suppressPackageStartupMessages({
@@ -178,4 +193,3 @@ p_hist <- ggplot(data = SC_Cog_results.df.sig, aes(correstimate, y = ..count..))
   )
 ggsave(file.path(sc_fig_dir, "SigCorrestimateDistribution.tiff"), p_hist, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
 ggsave(file.path(sc_fig_dir, "SigCorrestimateDistribution.pdf"), p_hist, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
-

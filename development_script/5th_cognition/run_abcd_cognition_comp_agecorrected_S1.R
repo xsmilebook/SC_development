@@ -72,12 +72,27 @@ corrmethod <- "pearson"
 num_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = "72"))
 if (is.na(num_cores) || num_cores < 1) num_cores <- 72
 
+make_cluster_fallback <- function(n) {
+  n <- as.integer(n)
+  if (is.na(n) || n < 1) n <- 1L
+  tries <- unique(pmax(1L, c(n, floor(n / 2), floor(n / 4), 16L, 8L, 4L, 2L, 1L)))
+  for (k in tries) {
+    cl <- try(parallel::makeCluster(k), silent = TRUE)
+    if (!inherits(cl, "try-error")) {
+      message("[INFO] Using PSOCK workers: ", k)
+      return(cl)
+    }
+    message("[WARN] makeCluster(", k, ") failed; retrying with fewer workers.")
+  }
+  stop("Failed to create any PSOCK cluster (process limit or memory pressure).")
+}
+
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
 out_rds <- file.path(resultFolder, paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected.rds"))
 
 if (force || !file.exists(out_rds)) {
-  cl <- makeCluster(num_cores)
-  on.exit(stopCluster(cl), add = TRUE)
+  cl <- make_cluster_fallback(num_cores)
+  on.exit(parallel::stopCluster(cl), add = TRUE)
   clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
   invisible(clusterEvalQ(cl, {
     suppressPackageStartupMessages({
