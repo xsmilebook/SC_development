@@ -17,6 +17,13 @@ ABCD_EUCLID_CSV_HOST="${ABCD_EUCLID_CSV:-${project_root}/wd/interdataFolder_ABCD
 # Force recomputation (0=use cached results when available).
 FORCE="${FORCE:-0}"
 
+# Assoc model variant for `nihtbx_fluidcomp_agecorrected`:
+# - original: adjust `s(age)` + `sex` + `mean_fd`
+# - meanfd_only: adjust only `mean_fd` (no `s(age)`, no `sex`)
+COG_ASSOC_MODE="${COG_ASSOC_MODE:-original}"
+# Optional suffix to avoid overwriting outputs when running multiple variants.
+COG_ASSOC_TAG="${COG_ASSOC_TAG:-}"
+
 mkdir -p "${project_root}/outputs/logs"
 cd "${project_root}"
 
@@ -56,6 +63,8 @@ fi
 export SINGULARITYENV_SLURM_CPUS_PER_TASK="${SLURM_CPUS_PER_TASK:-72}"
 export SINGULARITYENV_ABCD_EUCLID_CSV="${ABCD_EUCLID_CSV_CONTAINER}"
 export SINGULARITYENV_FORCE="${FORCE}"
+export SINGULARITYENV_COG_ASSOC_MODE="${COG_ASSOC_MODE}"
+export SINGULARITYENV_COG_ASSOC_TAG="${COG_ASSOC_TAG}"
 export SINGULARITYENV_OMP_NUM_THREADS=1
 export SINGULARITYENV_OPENBLAS_NUM_THREADS=1
 export SINGULARITYENV_MKL_NUM_THREADS=1

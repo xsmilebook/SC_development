@@ -13,8 +13,9 @@ rm(list = ls())
 
 CVthr <- 75
 Cogvar <- "nihtbx_fluidcomp_agecorrected"
+mode <- Sys.getenv("COG_ASSOC_MODE", unset = "original")
 variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "")
-variant_suffix <- if (nzchar(variant_tag)) paste0("_", variant_tag) else ""
+variant_suffix <- if (nzchar(variant_tag)) paste0("_", variant_tag) else if (mode == "meanfd_only") "_meanfd_only" else ""
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -66,13 +67,26 @@ if ("eventname" %in% names(SCdata.cog)) {
   SCdata.cog <- SCdata.cog[SCdata.cog$eventname == "baseline_year_1_arm_1", , drop = FALSE]
 }
 
-cogagemodel <- gam(stats::as.formula(paste0(Cogvar, "~ mean_fd")), data = SCdata.cog)
-t <- summary(cogagemodel)
-message("mean_fd can explain ", round(t$r.sq, 3), " variance of cognition.")
+if (mode == "meanfd_only") {
+  cogagemodel <- gam(stats::as.formula(paste0(Cogvar, "~ mean_fd")), data = SCdata.cog)
+  t <- summary(cogagemodel)
+  message("mean_fd can explain ", round(t$r.sq, 3), " variance of cognition.")
+} else if (mode == "original") {
+  cogagemodel <- gam(stats::as.formula(paste0(Cogvar, "~ s(age,k=3, fx=TRUE)+sex+mean_fd")), data = SCdata.cog)
+  t <- summary(cogagemodel)
+  message("age, sex, mean_fd can explain ", round(t$r.sq, 3), " variance of cognition.")
+} else {
+  stop("Unknown COG_ASSOC_MODE: ", mode, " (supported: original, meanfd_only)")
+}
 
 dataname <- "SCdata.cog"
-smooth_var <- ""
-covariates <- "mean_fd"
+if (mode == "meanfd_only") {
+  smooth_var <- ""
+  covariates <- "mean_fd"
+} else {
+  smooth_var <- "age"
+  covariates <- "sex+mean_fd"
+}
 knots <- 3
 corrmethod <- "pearson"
 

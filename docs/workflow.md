@@ -116,15 +116,18 @@
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
      - 结果：`outputs/results/5th_cognition/abcd/cognition/`
      - 图像：`outputs/figures/5th_cognition/abcd/cognition/`
-   - ABCD fluid cognition（age-corrected，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_comp_agecorrected_baseline.rds`）可复现入口：
-     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`
-     - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
-     - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
-     - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
-     - 协变量设定（更新）：在 `run_abcd_cognition_comp_agecorrected_{S1,S2}.R` 中，新增的 SC–cognition 关联不再调整 `age`（不含 `s(age, ...)`）且不包含 `sex`；当前仅控制 `mean_fd`（对应 `nihtbx_fluidcomp_agecorrected`）。
-     - 输出命名：默认不使用 tag（即覆盖式输出 16 张标准图与对应 rds）。如需并行保留多个变体，可用 `COG_ASSOC_TAG=<tag>` 作为文件名后缀（写成 `..._comp_agecorrected_<tag>.*`），例如 `COG_ASSOC_TAG=v2 sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`。
-     - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
-     - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
+	   - ABCD fluid cognition（age-corrected，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_comp_agecorrected_baseline.rds`）可复现入口：
+	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`
+	     - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
+	     - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
+	     - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
+	     - 协变量设定（可选）：
+	       - `COG_ASSOC_MODE=original`（默认）：控制 `s(age,k=3)+sex+mean_fd`
+	       - `COG_ASSOC_MODE=meanfd_only`：仅控制 `mean_fd`（不含 `s(age, ...)`，不含 `sex`）
+	     - 输出命名：默认不使用 tag（即覆盖式输出 16 张标准图与对应 rds）。如需并行保留多个变体，可用 `COG_ASSOC_TAG=<tag>` 作为文件名后缀（写成 `..._comp_agecorrected_<tag>.*`）。对 `meanfd_only` 若未设置 tag，将自动使用 `_meanfd_only` 后缀以避免覆盖默认版本。
+	     - `meanfd_only` 一键提交（容器版）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_meanfd_only_container.sbatch`
+	     - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
+	     - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
 
 ## CBCL 关联运行
 - 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。
