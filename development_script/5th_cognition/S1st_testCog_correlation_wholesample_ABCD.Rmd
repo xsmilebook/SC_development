@@ -55,7 +55,7 @@ source(file.path(functionFolder, "colorbarvalue.R"))
 ## 1. Cognition association
 Fluid cognition is only measured at baseline, GAM model was used
 ```{r cog_corr}
-Cogvar <- "nihtbx_totalcomp_agecorrected"
+Cogvar <- "nihtbx_fluidcomp_agecorrected"
 
 summary(SCdata[,Cogvar])
 nonna_index<-which(!is.na(SCdata[ ,Cogvar]))
@@ -63,7 +63,7 @@ SCdata.cog<-SCdata[nonna_index,]
 if ("eventname" %in% names(SCdata.cog)) {
   SCdata.cog <- SCdata.cog[SCdata.cog$eventname=="baseline_year_1_arm_1",]
 }
-cogagemodel <- gam(nihtbx_totalcomp_agecorrected~s(age,k=3, fx=TRUE)+sex+mean_fd, data=SCdata.cog)
+cogagemodel <- gam(nihtbx_fluidcomp_agecorrected~s(age,k=3, fx=TRUE)+sex+mean_fd, data=SCdata.cog)
 t <- summary(cogagemodel)
 print(paste("age, sex, mean_fd can explain", round(t$r.sq, 3), "variance of cognition."))
 dataname<-"SCdata.cog"

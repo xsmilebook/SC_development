@@ -122,7 +122,7 @@
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S4 在 `psych::corr.test()` 返回标量时的崩溃：散点图标题相关性提取兼容矩阵/标量两种返回结构，避免 `ct$r[[1,2]]` 下标错误。
 - 2026-01-21: 加固容器 sbatch：当 S3 decile 图或 S4 相关性散点图缺失时，自动对对应步骤启用 `--force=1` 回填图片（支持 `FORCE_S3/FORCE_S4` 覆盖），避免 “哨兵/summary 存在但图片目录为空”。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在保存图片时 ggplot guide 计算异常导致的崩溃（`add_guides` 下标比较错误）：对相关 scale 显式设置 `guide=\"none\"`，避免无图例场景进入 guide 布局分支。
-- 2026-01-21: DemodfScreenFinal 增补 NIH Toolbox total cognition（age-corrected）列：将 `demopath/nc_y_nihtb.csv` 的 `nihtbx_totalcomp_agecorrected` 合并到 `demopath/DemodfScreenFinal.csv`（按 `src_subject_id+eventname` 对齐）。
+- 2026-01-21: DemodfScreenFinal 增补 NIH Toolbox fluid cognition（age-corrected）列：将 `demopath/nc_y_nihtb.csv` 的 `nihtbx_fluidcomp_agecorrected` 合并到 `demopath/DemodfScreenFinal.csv`（按 `src_subject_id+eventname` 对齐）。
 - 2026-01-21: 新增 ABCD 纵向 Nonlinear-ComBat-GAM 变体脚本与 sbatch：CBCL total problems（参考 pfactor，不做 baseline-only）与 NIH Toolbox total cognition age-corrected（参考 cognition，baseline-only）。
 - 2026-01-21: 修复 ABCD Nonlinear-ComBat-GAM（CBCL/total cognition age-corrected）因输入 RDS 缺少表型列而失败：脚本检测到缺列时按 `scanID` 从 `demopath/DemodfScreenFinal.csv` 自动回填协变量并继续运行。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业保存图片时 `add_guides` 崩溃（`Ops.data.frame(guide_loc, panel_loc)`）：容器定义将 `ggplot2` 固定到 `3.5.2` 并将 `patchwork` 更新到 `1.3.0`（同时满足 `geomtextpath` 对 `ggplot2>=3.5.2` 的依赖），需重建新 SIF 并用 `SIF_PATH` 复跑。
@@ -135,11 +135,11 @@
 - 2026-01-22: 排查并修复 ABCD cognition 旧列名引用：`development_script/5th_cognition/S2nd_compositescorePlot_scatterplot_ABCD.Rmd` 将 `gam.cog.t` 更新为 `gam.smooth.t`，与 `gamfunction/gamcog.R` 输出列保持一致。
 - 2026-01-22: 回退 `combat_gam/sbatch/*.sbatch` 的容器化改动，恢复为 conda 环境提交（按需求不使用容器运行 ComBat-GAM/绘图作业）。
 - 2026-01-22: 为规避计算节点 `GLIBC_2.32 not found` 导致的 `dplyr/cli` 加载失败，`combat_gam/sbatch/plot_*_variance_decomposition.sbatch` 默认改用 `CONDA_ENV=scdevelopment`（可覆盖）。
-- 2026-01-22: ABCD cognition（age-corrected total cognition）新增的 SC–cognition 关联分析更新协变量：`development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_{S1,S2}.R` 不再加入 `s(age, ...)` 且不再包含 `sex`，仅控制 `mean_fd`；`gamfunction/gamcog.R` 同步支持“无 smooth 项”的模型分支。
+- 2026-01-22: ABCD cognition（age-corrected fluid cognition）新增的 SC–cognition 关联分析更新协变量：`development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_{S1,S2}.R` 不再加入 `s(age, ...)` 且不再包含 `sex`，仅控制 `mean_fd`；`gamfunction/gamcog.R` 同步支持“无 smooth 项”的模型分支。
 - 2026-01-22: 为避免覆盖历史输出，ABCD cognition（age-corrected）关联分析的结果与图片文件名加入 `COG_ASSOC_TAG` 后缀（默认 `meanfd_only`），并在 `docs/workflow.md` 中补充使用方式。
 - 2026-01-22: 方差分解绘图脚本改为直接使用 `summary(fit$gam)$r.sq`（mgcv 的 R² 指标）提取 R²：`combat_gam/scripts/plot_abcd_variance_decomposition.R` 与 `combat_gam/scripts/plot_hcpd_chinese_variance_decomposition.R` 不再使用自定义 RSS/TSS 公式计算。
 - 2026-01-22: 方差分解绘图在日志中增加每个变量的 R² 输出：对 Raw/ComBat 分别汇总每个 predictor 的顺序贡献（mean/median）与 total R²（mean/median），便于在 slurm log 直接核对。
-- 2026-01-22: `combat_gam/scripts/plot_abcd_variance_decomposition.R` 扩展 ABCD 方差分解绘图：新增 CBCL total problems（`abcd_variance_decomp_cbcl_totprob`）与 total cognition age-corrected（`abcd_variance_decomp_totalcomp_agecorrected`）两种变体，并在 Raw 输入缺少表型列时尝试从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填。
-- 2026-01-22: 为避免混淆，ABCD 方差分解绘图将 cognition 与 age-corrected cognition 输出前缀拆分为不同文件名：`abcd_variance_decomp_cognition_fluid_uncorrected` 与 `abcd_variance_decomp_cognition_totalcomp_agecorrected`（原前缀不再使用）。
+- 2026-01-22: `combat_gam/scripts/plot_abcd_variance_decomposition.R` 扩展 ABCD 方差分解绘图：新增 CBCL total problems（`abcd_variance_decomp_cbcl_totprob`）与 fluid cognition age-corrected（`abcd_variance_decomp_cognition_fluidcomp_agecorrected`）两种变体，并在 Raw 输入缺少表型列时尝试从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填。
+- 2026-01-22: 为避免混淆，ABCD 方差分解绘图将 cognition 与 age-corrected cognition 输出前缀拆分为不同文件名：`abcd_variance_decomp_cognition_fluid_uncorrected` 与 `abcd_variance_decomp_cognition_fluidcomp_agecorrected`（原前缀不再使用）。
 - 2026-01-22: 新增 ABCD fluid cognition（uncorrected；`nihtbx_fluidcomp_uncorrected`）的 Rscript 复现入口：`development_script/5th_cognition/run_abcd_cognition_fluid_uncorrected_{S1,S2}.R` 读取 `outputs/results/combat_gam/abcd/*combatgam_cognition.rds`，按原始设定控制 `s(age)+sex+mean_fd` 并输出到 `outputs/results/5th_cognition/abcd/cognition/`；提供容器 sbatch：`sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`。
 - 2026-01-22: 新增 ABCD p-factor（GENERAL）连续效应 + age-by-pfactor smooth interaction 的 Rscript 复现入口：`development_script/6th_pfactor/run_abcd_pfactor_effect_continuous_S1.R` 读取 `outputs/results/combat_gam/abcd/*combatgam_pfactor.rds` 并输出到 `outputs/results/6th_pfactor/abcd/pfactor/`；提供容器 sbatch：`sbatch/run_abcd_pfactor_effect_continuous_container.sbatch`。

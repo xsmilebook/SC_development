@@ -70,7 +70,7 @@ ggsave(file.path(FigureFolder, "NTB_totalcognition_agecorrected_component.pdf"),
 Residuals regressed out age, sex and head motions were used in these plots. Three connections located at different positions along the connectional axis were selected for exemples.
 
 ```{r scatterplots}
-Cogvar <- "nihtbx_totalcomp_agecorrected"
+Cogvar <- "nihtbx_fluidcomp_agecorrected"
 SC_Cog_results.df <- readRDS(file.path(resultFolder, paste0("SC_Cog_results_", Cogvar,"_CV", CVthr,"_comp_agecorrected.rds")))
 SC_Cog_results.df$SClabelorder <- c(1:78)
 SCrank_df <- SCrankcorr(SC_Cog_results.df, "gam.smooth.t", 12, dsdata = TRUE)

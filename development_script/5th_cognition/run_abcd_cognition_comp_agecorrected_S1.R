@@ -12,7 +12,7 @@ suppressPackageStartupMessages({
 rm(list = ls())
 
 CVthr <- 75
-Cogvar <- "nihtbx_totalcomp_agecorrected"
+Cogvar <- "nihtbx_fluidcomp_agecorrected"
 variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "meanfd_only")
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)

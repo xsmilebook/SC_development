@@ -32,29 +32,29 @@ if (length(missing_base) > 0) {
   stop(paste("Missing columns:", paste(missing_base, collapse = ", ")))
 }
 
-if (!"nihtbx_totalcomp_agecorrected" %in% names(scdata)) {
+if (!"nihtbx_fluidcomp_agecorrected" %in% names(scdata)) {
   demo_path <- file.path("demopath", "DemodfScreenFinal.csv")
   if (!file.exists(demo_path)) {
     stop(paste0(
-      "Missing column: nihtbx_totalcomp_agecorrected. ",
+      "Missing column: nihtbx_fluidcomp_agecorrected. ",
       "Tried to backfill from ", demo_path, " but file not found."
     ))
   }
 
   demo <- read.csv(demo_path, stringsAsFactors = FALSE)
-  if (!all(c("scanID", "nihtbx_totalcomp_agecorrected") %in% names(demo))) {
+  if (!all(c("scanID", "nihtbx_fluidcomp_agecorrected") %in% names(demo))) {
     stop(paste0(
-      "Missing column: nihtbx_totalcomp_agecorrected. ",
-      "Backfill failed because demopath/DemodfScreenFinal.csv lacks scanID and/or nihtbx_totalcomp_agecorrected."
+      "Missing column: nihtbx_fluidcomp_agecorrected. ",
+      "Backfill failed because demopath/DemodfScreenFinal.csv lacks scanID and/or nihtbx_fluidcomp_agecorrected."
     ))
   }
 
-  demo <- demo[, c("scanID", "nihtbx_totalcomp_agecorrected"), drop = FALSE]
+  demo <- demo[, c("scanID", "nihtbx_fluidcomp_agecorrected"), drop = FALSE]
   demo <- demo[!duplicated(demo$scanID), , drop = FALSE]
   scdata <- scdata %>% left_join(demo, by = "scanID")
 }
 
-needed <- c(base_needed, "nihtbx_totalcomp_agecorrected")
+needed <- c(base_needed, "nihtbx_fluidcomp_agecorrected")
 missing <- setdiff(needed, names(scdata))
 if (length(missing) > 0) {
   stop(paste("Missing columns:", paste(missing, collapse = ", ")))
@@ -84,9 +84,9 @@ features <- as.matrix(df[, sc_cols])
 ranef <- df$subID
 X_nlin <- as.matrix(df$age)
 colnames(X_nlin) <- "age"
-X_lin <- df[, c("sex", "mean_fd", "nihtbx_totalcomp_agecorrected"), drop = FALSE]
+X_lin <- df[, c("sex", "mean_fd", "nihtbx_fluidcomp_agecorrected"), drop = FALSE]
 X_lin <- as.data.frame(lapply(X_lin, normalize_numeric))
-colnames(X_lin) <- c("sex", "mean_fd", "nihtbx_totalcomp_agecorrected")
+colnames(X_lin) <- c("sex", "mean_fd", "nihtbx_fluidcomp_agecorrected")
 batch <- df$siteID
 
 use_random <- length(unique(ranef)) < nrow(df)
@@ -110,7 +110,7 @@ out$siteID <- df$siteID
 out$age <- df$age
 out$sex <- df$sex
 out$mean_fd <- df$mean_fd
-out$nihtbx_totalcomp_agecorrected <- df$nihtbx_totalcomp_agecorrected
+out$nihtbx_fluidcomp_agecorrected <- df$nihtbx_fluidcomp_agecorrected
 out <- cbind(out, harmonized)
 
 out_dir <- dirname(output_rds)

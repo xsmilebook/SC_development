@@ -35,7 +35,7 @@
 - Reviewer2（Q5）补充：ABCD baseline 的 `age+sex+meanFD` 纵向 ComBat（不保护 cognition）可用 `combat_gam/sbatch/abcd_combat_gam_baseline_age_sex_meanfd.sbatch` 提交，输出 `*combatgam_age_sex_meanfd_baseline.rds`。
 - ABCD 纵向 Nonlinear-ComBat-GAM（新增变体）：
   - CBCL total problems：`sbatch combat_gam/sbatch/abcd_combat_gam_cbcl.sbatch`，输出 `*combatgam_cbcl.rds`（协变量列：`cbcl_scr_syn_totprob_r`；不做 baseline-only）。
-  - NIH Toolbox total cognition（age-corrected，baseline-only）：`sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch`，输出 `*combatgam_comp_agecorrected_baseline.rds`（协变量列：`nihtbx_totalcomp_agecorrected`；仅保留 baseline 与 cognition 方案一致）。
+  - NIH Toolbox fluid cognition（age-corrected，baseline-only）：`sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch`，输出 `*combatgam_comp_agecorrected_baseline.rds`（协变量列：`nihtbx_fluidcomp_agecorrected`；仅保留 baseline 与 cognition 方案一致）。
   - 注：ABCD 的 `input_rds` 常仅包含 SC 与基础协变量；若缺少上述表型列，脚本会按 `scanID` 从 `demopath/DemodfScreenFinal.csv` 自动回填后再运行（回填失败会给出明确报错）。
 - ABCD 的 Nonlinear-ComBat-GAM 支持并行：`nlongcombat` 使用 `mclapply`，核数由 `SLURM_CPUS_PER_TASK` 控制；未设置时默认单核。
 
@@ -51,7 +51,7 @@
   - `abcd_variance_decomp_cognition_fluid_uncorrected`（含 fluid cognition uncorrected；`nihtbx_fluidcomp_uncorrected`，Raw 侧按 baseline-only 过滤）
   - `abcd_variance_decomp_pfactor`（含 p-factor）
   - `abcd_variance_decomp_cbcl_totprob`（含 CBCL total problems；读取 `cbcl_scr_syn_totprob_r`，必要时从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填）
-  - `abcd_variance_decomp_cognition_totalcomp_agecorrected`（含 NIH Toolbox total cognition age-corrected；读取 `nihtbx_totalcomp_agecorrected`，必要时从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填；Raw 侧按 baseline-only 过滤）
+  - `abcd_variance_decomp_cognition_fluidcomp_agecorrected`（含 NIH Toolbox fluid cognition age-corrected；读取 `nihtbx_fluidcomp_agecorrected`，必要时从 `demopath/DemodfScreenFinal.csv` 按 `scanID` 回填；Raw 侧按 baseline-only 过滤）
 - 方差分解的变量解释量采用 **序列（sequential）R²**：按 `age → sex → mean_fd → (cognition/pfactor/cbcl 等) → site` 顺序逐步加入变量，每一步的解释量为 `R²_k - R²_{k-1}`（不再计算所有子集 Shapley）。
 - 集群绘图可直接提交：
   - `combat_gam/sbatch/plot_abcd_variance_decomposition.sbatch`
@@ -113,12 +113,12 @@
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
      - 结果：`outputs/results/5th_cognition/abcd/cognition/`
      - 图像：`outputs/figures/5th_cognition/abcd/cognition/`
-   - ABCD total cognition（age-corrected，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_comp_agecorrected_baseline.rds`）可复现入口：
+   - ABCD fluid cognition（age-corrected，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_comp_agecorrected_baseline.rds`）可复现入口：
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`
      - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
      - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
      - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
-     - 协变量设定（更新）：在 `run_abcd_cognition_comp_agecorrected_{S1,S2}.R` 中，新增的 SC–cognition 关联不再调整 `age`（不含 `s(age, ...)`）且不包含 `sex`；当前仅控制 `mean_fd`。
+     - 协变量设定（更新）：在 `run_abcd_cognition_comp_agecorrected_{S1,S2}.R` 中，新增的 SC–cognition 关联不再调整 `age`（不含 `s(age, ...)`）且不包含 `sex`；当前仅控制 `mean_fd`（对应 `nihtbx_fluidcomp_agecorrected`）。
      - 输出命名（避免覆盖）：脚本默认使用 `COG_ASSOC_TAG=meanfd_only` 作为文件名后缀，所有 `*.rds` 与图片均写成 `..._comp_agecorrected_<COG_ASSOC_TAG>.*`；如需并行保留多个变体，可在提交时覆盖，例如 `COG_ASSOC_TAG=v2_meanfd_only sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`。
      - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
      - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。

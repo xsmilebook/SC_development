@@ -31,7 +31,7 @@ base_predictors <- c("age", "sex", "mean_fd", "siteID")
 cog_predictors <- c("age", "sex", "mean_fd", "cognition", "siteID")
 pfactor_predictors <- c("age", "sex", "mean_fd", "pfactor", "siteID")
 cbcl_predictors <- c("age", "sex", "mean_fd", "cbcl_totprob", "siteID")
-comp_agecorrected_predictors <- c("age", "sex", "mean_fd", "totalcomp_agecorrected", "siteID")
+comp_agecorrected_predictors <- c("age", "sex", "mean_fd", "fluidcomp_agecorrected", "siteID")
 
 maybe_backfill_abcd_from_demopath <- function(dat, needed_cols, demo_path = file.path("demopath", "DemodfScreenFinal.csv")) {
   if (all(needed_cols %in% names(dat))) {
@@ -79,8 +79,8 @@ prepare_raw <- function(path,
     backfill_cols <- c(backfill_cols, "cbcl_scr_syn_totprob_r")
   }
   if (include_comp_agecorrected) {
-    needed <- c(needed, "nihtbx_totalcomp_agecorrected")
-    backfill_cols <- c(backfill_cols, "nihtbx_totalcomp_agecorrected")
+    needed <- c(needed, "nihtbx_fluidcomp_agecorrected")
+    backfill_cols <- c(backfill_cols, "nihtbx_fluidcomp_agecorrected")
   }
   dat <- maybe_backfill_abcd_from_demopath(dat, unique(backfill_cols))
   missing <- setdiff(needed, names(dat))
@@ -107,7 +107,7 @@ prepare_raw <- function(path,
     dat$cbcl_totprob <- dat$cbcl_scr_syn_totprob_r
   }
   if (include_comp_agecorrected) {
-    dat$totalcomp_agecorrected <- dat$nihtbx_totalcomp_agecorrected
+    dat$fluidcomp_agecorrected <- dat$nihtbx_fluidcomp_agecorrected
   }
   list(df = dat, sc_cols = sc_cols)
 }
@@ -133,7 +133,7 @@ prepare_combat <- function(path,
     needed <- c(needed, "cbcl_scr_syn_totprob_r")
   }
   if (include_comp_agecorrected) {
-    needed <- c(needed, "nihtbx_totalcomp_agecorrected")
+    needed <- c(needed, "nihtbx_fluidcomp_agecorrected")
   }
   missing <- setdiff(needed, names(dat))
   if (length(missing) > 0) {
@@ -155,7 +155,7 @@ prepare_combat <- function(path,
     dat$cbcl_totprob <- dat$cbcl_scr_syn_totprob_r
   }
   if (include_comp_agecorrected) {
-    dat$totalcomp_agecorrected <- dat$nihtbx_totalcomp_agecorrected
+    dat$fluidcomp_agecorrected <- dat$nihtbx_fluidcomp_agecorrected
   }
   list(df = dat, sc_cols = sc_cols)
 }
@@ -299,7 +299,7 @@ compute_variance_decomp <- function(df, sc_cols, label, predictors, strip_suffix
 palette <- c(
   siteID = "#F8766D",
   cognition = "#B79F00",
-  totalcomp_agecorrected = "#E64B35",
+  fluidcomp_agecorrected = "#E64B35",
   mean_fd = "#00BA38",
   sex = "#00B0F6",
   age = "#C77CFF",
@@ -482,7 +482,7 @@ plot_variant(
 )
 
 plot_variant(
-  label = "ABCD (total cognition age-corrected; baseline-only)",
+  label = "ABCD (fluid cognition age-corrected; baseline-only)",
   raw_path = raw_rds,
   combat_path = combat_comp_agecorrected,
   predictors = comp_agecorrected_predictors,
@@ -491,5 +491,5 @@ plot_variant(
   include_cbcl = FALSE,
   include_comp_agecorrected = TRUE,
   baseline_only = TRUE,
-  out_prefix = "abcd_variance_decomp_cognition_totalcomp_agecorrected"
+  out_prefix = "abcd_variance_decomp_cognition_fluidcomp_agecorrected"
 )
