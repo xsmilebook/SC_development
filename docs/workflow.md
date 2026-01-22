@@ -29,9 +29,10 @@
 
 ## ComBat-GAM 运行约定
 - 小型测试可直接运行 `combat_gam/scripts/*.sh`；正式任务必须使用 `combat_gam/sbatch/*.sbatch` 提交到 `q_fat_c`。
-- ComBat-GAM 使用项目专用环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment`。
+- `combat_gam/sbatch/*.sbatch` 默认使用 Singularity 容器运行（与本仓库其他容器作业一致），镜像默认路径为 `outputs/containers/scdevelopment_r41.sif`，可用 `SIF_PATH=/path/to/scdevelopment_r41_<tag>.sif` 覆盖。
+- 容器依赖：为支持 ComBat-GAM 的 Python 入口（`pyreadr`/`neuroHarmonize`/`rpy2`），需使用包含 Python 依赖的新版镜像；若你仍在使用旧的 `scdevelopment_r41.sif`（仅含 R 依赖），请先用 `sbatch sbatch/build_scdevelopment_r41_container.sbatch` 构建新镜像并通过 `SIF_PATH=...` 运行上述作业。
 - HCP-D/Chinese 推荐使用 neuroHarmonize 原生 `smooth_terms`（GAM）实现：`combat_gam/scripts/run_combat_gam_neuroharmonize_native.py`（支持 `smooth_fx` 固定平滑或 k-fold 选择）。
-- 运行相关依赖应安装在 `scdevelopment` 环境；若包依赖冲突需建立独立虚拟环境，并在此处补充说明。
+- 若不使用容器而选择在 conda/系统环境中直接运行（仅限小样本测试），运行相关依赖应安装在 `scdevelopment` 环境；若包依赖冲突需建立独立虚拟环境，并在此处补充说明。
 - Reviewer2（Q5）补充：ABCD baseline 的 `age+sex+meanFD` 纵向 ComBat（不保护 cognition）可用 `combat_gam/sbatch/abcd_combat_gam_baseline_age_sex_meanfd.sbatch` 提交，输出 `*combatgam_age_sex_meanfd_baseline.rds`。
 - ABCD 纵向 Nonlinear-ComBat-GAM（新增变体）：
   - CBCL total problems：`sbatch combat_gam/sbatch/abcd_combat_gam_cbcl.sbatch`，输出 `*combatgam_cbcl.rds`（协变量列：`cbcl_scr_syn_totprob_r`；不做 baseline-only）。

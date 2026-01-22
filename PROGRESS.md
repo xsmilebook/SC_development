@@ -133,3 +133,4 @@
 - 2026-01-21: 为避免计算节点进程数限制导致 `Cannot fork`，ABCD comp_agecorrected 复现脚本默认并行 worker 上限设为 60（作业仍申请 72 CPU），并在创建失败时按 60→50→40→30→20→… 逐步降档。
 - 2026-01-21: 修复 ABCD cognition 并行运行中 `ecostats::anovaPB` 报 `object 'nbinom2' not found` 导致全边失败：`gamfunction/gamcog.R` 强制 `anovaPB(..., ncpus=1)` 并对失败回退为 `p=1`，保证流水线可运行。
 - 2026-01-22: 排查并修复 ABCD cognition 旧列名引用：`development_script/5th_cognition/S2nd_compositescorePlot_scatterplot_ABCD.Rmd` 将 `gam.cog.t` 更新为 `gam.smooth.t`，与 `gamfunction/gamcog.R` 输出列保持一致。
+- 2026-01-22: 将 `combat_gam/sbatch/*.sbatch` 全部改为容器版（Singularity），并更新 `containers/scdevelopment_r41.def` 以在镜像内加入 ComBat-GAM 所需的 Python 依赖（`neuroHarmonize`/`pyreadr`/`rpy2` 等）；同步更新 `docs/workflow.md` 的运行说明。
