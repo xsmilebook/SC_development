@@ -13,7 +13,8 @@ rm(list = ls())
 
 CVthr <- 75
 Cogvar <- "nihtbx_fluidcomp_agecorrected"
-variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "meanfd_only")
+variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "")
+variant_suffix <- if (nzchar(variant_tag)) paste0("_", variant_tag) else ""
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -110,7 +111,7 @@ make_error_row <- function(parcel, cognition_var, err) {
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
 out_rds <- file.path(
   resultFolder,
-  paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected_", variant_tag, ".rds")
+  paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected", variant_suffix, ".rds")
 )
 
 if (force || !file.exists(out_rds)) {
@@ -198,7 +199,7 @@ saveRDS(
   ),
   file.path(
     resultFolder,
-    paste0("SCrankcorr_summary_", Cogvar, "_CV", CVthr, "_comp_agecorrected_", variant_tag, ".rds")
+    paste0("SCrankcorr_summary_", Cogvar, "_CV", CVthr, "_comp_agecorrected", variant_suffix, ".rds")
   )
 )
 
@@ -243,7 +244,7 @@ p_scatter <- ggplot(data = SC_Cog_results.tmp) +
   theme_classic() + mytheme
 
 ggsave(
-  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_", variant_tag, ".tiff")),
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall", variant_suffix, ".tiff")),
   p_scatter,
   width = 17,
   height = 14,
@@ -251,7 +252,7 @@ ggsave(
   bg = "transparent"
 )
 ggsave(
-  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_", variant_tag, ".pdf")),
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall", variant_suffix, ".pdf")),
   p_scatter,
   dpi = 600,
   width = width,
@@ -310,7 +311,7 @@ p_matrix <- ggplot(data = matrixtmp.df.melt) +
   )
 
 ggsave(
-  file.path(fig_dir, paste0("CorrTvalue_Matrix_n12_siteall_", variant_tag, ".tiff")),
+  file.path(fig_dir, paste0("CorrTvalue_Matrix_n12_siteall", variant_suffix, ".tiff")),
   p_matrix,
   height = 15,
   width = 16,
@@ -318,7 +319,7 @@ ggsave(
   bg = "transparent"
 )
 ggsave(
-  file.path(fig_dir, paste0("CorrTvalue_Matrix_n12_siteall_", variant_tag, ".pdf")),
+  file.path(fig_dir, paste0("CorrTvalue_Matrix_n12_siteall", variant_suffix, ".pdf")),
   p_matrix,
   dpi = 600,
   height = 15,
@@ -348,7 +349,7 @@ p_scatter2 <- ggplot(data = correlation.df2) +
   )
 
 ggsave(
-  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_control_distance_", variant_tag, ".tiff")),
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_control_distance", variant_suffix, ".tiff")),
   p_scatter2,
   width = 13,
   height = 13,
@@ -356,7 +357,7 @@ ggsave(
   bg = "transparent"
 )
 ggsave(
-  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_control_distance_", variant_tag, ".pdf")),
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_control_distance", variant_suffix, ".pdf")),
   p_scatter2,
   dpi = 600,
   width = 15,

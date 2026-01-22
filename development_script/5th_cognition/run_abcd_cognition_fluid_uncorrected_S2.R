@@ -53,6 +53,24 @@ SC_Cog_results.df$SClabelorder <- c(1:78)
 SCrank_df <- SCrankcorr(SC_Cog_results.df, "gam.smooth.t", 12, dsdata = TRUE)
 SC_Cog_results.df$SCrank <- SCrank_df$SCrank
 
+## 0) "component" plot
+comp_plot <- data.frame(category = "NIH Toolbox fluid cognition (uncorrected)", value = 1)
+p_comp <- ggplot(comp_plot, aes(x = category, y = value)) +
+  geom_col(fill = brewer.pal(3, "Set2")[[1]]) +
+  coord_flip() +
+  labs(x = NULL, y = NULL, title = "Cognition measure used in this analysis") +
+  theme_classic() +
+  theme(
+    axis.text.y = element_text(size = 14),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+ggsave(file.path(FigureFolder, "NTB_fluidcognition_uncorrected_component.tiff"), p_comp, width = 16, height = 6, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, "NTB_fluidcognition_uncorrected_component.pdf"), p_comp, dpi = 600, width = 16, height = 6, units = "cm", bg = "transparent")
+
 ## 1) Scatter plots (3 example connections at ~10/50/90% SCrank)
 nonna_index <- which(!is.na(SCdata[, Cogvar]))
 SCdata.cog <- SCdata[nonna_index, , drop = FALSE]
@@ -173,4 +191,3 @@ p_hist <- ggplot(data = SC_Cog_results.df.sig, aes(correstimate, y = ..count..))
   )
 ggsave(file.path(sc_fig_dir, "SigCorrestimateDistribution.tiff"), p_hist, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
 ggsave(file.path(sc_fig_dir, "SigCorrestimateDistribution.pdf"), p_hist, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
-

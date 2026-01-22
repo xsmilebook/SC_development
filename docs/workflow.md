@@ -122,7 +122,7 @@
      - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
      - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
      - 协变量设定（更新）：在 `run_abcd_cognition_comp_agecorrected_{S1,S2}.R` 中，新增的 SC–cognition 关联不再调整 `age`（不含 `s(age, ...)`）且不包含 `sex`；当前仅控制 `mean_fd`（对应 `nihtbx_fluidcomp_agecorrected`）。
-     - 输出命名（避免覆盖）：脚本默认使用 `COG_ASSOC_TAG=meanfd_only` 作为文件名后缀，所有 `*.rds` 与图片均写成 `..._comp_agecorrected_<COG_ASSOC_TAG>.*`；如需并行保留多个变体，可在提交时覆盖，例如 `COG_ASSOC_TAG=v2_meanfd_only sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`。
+     - 输出命名：默认不使用 tag（即覆盖式输出 16 张标准图与对应 rds）。如需并行保留多个变体，可用 `COG_ASSOC_TAG=<tag>` 作为文件名后缀（写成 `..._comp_agecorrected_<tag>.*`），例如 `COG_ASSOC_TAG=v2 sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`。
      - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
      - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
 

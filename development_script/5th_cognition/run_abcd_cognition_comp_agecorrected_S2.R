@@ -16,7 +16,8 @@ rm(list = ls())
 
 CVthr <- 75
 Cogvar <- "nihtbx_fluidcomp_agecorrected"
-variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "meanfd_only")
+variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "")
+variant_suffix <- if (nzchar(variant_tag)) paste0("_", variant_tag) else ""
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -46,7 +47,7 @@ SCdata$age <- as.numeric(SCdata$age) / 12
 
 in_rds <- file.path(
   resultFolder,
-  paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected_", variant_tag, ".rds")
+  paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_comp_agecorrected", variant_suffix, ".rds")
 )
 if (!file.exists(in_rds)) {
   stop("Missing S1 output: ", in_rds, "\nRun first: Rscript development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_S1.R")
@@ -73,7 +74,7 @@ p_comp <- ggplot(comp_plot, aes(x = category, y = value)) +
     panel.background = element_rect(fill = "transparent", color = NA)
   )
 ggsave(
-  file.path(FigureFolder, paste0("NTB_totalcognition_agecorrected_component_", variant_tag, ".tiff")),
+  file.path(FigureFolder, paste0("NTB_totalcognition_agecorrected_component", variant_suffix, ".tiff")),
   p_comp,
   width = 16,
   height = 6,
@@ -81,7 +82,7 @@ ggsave(
   bg = "transparent"
 )
 ggsave(
-  file.path(FigureFolder, paste0("NTB_totalcognition_agecorrected_component_", variant_tag, ".pdf")),
+  file.path(FigureFolder, paste0("NTB_totalcognition_agecorrected_component", variant_suffix, ".pdf")),
   p_comp,
   dpi = 600,
   width = 16,
@@ -177,7 +178,7 @@ for (k in seq_along(targets)) {
   res <- pick_working_edge(target_rank, max_try = 30)
   if (!isTRUE(res$ok)) {
     message("[WARN] No working edge found for quantile ", k, "; saving placeholder plot")
-    out_base <- file.path(sc_fig_dir, paste0("SC_missing_q", k, "_scatterplot_", variant_tag))
+    out_base <- file.path(sc_fig_dir, paste0("SC_missing_q", k, "_scatterplot", variant_suffix))
     p_empty <- ggplot() +
       geom_text(aes(x = 0, y = 0), label = paste0("No valid edge for q", k, " (", variant_tag, ")")) +
       theme_void()
@@ -190,7 +191,7 @@ for (k in seq_along(targets)) {
   N <- res$idx
   SCrank <- SC_Cog_results.df$SCrank[N]
   message("Scatterplot for connection ", N, " with SCrank ", SCrank, " (target=", target_rank, ")")
-  out_base <- file.path(sc_fig_dir, paste0("SC", N, "_scatterplot_", variant_tag))
+  out_base <- file.path(sc_fig_dir, paste0("SC", N, "_scatterplot", variant_suffix))
 
   p_sc <- ggplot(data = plotdata_N) +
     geom_point(aes(x = SCres, y = cogres), color = "grey", size = 0.8) +
@@ -230,7 +231,7 @@ p_hist <- ggplot(data = SC_Cog_results.df.sig, aes(correstimate, y = ..count..))
     legend.position = "none"
   )
 ggsave(
-  file.path(sc_fig_dir, paste0("SigCorrestimateDistribution_", variant_tag, ".tiff")),
+  file.path(sc_fig_dir, paste0("SigCorrestimateDistribution", variant_suffix, ".tiff")),
   p_hist,
   width = 13.5,
   height = 13.5,
@@ -238,7 +239,7 @@ ggsave(
   bg = "transparent"
 )
 ggsave(
-  file.path(sc_fig_dir, paste0("SigCorrestimateDistribution_", variant_tag, ".pdf")),
+  file.path(sc_fig_dir, paste0("SigCorrestimateDistribution", variant_suffix, ".pdf")),
   p_hist,
   dpi = 600,
   width = 13.5,
