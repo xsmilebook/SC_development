@@ -117,7 +117,7 @@ prepare_raw <- function(path,
     dat$fluidcomp_agecorrected <- dat$nihtbx_fluidcomp_agecorrected
   }
   if (include_fluidcomp_fc) {
-    dat$fluidcomp_fc <- dat$nihtbx_fluidcomp_fc
+    dat$fluidcomp_fc <- as.numeric(dat$nihtbx_fluidcomp_fc)
   }
   list(df = dat, sc_cols = sc_cols)
 }
@@ -172,7 +172,7 @@ prepare_combat <- function(path,
     dat$fluidcomp_agecorrected <- dat$nihtbx_fluidcomp_agecorrected
   }
   if (include_fluidcomp_fc) {
-    dat$fluidcomp_fc <- dat$nihtbx_fluidcomp_fc
+    dat$fluidcomp_fc <- as.numeric(dat$nihtbx_fluidcomp_fc)
   }
   list(df = dat, sc_cols = sc_cols)
 }
@@ -317,6 +317,7 @@ palette <- c(
   siteID = "#F8766D",
   cognition = "#B79F00",
   fluidcomp_agecorrected = "#E64B35",
+  fluidcomp_fc = "#7E6148",
   mean_fd = "#00BA38",
   sex = "#00B0F6",
   age = "#C77CFF",
@@ -422,7 +423,7 @@ plot_variant <- function(label,
   p <- ggplot(plot_data, aes(x = edge_base, y = r2, fill = predictor)) +
     geom_col(width = 0.9, color = "black", linewidth = 0.15) +
     facet_grid(condition ~ ., scales = "free_y", switch = "y") +
-    scale_fill_manual(values = palette, breaks = levels(plot_data$predictor)) +
+    scale_fill_manual(values = palette, breaks = levels(plot_data$predictor), drop = FALSE) +
     labs(
       x = "SC edges",
       y = "R square",
