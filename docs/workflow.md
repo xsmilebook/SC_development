@@ -112,10 +112,11 @@
      - 结果：`outputs/results/6th_pfactor/abcd/pfactor/`
      - 图像（tiff + svg/pdf）：`outputs/figures/6th_pfactor/abcd/pfactor/`
      - 注：交互曲线图需要 `ABCD_PLOTDATASUM_RDS`（默认指向 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`；可在提交时覆盖）。
-   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
-     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
-     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
-     - 图像：`outputs/figures/5th_cognition/abcd/cognition/`
+	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
+	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
+	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
+	     - 图像：`outputs/figures/5th_cognition/abcd/cognition/`
+	     - 注：sbatch 会依次运行 `run_abcd_cognition_fluid_uncorrected_S{1,2,3}.R`；其中 S3 需要 `ABCD_SA12_CSV` 与 `ABCD_PLOTDATASUM_RDS`（见下）。
 	   - ABCD fluid cognition（age-corrected，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_comp_agecorrected_baseline.rds`）可复现入口：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
@@ -126,8 +127,13 @@
 	       - `COG_ASSOC_MODE=meanfd_only`：仅控制 `mean_fd`（不含 `s(age, ...)`，不含 `sex`）
 	     - 输出命名：默认不使用 tag（即覆盖式输出 16 张标准图与对应 rds）。如需并行保留多个变体，可用 `COG_ASSOC_TAG=<tag>` 作为文件名后缀（写成 `..._comp_agecorrected_<tag>.*`）。对 `meanfd_only` 若未设置 tag，将自动使用 `_meanfd_only` 后缀以避免覆盖默认版本。
 	     - `meanfd_only` 一键提交（容器版）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_meanfd_only_container.sbatch`
+	     - 注：sbatch 会依次运行 `run_abcd_cognition_comp_agecorrected_S{1,2,3}.R`；其中 S3 会在 `Cogvar/Interaction/` 下输出 `developmentcurve_decile*` 图像，并复用 `COG_ASSOC_TAG`/`COG_ASSOC_MODE` 后缀避免覆盖。
 	     - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
 	     - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
+
+	   - S3（development curve）额外依赖：
+	     - `ABCD_SA12_CSV`：默认 `wd/interdataFolder_ABCD/SA12_10.csv`
+	     - `ABCD_PLOTDATASUM_RDS`：默认 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`（如需用项目内/其他版本，请在提交时覆盖该环境变量）
 
 ## CBCL 关联运行
 - 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。

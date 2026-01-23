@@ -348,6 +348,7 @@ colorid <- rev(brewer.pal(10, "RdBu"))
 for (i in 1:10) {
   plotdf.tmp <- plotdf.decile[plotdf.decile$decile == i, ]
   colorindex <- colorid[i]
+  age_label_mult <- if (max(plotdf.tmp$age, na.rm = TRUE) <= 2) 10 else 1
 
   if (i == 1 || i == 6) {
     mytheme <- theme(axis.text = element_text(size = 21, color = "black"),
@@ -378,6 +379,7 @@ for (i in 1:10) {
 
   Fig <- ggplot(data = plotdf.tmp) +
     geom_line(aes(x = age, y = fit_value, group = label, linetype = label), linewidth = 1.2, color = colorindex) +
+    scale_x_continuous(labels = function(x) x * age_label_mult) +
     scale_y_continuous(breaks = c(0.9, 1.0), limits = c(0.90, 1.1)) +
     scale_linetype_manual(values = c(high = "dashed", low = "solid")) +
     labs(x = NULL, y = "SC strength (ratio)") +

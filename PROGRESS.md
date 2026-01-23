@@ -120,6 +120,7 @@
 - 2026-01-21: 将本次容器/依赖/并行/容错/对齐/QC 等可复用经验整理补充到 `docs/workflow.md`，作为后续排错与复现的优先清单。
 - 2026-01-22: 修复 ABCD cognition 关联分析绘图阶段 `theme()` 报错：避免 `mvabund::theme()` 覆盖 `ggplot2::theme()` 导致参数冲突。
 - 2026-01-22: ABCD `nihtbx_fluidcomp_agecorrected` 关联分析新增 `meanfd_only` 变体（`COG_ASSOC_MODE=meanfd_only`），并提供独立 sbatch 脚本避免覆盖默认输出。
+- 2026-01-23: pfactor/CBCL 的 `developmentcurve_decile*` 图像将 age 横坐标标签按 ×10 显示（0.9→9）；并为 ABCD cognition（uncorrected/age-corrected）新增 S3 development-curve 绘图脚本并接入 sbatch。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在 `derivative.df` 缺少 `significant.derivative_fdr` 列时的崩溃：S3 自动补齐该列（优先使用 `significance_pvalue_fdr`，否则用 `significant`/`significant.derivative` 回退）。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S4 在 `psych::corr.test()` 返回标量时的崩溃：散点图标题相关性提取兼容矩阵/标量两种返回结构，避免 `ct$r[[1,2]]` 下标错误。
 - 2026-01-21: 加固容器 sbatch：当 S3 decile 图或 S4 相关性散点图缺失时，自动对对应步骤启用 `--force=1` 回填图片（支持 `FORCE_S3/FORCE_S4` 覆盖），避免 “哨兵/summary 存在但图片目录为空”。
