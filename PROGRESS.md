@@ -127,6 +127,7 @@
 - 2026-01-23: 修复 age-corrected cognition S3 在纵向 SCdata 缺少 `eventname` 时的误报缺列：仅要求 `subID/age/sex/mean_fd`；baseline cognition 仍按需从 demopath 回填。
 - 2026-01-23: cognition 脚本支持从 `scanID` 派生 `eventname`（`_ses-baselineYear1Arm1`→`baseline_year_1_arm_1`），用于 baseline 过滤与 baseline cognition 提取。
 - 2026-01-23: 修复 cognition S3 读取旧版缓存（list of data.frame）时的 `subscript out of bounds`：兼容旧/新两种缓存结构。
+- 2026-01-23: cognition S3 遇到“空/不可用缓存”时自动删除并重算（等价于 `FORCE=1`），避免反复报 `No plot data available after loading cache`。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在 `derivative.df` 缺少 `significant.derivative_fdr` 列时的崩溃：S3 自动补齐该列（优先使用 `significance_pvalue_fdr`，否则用 `significant`/`significant.derivative` 回退）。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S4 在 `psych::corr.test()` 返回标量时的崩溃：散点图标题相关性提取兼容矩阵/标量两种返回结构，避免 `ct$r[[1,2]]` 下标错误。
 - 2026-01-21: 加固容器 sbatch：当 S3 decile 图或 S4 相关性散点图缺失时，自动对对应步骤启用 `--force=1` 回填图片（支持 `FORCE_S3/FORCE_S4` 覆盖），避免 “哨兵/summary 存在但图片目录为空”。

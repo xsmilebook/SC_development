@@ -117,6 +117,18 @@ num_cores <- min(num_cores, 40L)
 
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
 trajectory_cache <- file.path(intermediateFolder, paste0("plotdata_high90_low10_", Cogvar_base, "_develop_CV", CVthr, ".rds"))
+message("[INFO] trajectory_cache: ", trajectory_cache)
+
+load_plotdf_from_cache <- function(path) {
+  resultsum <- readRDS(path)
+  plotdf_list <- lapply(resultsum, function(z) {
+    if (is.data.frame(z)) return(z)
+    if (is.list(z) && "df" %in% names(z)) return(z$df)
+    NULL
+  })
+  plotdf_list <- plotdf_list[!vapply(plotdf_list, is.null, logical(1))]
+  plotdf_list
+}
 
 if (force || !file.exists(trajectory_cache)) {
   message("[INFO] Generating cognition-by-age interaction plot data (high90 vs low10), mc.cores=", num_cores)
@@ -156,17 +168,49 @@ if (force || !file.exists(trajectory_cache)) {
   saveRDS(resultsum, trajectory_cache)
 }
 
-resultsum <- readRDS(trajectory_cache)
-# Backward-compatible cache loading:
-# - Old cache: list of data.frames (direct outputs per edge)
-# - New cache: list of lists {ok, df, err, region}
-plotdf_list <- lapply(resultsum, function(z) {
-  if (is.data.frame(z)) return(z)
-  if (is.list(z) && "df" %in% names(z)) return(z$df)
-  NULL
-})
-plotdf_list <- plotdf_list[!vapply(plotdf_list, is.null, logical(1))]
-if (length(plotdf_list) < 1) stop("No plot data available after loading cache: ", trajectory_cache)
+plotdf_list <- load_plotdf_from_cache(trajectory_cache)
+if (length(plotdf_list) < 1) {
+  message("[WARN] Cache exists but contains no usable plot data: ", trajectory_cache)
+  message("[WARN] Recomputing S3 cache (equivalent to FORCE=1).")
+  file.remove(trajectory_cache)
+  Sys.setenv(FORCE = "1")
+  force <- TRUE
+  resultsum <- parallel::mclapply(seq_len(78), function(i) {
+    region <- sc_cols[[i]]
+
+    tryCatch(
+      {
+        int_var_predict_percentile <- 0.1
+        out_low <- gamm.smooth.predict.covariateinteraction(
+          region, dataname, smooth_var, int_var, int_var_predict_percentile,
+          covariates, knots, set_fx, increments, stats_only = stats_only
+        )[[2]]
+        out_low$SC_label <- region
+        out_low$cognitionlevel <- "low"
+
+        int_var_predict_percentile <- 0.9
+        out_high <- gamm.smooth.predict.covariateinteraction(
+          region, dataname, smooth_var, int_var, int_var_predict_percentile,
+          covariates, knots, set_fx, increments, stats_only = stats_only
+        )[[2]]
+        out_high$SC_label <- region
+        out_high$cognitionlevel <- "high"
+
+        list(ok = TRUE, df = rbind(out_low, out_high), err = NA_character_, region = region)
+      },
+      error = function(e) list(ok = FALSE, df = NULL, err = conditionMessage(e), region = region)
+    )
+  }, mc.cores = num_cores)
+
+  ok_mask <- vapply(resultsum, function(z) isTRUE(z$ok), logical(1))
+  if (!any(ok_mask)) {
+    errs <- unique(vapply(resultsum, function(z) paste0(z$region, ": ", z$err), character(1)))
+    stop("All edges failed in interaction fitting. First errors:\n", paste(head(errs, 10), collapse = "\n"))
+  }
+  saveRDS(resultsum, trajectory_cache)
+  plotdf_list <- load_plotdf_from_cache(trajectory_cache)
+  if (length(plotdf_list) < 1) stop("No plot data available after recomputing cache: ", trajectory_cache)
+}
 plotdf <- do.call(rbind, plotdf_list)
 plotdf <- merge(plotdf, SA12_10, by.x = "SC_label", by.y = "SC_label")
 
