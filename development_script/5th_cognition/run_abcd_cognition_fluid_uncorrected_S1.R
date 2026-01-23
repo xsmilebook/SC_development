@@ -183,7 +183,7 @@ SC_Cog_results.df.whole <- SC_Cog_results.df
 SCrankresult.whole <- SCrankcorr(SC_Cog_results.df.whole, "gam.smooth.t", 12)
 message(
   "Correlation coefficient between cognitive associations and connectional axis is ",
-  round(SCrankresult.whole$r.spearman, 2), " with P=", round(SCrankresult.whole$p.spearman, 3)
+  SCrankresult.whole$r.spearman, " with P=", SCrankresult.whole$p.spearman
 )
 
 message("Control Euclidean distance.")
