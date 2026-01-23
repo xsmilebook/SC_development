@@ -75,6 +75,23 @@ age_to_years <- function(age_raw) {
   }
 }
 SCdata$age <- age_to_years(SCdata$age)
+message(
+  "[INFO] SCdata age range (years): ",
+  round(min(SCdata$age, na.rm = TRUE), 3), "–", round(max(SCdata$age, na.rm = TRUE), 3)
+)
+if (!("eventname" %in% names(SCdata)) && ("scanID" %in% names(SCdata))) {
+  scanid_to_eventname <- function(scanID) {
+    sess <- sub("^.*_ses-", "", as.character(scanID))
+    sess <- gsub("([a-z])([A-Z])", "\\1_\\2", sess)
+    sess <- gsub("([A-Za-z])([0-9])", "\\1_\\2", sess)
+    sess <- gsub("([0-9])([A-Za-z])", "\\1_\\2", sess)
+    tolower(sess)
+  }
+  SCdata$eventname <- scanid_to_eventname(SCdata$scanID)
+}
+if ("eventname" %in% names(SCdata)) {
+  message("[INFO] SCdata eventname table:\n", paste(capture.output(print(table(SCdata$eventname))), collapse = "\n"))
+}
 
 needed_base <- c("subID", "scanID", "siteID", "age", "sex", "mean_fd", int_var)
 missing_base <- setdiff(needed_base, names(SCdata))

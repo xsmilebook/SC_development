@@ -60,6 +60,10 @@ age_to_years <- function(age_raw) {
   }
 }
 SCdata$age <- age_to_years(SCdata$age)
+message(
+  "[INFO] SCdata age range (years): ",
+  round(min(SCdata$age, na.rm = TRUE), 3), "–", round(max(SCdata$age, na.rm = TRUE), 3)
+)
 
 scanid_to_eventname <- function(scanID) {
   sess <- sub("^.*_ses-", "", as.character(scanID))
