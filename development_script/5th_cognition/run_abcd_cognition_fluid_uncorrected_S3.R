@@ -50,7 +50,16 @@ plotdata <- readRDS(plotdatasum_rds)
 source(file.path(functionFolder, "gamminteraction.R"))
 
 SCdata <- readRDS(input_rds)
-SCdata$age <- as.numeric(SCdata$age) / 12
+age_to_years <- function(age_raw) {
+  age_num <- as.numeric(age_raw)
+  mx <- suppressWarnings(max(age_num, na.rm = TRUE))
+  if (is.finite(mx) && mx > 24) {
+    age_num / 12
+  } else {
+    age_num
+  }
+}
+SCdata$age <- age_to_years(SCdata$age)
 
 scanid_to_eventname <- function(scanID) {
   sess <- sub("^.*_ses-", "", as.character(scanID))
