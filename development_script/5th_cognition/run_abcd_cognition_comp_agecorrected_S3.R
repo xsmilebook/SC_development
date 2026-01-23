@@ -30,10 +30,10 @@ dir.create(intermediateFolder, showWarnings = FALSE, recursive = TRUE)
 
 input_rds <- file.path(
   project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_comp_agecorrected_baseline.rds"
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch")
+  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch")
 }
 
 sa12_csv <- Sys.getenv(
@@ -55,18 +55,43 @@ source(file.path(functionFolder, "gamminteraction.R"))
 SCdata <- readRDS(input_rds)
 SCdata$age <- as.numeric(SCdata$age) / 12
 
-if (!all(c("subID", "age", "mean_fd") %in% names(SCdata))) {
+if (!all(c("subID", "eventname", "age", "mean_fd") %in% names(SCdata))) {
   stop("Missing required columns in SCdata: subID/age/mean_fd")
 }
 if (!("sex" %in% names(SCdata))) stop("Missing required column: sex")
 SCdata$sex <- as.factor(SCdata$sex)
 
 if (!Cogvar %in% names(SCdata)) {
-  stop("Missing cognition variable in input: ", Cogvar)
+  demopath_csv <- file.path(project_root, "demopath", "DemodfScreenFinal.csv")
+  if (!file.exists(demopath_csv)) {
+    stop("Missing demopath_csv (git-ignored, required for S3 baseline cognition): ", demopath_csv)
+  }
+  Demodf <- read.csv(demopath_csv, stringsAsFactors = FALSE)
+  needed_demo <- c("subID", "eventname", Cogvar)
+  missing_demo <- setdiff(needed_demo, names(Demodf))
+  if (length(missing_demo) > 0) {
+    stop("Missing required columns in demopath/DemodfScreenFinal.csv: ", paste(missing_demo, collapse = ", "))
+  }
+  Cogdf <- Demodf %>%
+    select(subID, eventname, all_of(Cogvar)) %>%
+    drop_na() %>%
+    filter(str_detect(eventname, "base")) %>%
+    select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
+    distinct()
+  SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
+  if (!Cogvar_base %in% names(SCdata)) stop("Baseline cognition join failed, missing: ", Cogvar_base)
 }
 
-# Baseline-only input: treat the measure as baseline cognition.
-SCdata[[Cogvar_base]] <- SCdata[[Cogvar]]
+if (Cogvar %in% names(SCdata)) {
+  Cogdf <- SCdata %>%
+    select(subID, eventname, all_of(Cogvar)) %>%
+    drop_na() %>%
+    filter(str_detect(eventname, "base")) %>%
+    select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
+    distinct()
+  SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
+  if (!Cogvar_base %in% names(SCdata)) stop("Baseline cognition join failed, missing: ", Cogvar_base)
+}
 
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
 if (any(grepl("_h$", sc_cols))) sc_cols <- sc_cols[grepl("_h$", sc_cols)]
@@ -108,29 +133,41 @@ if (force || !file.exists(trajectory_cache)) {
   resultsum <- parallel::mclapply(seq_len(78), function(i) {
     region <- sc_cols[[i]]
 
-    int_var_predict_percentile <- 0.1
-    out_low <- gamm.smooth.predict.covariateinteraction(
-      region, dataname, smooth_var, int_var, int_var_predict_percentile,
-      covariates, knots, set_fx, increments, stats_only = stats_only
-    )[[2]]
-    out_low$SC_label <- region
-    out_low$cognitionlevel <- "low"
+    tryCatch(
+      {
+        int_var_predict_percentile <- 0.1
+        out_low <- gamm.smooth.predict.covariateinteraction(
+          region, dataname, smooth_var, int_var, int_var_predict_percentile,
+          covariates, knots, set_fx, increments, stats_only = stats_only
+        )[[2]]
+        out_low$SC_label <- region
+        out_low$cognitionlevel <- "low"
 
-    int_var_predict_percentile <- 0.9
-    out_high <- gamm.smooth.predict.covariateinteraction(
-      region, dataname, smooth_var, int_var, int_var_predict_percentile,
-      covariates, knots, set_fx, increments, stats_only = stats_only
-    )[[2]]
-    out_high$SC_label <- region
-    out_high$cognitionlevel <- "high"
+        int_var_predict_percentile <- 0.9
+        out_high <- gamm.smooth.predict.covariateinteraction(
+          region, dataname, smooth_var, int_var, int_var_predict_percentile,
+          covariates, knots, set_fx, increments, stats_only = stats_only
+        )[[2]]
+        out_high$SC_label <- region
+        out_high$cognitionlevel <- "high"
 
-    rbind(out_low, out_high)
+        list(ok = TRUE, df = rbind(out_low, out_high), err = NA_character_, region = region)
+      },
+      error = function(e) list(ok = FALSE, df = NULL, err = conditionMessage(e), region = region)
+    )
   }, mc.cores = num_cores)
+
+  ok_mask <- vapply(resultsum, function(z) isTRUE(z$ok), logical(1))
+  if (!any(ok_mask)) {
+    errs <- unique(vapply(resultsum, function(z) paste0(z$region, ": ", z$err), character(1)))
+    stop("All edges failed in interaction fitting. First errors:\n", paste(head(errs, 10), collapse = "\n"))
+  }
 
   saveRDS(resultsum, trajectory_cache)
 }
 
-plotdf <- do.call(rbind, readRDS(trajectory_cache))
+resultsum <- readRDS(trajectory_cache)
+plotdf <- do.call(rbind, lapply(resultsum, `[[`, "df"))
 plotdf <- merge(plotdf, SA12_10, by.x = "SC_label", by.y = "SC_label")
 
 plotdf.decile.low <- plotdf %>%
@@ -199,4 +236,3 @@ for (i in 1:10) {
   ggsave(paste0(out_base, ".tiff"), Fig, width = 10, height = 10, units = "cm", bg = "transparent")
   ggsave(paste0(out_base, ".pdf"), Fig, dpi = 600, width = 10, height = 10, units = "cm", bg = "transparent")
 }
-
