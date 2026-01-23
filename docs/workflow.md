@@ -14,7 +14,7 @@
 - 本仓库不使用 `configs/` 或 `src/` 结构，避免将现有脚本迁移导致路径失效。
 - `combat_gam/` 用于集中存放 ComBat-GAM 与纵向 ComBat 相关代码及其依赖。
 - ComBat 运行日志统一写入 `outputs/logs/combat_gam/`，输出结果保存到 `outputs/results/combat_gam/`。
-- ABCD 表型回填：`demopath/DemodfScreenFinal.csv` 用于按 `scanID` 回填部分表型列；其中 `nihtbx_fluidcomp_agecorrected` 来自 `demopath/nc_y_nihtb.csv` 并按 `src_subject_id + eventname` 合并。
+- ABCD 表型回填：`demopath/DemodfScreenFinal.csv` 用于按 `scanID` 回填部分表型列；其中 `nihtbx_fluidcomp_agecorrected` 与 `nihtbx_fluidcomp_fc` 来自 `demopath/nc_y_nihtb.csv` 并按 `src_subject_id + eventname` 合并（脚本：`development_script/1st_dataclean/S0th_merge_nihtbx_fluidcomp_fc_ABCD.R`）。
 
 ## 容器运行（Singularity/Apptainer）
 - 背景：部分计算节点无法加载在登录节点安装/更新过的 conda R 包（GLIBC 版本不匹配），且计算节点常无法访问 CRAN，导致运行时反复报错（`GLIBC_2.xx not found` / `cannot open URL .../PACKAGES`）。
@@ -37,6 +37,7 @@
 - ABCD 纵向 Nonlinear-ComBat-GAM（新增变体）：
   - CBCL total problems：`sbatch combat_gam/sbatch/abcd_combat_gam_cbcl.sbatch`，输出 `*combatgam_cbcl.rds`（协变量列：`cbcl_scr_syn_totprob_r`；不做 baseline-only）。
   - NIH Toolbox fluid cognition（age-corrected，baseline-only）：`sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch`，输出 `*combatgam_comp_agecorrected_baseline.rds`（协变量列：`nihtbx_fluidcomp_agecorrected`；仅保留 baseline 与 cognition 方案一致）。
+  - NIH Toolbox fluid cognition（fully-corrected/fc，baseline-only）：`sbatch combat_gam/sbatch/abcd_combat_gam_fluidcomp_fc_baseline.sbatch`，输出 `*combatgam_fluidcomp_fc_baseline.rds`（协变量列：`nihtbx_fluidcomp_fc`；仅保留 baseline 与 cognition 方案一致）。
   - 注：ABCD 的 `input_rds` 常仅包含 SC 与基础协变量；若缺少上述表型列，脚本会按 `scanID` 从 `demopath/DemodfScreenFinal.csv` 自动回填后再运行（回填失败会给出明确报错）。
 - ABCD 的 Nonlinear-ComBat-GAM 支持并行：`nlongcombat` 使用 `mclapply`，核数由 `SLURM_CPUS_PER_TASK` 控制；未设置时默认单核。
 
@@ -131,12 +132,19 @@
 	     - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
 	     - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
 
+	   - ABCD fluid cognition（fully-corrected/fc，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_fluidcomp_fc_baseline.rds`）可复现入口：
+	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_fc_container.sbatch`
+	     - 结果：`outputs/results/5th_cognition/abcd/fluid_fc/`
+	     - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/fluid_fc/`
+	     - 协变量设定：同 age-corrected 入口，支持 `COG_ASSOC_MODE={original,meanfd_only}` 与 `COG_ASSOC_TAG`。
+
 	   - S3（development curve）额外依赖：
 	     - `ABCD_SA12_CSV`：默认 `wd/interdataFolder_ABCD/SA12_10.csv`
 	     - `ABCD_PLOTDATASUM_RDS`：默认 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`（如需用项目内/其他版本，请在提交时覆盖该环境变量）
 	     - S3 会在**纵向** SC 数据上拟合 `age × baseline cognition`（`gamm4` 需要每个 `subID` 至少两次观测；baseline-only 会失败）。
 	       - uncorrected：优先从输入 SCdata 自身按 baseline `eventname` 提取；若纵向 SCdata 缺少 `nihtbx_fluidcomp_uncorrected`，则从 `demopath/DemodfScreenFinal.csv` 回填 baseline cognition；
 	       - age-corrected：纵向 SCdata 通常不包含 `nihtbx_fluidcomp_agecorrected`，因此从 `demopath/DemodfScreenFinal.csv`（git-ignored）按 `subID` 回填 baseline cognition 后再拟合。
+	       - fully-corrected/fc：纵向 SCdata 通常不包含 `nihtbx_fluidcomp_fc`，因此从 `demopath/DemodfScreenFinal.csv` 按 `subID` 回填 baseline cognition 后再拟合。
 
 ## CBCL 关联运行
 - 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。

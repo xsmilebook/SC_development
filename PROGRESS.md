@@ -160,3 +160,4 @@
 - 2026-01-22: ABCD age-corrected cognition 的 S2 绘图加固：当部分边拟合失败时，自动在邻近 SCrank 的候选边中寻找可用边并保证输出三张示例散点图（必要时写占位图），避免 “部分图像缺失”。
 - 2026-01-23: 修复 pfactor 与 cognition S3 交互曲线年龄范围不足（9–11）：脚本对 age 单位做自动识别（年/月）并统一到“年”，避免重复 `/12` 缩放导致范围被压缩。
 - 2026-01-23: pfactor 与 cognition S3 交互曲线在 log 中输出输入 SCdata 的 age 范围与 eventname 分布，便于确认是否因数据缺少 13 岁随访导致范围不足。
+- 2026-01-23: 将 ABCD NIH Toolbox fluid cognition fully-corrected（`nihtbx_fluidcomp_fc`）回填进 `demopath/DemodfScreenFinal.csv`，并新增对应的 baseline-only Nonlinear-ComBat-GAM 变体与 cognition（S1/S2/S3）复现入口及容器 sbatch。
