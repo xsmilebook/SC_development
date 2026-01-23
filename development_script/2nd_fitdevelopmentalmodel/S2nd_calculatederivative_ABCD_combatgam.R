@@ -10,6 +10,7 @@
 ##   Rscript --vanilla .../S2nd_calculatederivative_ABCD_combatgam.R --skip_posterior=1 --n_edges=10 --force=1
 
 library(parallel)
+library(tidyverse)
 
 rm(list = ls())
 
@@ -122,4 +123,3 @@ if (!skip_posterior) {
     saveRDS(posterior.sum, out_posterior)
   }
 }
-
