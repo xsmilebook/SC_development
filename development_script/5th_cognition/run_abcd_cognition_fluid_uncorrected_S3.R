@@ -60,9 +60,8 @@ SCdata$sex <- as.factor(SCdata$sex)
 
 if (!Cogvar %in% names(SCdata)) {
   stop(
-    "Missing phenotype column in SCdata: ", Cogvar, "\n",
-    "SCdata input (S3 requires longitudinal + phenotype columns): ", input_rds, "\n",
-    "Hint: ensure this SCdata contains the cognition phenotype column(s) before running S3."
+    "Missing phenotype column in longitudinal SCdata: ", Cogvar, "\n",
+    "SCdata input (S3 requires longitudinal + phenotype columns): ", input_rds
   )
 }
 

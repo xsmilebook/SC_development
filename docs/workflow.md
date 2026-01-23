@@ -134,7 +134,9 @@
 	   - S3（development curve）额外依赖：
 	     - `ABCD_SA12_CSV`：默认 `wd/interdataFolder_ABCD/SA12_10.csv`
 	     - `ABCD_PLOTDATASUM_RDS`：默认 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`（如需用项目内/其他版本，请在提交时覆盖该环境变量）
-	     - S3 会在**纵向** SC 数据上拟合 `age × baseline cognition`（`gamm4` 需要每个 `subID` 至少两次观测；baseline-only 会失败）。baseline cognition 值从输入的 SCdata 自身按 baseline `eventname` 提取；若 SCdata 缺失表型列（如 `nihtbx_fluidcomp_uncorrected` / `nihtbx_fluidcomp_agecorrected`），脚本会在报错中提示缺失列名。
+	     - S3 会在**纵向** SC 数据上拟合 `age × baseline cognition`（`gamm4` 需要每个 `subID` 至少两次观测；baseline-only 会失败）。
+	       - uncorrected：baseline cognition 值从输入 SCdata 自身按 baseline `eventname` 提取；
+	       - age-corrected：纵向 SCdata 通常不包含 `nihtbx_fluidcomp_agecorrected`，因此从 `demopath/DemodfScreenFinal.csv`（git-ignored）按 `subID` 回填 baseline cognition 后再拟合。
 
 ## CBCL 关联运行
 - 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。
