@@ -161,3 +161,4 @@
 - 2026-01-23: 修复 pfactor 与 cognition S3 交互曲线年龄范围不足（9–11）：脚本对 age 单位做自动识别（年/月）并统一到“年”，避免重复 `/12` 缩放导致范围被压缩。
 - 2026-01-23: pfactor 与 cognition S3 交互曲线在 log 中输出输入 SCdata 的 age 范围与 eventname 分布，便于确认是否因数据缺少 13 岁随访导致范围不足。
 - 2026-01-23: 将 ABCD NIH Toolbox fluid cognition fully-corrected（`nihtbx_fluidcomp_fc`）回填进 `demopath/DemodfScreenFinal.csv`，并新增对应的 baseline-only Nonlinear-ComBat-GAM 变体与 cognition（S1/S2/S3）复现入口及容器 sbatch。
+- 2026-01-23: ABCD 方差分解绘图脚本 `combat_gam/scripts/plot_abcd_variance_decomposition.R` 新增 fully-corrected/fc（`nihtbx_fluidcomp_fc`）的 Raw vs ComBat 输出：`abcd_variance_decomp_cognition_fluidcomp_fc`。

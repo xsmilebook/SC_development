@@ -8,6 +8,7 @@ combat_pfactor <- if (length(args) >= 4) args[[4]] else "outputs/results/combat_
 out_dir <- if (length(args) >= 5) args[[5]] else "outputs/figures/combat_gam"
 combat_cbcl <- if (length(args) >= 6) args[[6]] else "outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cbcl.rds"
 combat_comp_agecorrected <- if (length(args) >= 7) args[[7]] else "outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_comp_agecorrected_baseline.rds"
+combat_fluidcomp_fc <- if (length(args) >= 8) args[[8]] else "outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_fluidcomp_fc_baseline.rds"
 
 conda_prefix <- Sys.getenv("CONDA_PREFIX")
 if (nzchar(conda_prefix)) {
@@ -32,6 +33,7 @@ cog_predictors <- c("age", "sex", "mean_fd", "cognition", "siteID")
 pfactor_predictors <- c("age", "sex", "mean_fd", "pfactor", "siteID")
 cbcl_predictors <- c("age", "sex", "mean_fd", "cbcl_totprob", "siteID")
 comp_agecorrected_predictors <- c("age", "sex", "mean_fd", "fluidcomp_agecorrected", "siteID")
+fluidcomp_fc_predictors <- c("age", "sex", "mean_fd", "fluidcomp_fc", "siteID")
 
 maybe_backfill_abcd_from_demopath <- function(dat, needed_cols, demo_path = file.path("demopath", "DemodfScreenFinal.csv")) {
   if (all(needed_cols %in% names(dat))) {
@@ -58,6 +60,7 @@ prepare_raw <- function(path,
                         include_pfactor = FALSE,
                         include_cbcl = FALSE,
                         include_comp_agecorrected = FALSE,
+                        include_fluidcomp_fc = FALSE,
                         baseline_only = FALSE) {
   dat <- readRDS(path)
   sc_cols <- grep("^SC\\.", names(dat), value = TRUE)
@@ -81,6 +84,10 @@ prepare_raw <- function(path,
   if (include_comp_agecorrected) {
     needed <- c(needed, "nihtbx_fluidcomp_agecorrected")
     backfill_cols <- c(backfill_cols, "nihtbx_fluidcomp_agecorrected")
+  }
+  if (include_fluidcomp_fc) {
+    needed <- c(needed, "nihtbx_fluidcomp_fc")
+    backfill_cols <- c(backfill_cols, "nihtbx_fluidcomp_fc")
   }
   dat <- maybe_backfill_abcd_from_demopath(dat, unique(backfill_cols))
   missing <- setdiff(needed, names(dat))
@@ -109,6 +116,9 @@ prepare_raw <- function(path,
   if (include_comp_agecorrected) {
     dat$fluidcomp_agecorrected <- dat$nihtbx_fluidcomp_agecorrected
   }
+  if (include_fluidcomp_fc) {
+    dat$fluidcomp_fc <- dat$nihtbx_fluidcomp_fc
+  }
   list(df = dat, sc_cols = sc_cols)
 }
 
@@ -116,7 +126,8 @@ prepare_combat <- function(path,
                            include_cognition = FALSE,
                            include_pfactor = FALSE,
                            include_cbcl = FALSE,
-                           include_comp_agecorrected = FALSE) {
+                           include_comp_agecorrected = FALSE,
+                           include_fluidcomp_fc = FALSE) {
   dat <- readRDS(path)
   sc_cols <- grep("^SC\\..*_h$", names(dat), value = TRUE)
   needed <- c(sc_cols, "scanID", "siteID", "age", "sex", "mean_fd")
@@ -134,6 +145,9 @@ prepare_combat <- function(path,
   }
   if (include_comp_agecorrected) {
     needed <- c(needed, "nihtbx_fluidcomp_agecorrected")
+  }
+  if (include_fluidcomp_fc) {
+    needed <- c(needed, "nihtbx_fluidcomp_fc")
   }
   missing <- setdiff(needed, names(dat))
   if (length(missing) > 0) {
@@ -156,6 +170,9 @@ prepare_combat <- function(path,
   }
   if (include_comp_agecorrected) {
     dat$fluidcomp_agecorrected <- dat$nihtbx_fluidcomp_agecorrected
+  }
+  if (include_fluidcomp_fc) {
+    dat$fluidcomp_fc <- dat$nihtbx_fluidcomp_fc
   }
   list(df = dat, sc_cols = sc_cols)
 }
@@ -355,6 +372,7 @@ plot_variant <- function(label,
                          include_pfactor,
                          include_cbcl,
                          include_comp_agecorrected,
+                         include_fluidcomp_fc,
                          baseline_only,
                          out_prefix) {
   raw_data <- prepare_raw(
@@ -363,6 +381,7 @@ plot_variant <- function(label,
     include_pfactor = include_pfactor,
     include_cbcl = include_cbcl,
     include_comp_agecorrected = include_comp_agecorrected,
+    include_fluidcomp_fc = include_fluidcomp_fc,
     baseline_only = baseline_only
   )
   combat_data <- prepare_combat(
@@ -370,7 +389,8 @@ plot_variant <- function(label,
     include_cognition = include_cognition,
     include_pfactor = include_pfactor,
     include_cbcl = include_cbcl,
-    include_comp_agecorrected = include_comp_agecorrected
+    include_comp_agecorrected = include_comp_agecorrected,
+    include_fluidcomp_fc = include_fluidcomp_fc
   )
 
   raw_results <- compute_variance_decomp(raw_data$df, raw_data$sc_cols, "Raw", predictors, strip_suffix = FALSE)
@@ -438,6 +458,7 @@ plot_variant(
   include_pfactor = FALSE,
   include_cbcl = FALSE,
   include_comp_agecorrected = FALSE,
+  include_fluidcomp_fc = FALSE,
   baseline_only = FALSE,
   out_prefix = "abcd_variance_decomp_base"
 )
@@ -451,6 +472,7 @@ plot_variant(
   include_pfactor = FALSE,
   include_cbcl = FALSE,
   include_comp_agecorrected = FALSE,
+  include_fluidcomp_fc = FALSE,
   baseline_only = TRUE,
   out_prefix = "abcd_variance_decomp_cognition_fluid_uncorrected"
 )
@@ -464,6 +486,7 @@ plot_variant(
   include_pfactor = TRUE,
   include_cbcl = FALSE,
   include_comp_agecorrected = FALSE,
+  include_fluidcomp_fc = FALSE,
   baseline_only = FALSE,
   out_prefix = "abcd_variance_decomp_pfactor"
 )
@@ -477,6 +500,7 @@ plot_variant(
   include_pfactor = FALSE,
   include_cbcl = TRUE,
   include_comp_agecorrected = FALSE,
+  include_fluidcomp_fc = FALSE,
   baseline_only = FALSE,
   out_prefix = "abcd_variance_decomp_cbcl_totprob"
 )
@@ -490,6 +514,21 @@ plot_variant(
   include_pfactor = FALSE,
   include_cbcl = FALSE,
   include_comp_agecorrected = TRUE,
+  include_fluidcomp_fc = FALSE,
   baseline_only = TRUE,
   out_prefix = "abcd_variance_decomp_cognition_fluidcomp_agecorrected"
+)
+
+plot_variant(
+  label = "ABCD (fluid cognition fully-corrected/fc; baseline-only)",
+  raw_path = raw_rds,
+  combat_path = combat_fluidcomp_fc,
+  predictors = fluidcomp_fc_predictors,
+  include_cognition = FALSE,
+  include_pfactor = FALSE,
+  include_cbcl = FALSE,
+  include_comp_agecorrected = FALSE,
+  include_fluidcomp_fc = TRUE,
+  baseline_only = TRUE,
+  out_prefix = "abcd_variance_decomp_cognition_fluidcomp_fc"
 )
