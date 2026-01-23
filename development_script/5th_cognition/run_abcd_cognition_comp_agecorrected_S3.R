@@ -55,6 +55,14 @@ source(file.path(functionFolder, "gamminteraction.R"))
 SCdata <- readRDS(input_rds)
 SCdata$age <- as.numeric(SCdata$age) / 12
 
+scanid_to_eventname <- function(scanID) {
+  sess <- sub("^.*_ses-", "", as.character(scanID))
+  sess <- gsub("([a-z])([A-Z])", "\\1_\\2", sess)
+  sess <- gsub("([A-Za-z])([0-9])", "\\1_\\2", sess)
+  sess <- gsub("([0-9])([A-Za-z])", "\\1_\\2", sess)
+  tolower(sess)
+}
+
 required_cols <- c("subID", "age", "mean_fd", "sex")
 missing_cols <- setdiff(required_cols, names(SCdata))
 if (length(missing_cols) > 0) {
@@ -66,6 +74,10 @@ if (length(missing_cols) > 0) {
 SCdata$sex <- as.factor(SCdata$sex)
 
 can_extract_from_scdata <- (Cogvar %in% names(SCdata)) && ("eventname" %in% names(SCdata))
+if (!("eventname" %in% names(SCdata)) && ("scanID" %in% names(SCdata))) {
+  SCdata$eventname <- scanid_to_eventname(SCdata$scanID)
+  can_extract_from_scdata <- (Cogvar %in% names(SCdata)) && ("eventname" %in% names(SCdata))
+}
 if (can_extract_from_scdata) {
   Cogdf <- SCdata %>%
     select(subID, eventname, all_of(Cogvar)) %>%

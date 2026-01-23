@@ -53,6 +53,14 @@ source(file.path(functionFolder, "colorbarvalue.R"))
 theme <- ggplot2::theme
 theme_classic <- ggplot2::theme_classic
 
+scanid_to_eventname <- function(scanID) {
+  sess <- sub("^.*_ses-", "", as.character(scanID))
+  sess <- gsub("([a-z])([A-Z])", "\\1_\\2", sess)
+  sess <- gsub("([A-Za-z])([0-9])", "\\1_\\2", sess)
+  sess <- gsub("([0-9])([A-Za-z])", "\\1_\\2", sess)
+  tolower(sess)
+}
+
 SCdata <- readRDS(input_rds)
 meandistance <- read.csv(euclid_csv)$Edistance
 SCdata$age <- as.numeric(SCdata$age) / 12
@@ -63,6 +71,9 @@ if (!Cogvar %in% names(SCdata)) {
 
 nonna_index <- which(!is.na(SCdata[, Cogvar]))
 SCdata.cog <- SCdata[nonna_index, , drop = FALSE]
+if (!("eventname" %in% names(SCdata.cog)) && ("scanID" %in% names(SCdata.cog))) {
+  SCdata.cog$eventname <- scanid_to_eventname(SCdata.cog$scanID)
+}
 if ("eventname" %in% names(SCdata.cog)) {
   SCdata.cog <- SCdata.cog[SCdata.cog$eventname == "baseline_year_1_arm_1", , drop = FALSE]
 }

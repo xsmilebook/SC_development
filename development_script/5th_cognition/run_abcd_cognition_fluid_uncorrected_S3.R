@@ -52,6 +52,18 @@ source(file.path(functionFolder, "gamminteraction.R"))
 SCdata <- readRDS(input_rds)
 SCdata$age <- as.numeric(SCdata$age) / 12
 
+scanid_to_eventname <- function(scanID) {
+  sess <- sub("^.*_ses-", "", as.character(scanID))
+  sess <- gsub("([a-z])([A-Z])", "\\1_\\2", sess)
+  sess <- gsub("([A-Za-z])([0-9])", "\\1_\\2", sess)
+  sess <- gsub("([0-9])([A-Za-z])", "\\1_\\2", sess)
+  tolower(sess)
+}
+
+if (!("eventname" %in% names(SCdata)) && ("scanID" %in% names(SCdata))) {
+  SCdata$eventname <- scanid_to_eventname(SCdata$scanID)
+}
+
 if (!all(c("subID", "eventname", "age", "mean_fd") %in% names(SCdata))) {
   stop("Missing required columns in SCdata: subID/age/mean_fd")
 }
