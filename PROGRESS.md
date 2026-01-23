@@ -163,3 +163,4 @@
 - 2026-01-23: 将 ABCD NIH Toolbox fluid cognition fully-corrected（`nihtbx_fluidcomp_fc`）回填进 `demopath/DemodfScreenFinal.csv`，并新增对应的 baseline-only Nonlinear-ComBat-GAM 变体与 cognition（S1/S2/S3）复现入口及容器 sbatch。
 - 2026-01-23: ABCD 方差分解绘图脚本 `combat_gam/scripts/plot_abcd_variance_decomposition.R` 新增 fully-corrected/fc（`nihtbx_fluidcomp_fc`）的 Raw vs ComBat 输出：`abcd_variance_decomp_cognition_fluidcomp_fc`。
 - 2026-01-23: 修复 `abcd_variance_decomp_cognition_fluidcomp_fc` 图中 `fluidcomp_fc` 图例缺失：为 `fluidcomp_fc` 补齐 palette 映射并设置 `drop=FALSE`，同时强制将 `nihtbx_fluidcomp_fc` 转为 numeric。
+- 2026-01-23: 新增基于 ComBat-GAM 数据的年龄分辨 S-A 对齐分析：`development_script/4th_changerate_SAcorr/S1st_SAcorr_alongAge_{HCPD,ABCD}.R`，并提供对应容器 sbatch（生成图片且在日志输出 flip-age 与 rho 等关键数值）。

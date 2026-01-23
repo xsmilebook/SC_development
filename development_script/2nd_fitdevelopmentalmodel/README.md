@@ -29,6 +29,17 @@ Rscript versions were added for the original HCP-D Rmd scripts:
 - `S3rd_visualizationfitSCcurves_SA12sumSCinvnode_HCPD.R`
 - `S4th_correlationTo_SArank_SA12sumSCinvnode_HCPD.R`
 
+## ABCD (ComBat-GAM) in-repo runnable scripts (derivatives for alignment analyses)
+For ABCD, we add lightweight, project-root relative scripts to generate scaled GAMM models and (posterior) derivatives from the ComBat-GAM output. These are the prerequisites for age-resolved S-A alignment in `development_script/4th_changerate_SAcorr/`.
+
+- Input (default): `outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
+- Intermediates: `outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
+- Results: `outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
+
+Scripts:
+- `S1st_fitgammodels_SA_ds_sumSCinvnode_ABCD_combatgam.R`
+- `S2nd_calculatederivative_ABCD_combatgam.R`
+
 ## V1st_check_k.R
 This script was utilized to select the optimal (k) values for the smoothing functions in GAM and GAMM. 
 
@@ -37,4 +48,3 @@ Compute Euclidean distance between pairwise systems in 12x12 matrix.
 
 ## sup_sigderivative_HCPD.R
 This script visualized the age window during which the SC strength develops significantly. The age windows were identified based on the significance of first derivatives.
-

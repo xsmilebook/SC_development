@@ -28,6 +28,23 @@
   - 常见构建报错：`Error: object ‘attr’ is not exported by 'namespace:xfun'`（`knitr` lazy-load 失败）：通常是 `xfun` API 随 CRAN 更新发生漂移。处理：在容器定义中固定 `xfun==0.52` 与 `knitr==1.43`，并确保安装时不自动拉取 `Suggests` 依赖导致的版本覆盖。
   - 网络：计算节点联网需代理；构建脚本已内置 `http(s)_proxy` 等环境变量导出。
 
+## 年龄分辨的 S-A 对齐分析（4th_changerate_SAcorr，基于 ComBat-GAM）
+- 目标：在 1,000 个年龄点上，计算“posterior derivative（SC change rate） vs S-A axis rank”的 Spearman rho，并从 1,000 个 posterior draws 得到中位数与 95% CI；同时在日志中输出 flip-age（rho≈0 的年龄）及其 CI 等关键数值。
+- 前置：需要 `development_script/2nd_fitdevelopmentalmodel` 生成的 `derivative.df*` 与 `derivative.posterior.df*`（sbatch 脚本会在缺失时自动补跑上游步骤；可用 `FORCE=1` 强制重算）。
+- 提交命令（用户在集群上执行）：
+  - HCP-D：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch`
+  - ABCD：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_CV75_container.sbatch`
+- 常用参数（环境变量）：
+  - `CVTHR=75`（默认 75）
+  - `N_DRAWS=1000`（默认 1000；小样本可设为 50/100）
+  - `N_EDGES=78`（可选；小样本测试可设为 5/10）
+  - `FORCE=0/1`
+  - ABCD 输入可覆盖：`INPUT_RDS=/ibmgpfs/.../SCdata_...combatgam_age_sex_meanfd.rds`
+- 输出位置：
+  - 结果表：`outputs/results/4th_changerate_SAcorr/{hcpd,abcd}/combat_gam/CV75/`
+  - 图片：`outputs/figures/4th_changerate_SAcorr/{hcpd,abcd}/combat_gam/CV75/Alignment_development/`（默认 `.tiff + .pdf`）
+  - 日志：`outputs/logs/4th_changerate_SAcorr_{dataset}_CV75_<jobid>.log`（包含 `[RESULT]` 行的具体数值）
+
 ## ComBat-GAM 运行约定
 - 小型测试可直接运行 `combat_gam/scripts/*.sh`；正式任务必须使用 `combat_gam/sbatch/*.sbatch` 提交到 `q_fat_c`。
 - ComBat-GAM 使用项目专用环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment`。
