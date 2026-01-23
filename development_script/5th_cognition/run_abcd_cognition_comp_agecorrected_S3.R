@@ -186,7 +186,17 @@ if (force || !file.exists(trajectory_cache)) {
 }
 
 resultsum <- readRDS(trajectory_cache)
-plotdf <- do.call(rbind, lapply(resultsum, `[[`, "df"))
+# Backward-compatible cache loading:
+# - Old cache: list of data.frames (direct outputs per edge)
+# - New cache: list of lists {ok, df, err, region}
+plotdf_list <- lapply(resultsum, function(z) {
+  if (is.data.frame(z)) return(z)
+  if (is.list(z) && "df" %in% names(z)) return(z$df)
+  NULL
+})
+plotdf_list <- plotdf_list[!vapply(plotdf_list, is.null, logical(1))]
+if (length(plotdf_list) < 1) stop("No plot data available after loading cache: ", trajectory_cache)
+plotdf <- do.call(rbind, plotdf_list)
 plotdf <- merge(plotdf, SA12_10, by.x = "SC_label", by.y = "SC_label")
 
 plotdf.decile.low <- plotdf %>%
