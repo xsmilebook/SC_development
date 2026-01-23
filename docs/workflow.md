@@ -135,7 +135,7 @@
 	     - `ABCD_SA12_CSV`：默认 `wd/interdataFolder_ABCD/SA12_10.csv`
 	     - `ABCD_PLOTDATASUM_RDS`：默认 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`（如需用项目内/其他版本，请在提交时覆盖该环境变量）
 	     - S3 会在**纵向** SC 数据上拟合 `age × baseline cognition`（`gamm4` 需要每个 `subID` 至少两次观测；baseline-only 会失败）。
-	       - uncorrected：baseline cognition 值从输入 SCdata 自身按 baseline `eventname` 提取；
+	       - uncorrected：优先从输入 SCdata 自身按 baseline `eventname` 提取；若纵向 SCdata 缺少 `nihtbx_fluidcomp_uncorrected`，则从 `demopath/DemodfScreenFinal.csv` 回填 baseline cognition；
 	       - age-corrected：纵向 SCdata 通常不包含 `nihtbx_fluidcomp_agecorrected`，因此从 `demopath/DemodfScreenFinal.csv`（git-ignored）按 `subID` 回填 baseline cognition 后再拟合。
 
 ## CBCL 关联运行
