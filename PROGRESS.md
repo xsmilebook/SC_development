@@ -124,6 +124,7 @@
 - 2026-01-23: 修复 ABCD cognition（age-corrected）S3 在 baseline-only 输入下 `gamm4` 全边失败：S3 改为读取纵向 SC 数据 `*combatgam_age_sex_meanfd.rds` 并从 `demopath/DemodfScreenFinal.csv` 回填 baseline cognition 后再拟合交互模型。
 - 2026-01-23: cognition S3 baseline cognition 改为从 SCdata 自身提取；若 SCdata 缺失表型列则报错提示缺失列名（不再从 demopath 回填）。
 - 2026-01-23: 对齐原始 S3：uncorrected 从纵向 SCdata 提取 baseline cognition；age-corrected 因纵向 SCdata 缺少 `nihtbx_fluidcomp_agecorrected`，改为从 `demopath/DemodfScreenFinal.csv` 回填 baseline cognition。
+- 2026-01-23: 修复 age-corrected cognition S3 在纵向 SCdata 缺少 `eventname` 时的误报缺列：仅要求 `subID/age/sex/mean_fd`；baseline cognition 仍按需从 demopath 回填。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S3 在 `derivative.df` 缺少 `significant.derivative_fdr` 列时的崩溃：S3 自动补齐该列（优先使用 `significance_pvalue_fdr`，否则用 `significant`/`significant.derivative` 回退）。
 - 2026-01-21: 修复 HCP-D 发育模型容器作业 S4 在 `psych::corr.test()` 返回标量时的崩溃：散点图标题相关性提取兼容矩阵/标量两种返回结构，避免 `ct$r[[1,2]]` 下标错误。
 - 2026-01-21: 加固容器 sbatch：当 S3 decile 图或 S4 相关性散点图缺失时，自动对对应步骤启用 `--force=1` 回填图片（支持 `FORCE_S3/FORCE_S4` 覆盖），避免 “哨兵/summary 存在但图片目录为空”。
