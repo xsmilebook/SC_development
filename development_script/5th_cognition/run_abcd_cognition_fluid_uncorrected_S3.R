@@ -58,17 +58,15 @@ if (!all(c("subID", "eventname", "age", "mean_fd") %in% names(SCdata))) {
 if (!("sex" %in% names(SCdata))) stop("Missing required column: sex")
 SCdata$sex <- as.factor(SCdata$sex)
 
-demopath_csv <- file.path(project_root, "demopath", "DemodfScreenFinal.csv")
-if (!file.exists(demopath_csv)) {
-  stop("Missing demopath_csv (git-ignored, required for S3 baseline cognition): ", demopath_csv)
+if (!Cogvar %in% names(SCdata)) {
+  stop(
+    "Missing phenotype column in SCdata: ", Cogvar, "\n",
+    "SCdata input (S3 requires longitudinal + phenotype columns): ", input_rds, "\n",
+    "Hint: ensure this SCdata contains the cognition phenotype column(s) before running S3."
+  )
 }
-Demodf <- read.csv(demopath_csv, stringsAsFactors = FALSE)
-needed_demo <- c("subID", "eventname", Cogvar)
-missing_demo <- setdiff(needed_demo, names(Demodf))
-if (length(missing_demo) > 0) {
-  stop("Missing required columns in demopath/DemodfScreenFinal.csv: ", paste(missing_demo, collapse = ", "))
-}
-Cogdf <- Demodf %>%
+
+Cogdf <- SCdata %>%
   select(subID, eventname, all_of(Cogvar)) %>%
   drop_na() %>%
   filter(str_detect(eventname, "base")) %>%

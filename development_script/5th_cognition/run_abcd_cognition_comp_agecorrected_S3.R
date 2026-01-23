@@ -62,36 +62,21 @@ if (!("sex" %in% names(SCdata))) stop("Missing required column: sex")
 SCdata$sex <- as.factor(SCdata$sex)
 
 if (!Cogvar %in% names(SCdata)) {
-  demopath_csv <- file.path(project_root, "demopath", "DemodfScreenFinal.csv")
-  if (!file.exists(demopath_csv)) {
-    stop("Missing demopath_csv (git-ignored, required for S3 baseline cognition): ", demopath_csv)
-  }
-  Demodf <- read.csv(demopath_csv, stringsAsFactors = FALSE)
-  needed_demo <- c("subID", "eventname", Cogvar)
-  missing_demo <- setdiff(needed_demo, names(Demodf))
-  if (length(missing_demo) > 0) {
-    stop("Missing required columns in demopath/DemodfScreenFinal.csv: ", paste(missing_demo, collapse = ", "))
-  }
-  Cogdf <- Demodf %>%
-    select(subID, eventname, all_of(Cogvar)) %>%
-    drop_na() %>%
-    filter(str_detect(eventname, "base")) %>%
-    select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
-    distinct()
-  SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
-  if (!Cogvar_base %in% names(SCdata)) stop("Baseline cognition join failed, missing: ", Cogvar_base)
+  stop(
+    "Missing phenotype column in SCdata: ", Cogvar, "\n",
+    "SCdata input (S3 requires longitudinal + phenotype columns): ", input_rds, "\n",
+    "Hint: ensure this SCdata contains the cognition phenotype column(s) before running S3."
+  )
 }
 
-if (Cogvar %in% names(SCdata)) {
-  Cogdf <- SCdata %>%
-    select(subID, eventname, all_of(Cogvar)) %>%
-    drop_na() %>%
-    filter(str_detect(eventname, "base")) %>%
-    select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
-    distinct()
-  SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
-  if (!Cogvar_base %in% names(SCdata)) stop("Baseline cognition join failed, missing: ", Cogvar_base)
-}
+Cogdf <- SCdata %>%
+  select(subID, eventname, all_of(Cogvar)) %>%
+  drop_na() %>%
+  filter(str_detect(eventname, "base")) %>%
+  select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
+  distinct()
+SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
+if (!Cogvar_base %in% names(SCdata)) stop("Baseline cognition join failed, missing: ", Cogvar_base)
 
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
 if (any(grepl("_h$", sc_cols))) sc_cols <- sc_cols[grepl("_h$", sc_cols)]
