@@ -140,16 +140,20 @@ corr_mat <- do.call(rbind, corr_rows)
 colnames(corr_mat) <- paste0("age_", format(age_values, trim = TRUE, scientific = FALSE))
 rownames(corr_mat) <- draw_keep
 
+## Match the historical Rmd behavior: round correlations to 4 decimals before
+## computing medians/CI and flip-age (rho≈0) window.
+corr_mat_round <- round(corr_mat, 4)
+
 con <- gzfile(out_corr_gz, open = "wt")
 on.exit(close(con), add = TRUE)
 write.csv(cbind(draw = rownames(corr_mat), as.data.frame(corr_mat)), con, row.names = FALSE)
 
-median_rho <- apply(corr_mat, 2, median, na.rm = TRUE)
-ci_low <- apply(corr_mat, 2, function(x) as.numeric(quantile(x, probs = 0.025, na.rm = TRUE)))
-ci_high <- apply(corr_mat, 2, function(x) as.numeric(quantile(x, probs = 0.975, na.rm = TRUE)))
+median_rho <- apply(corr_mat_round, 2, median, na.rm = TRUE)
+ci_low <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.025, na.rm = TRUE)))
+ci_high <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.975, na.rm = TRUE)))
 
 flip_age_each_draw <- vapply(seq_len(nrow(corr_mat)), function(i) {
-  row <- corr_mat[i, ]
+  row <- corr_mat_round[i, ]
   idx <- which.min(abs(row - 0))
   age_values[[idx]]
 }, numeric(1))
@@ -225,4 +229,3 @@ p_hist <- ggplot(data.frame(flip_age = flip_age_each_draw), aes(x = flip_age)) +
   )
 ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.tiff"), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
 ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.pdf"), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
-
