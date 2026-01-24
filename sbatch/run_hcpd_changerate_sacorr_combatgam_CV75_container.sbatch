@@ -81,3 +81,13 @@ exec_sif Rscript --vanilla /work/development_script/4th_changerate_SAcorr/S1st_S
   --n_draws="${N_DRAWS}" \
   --derivative_posterior_rds="${posterior_rds}" \
   --force="${FORCE}"
+
+# Run the age-separated (flip-age) GAM analysis (S2 in the original 4th folder),
+# using the flip age estimated in S1 (alignment_summary_flip_age.csv).
+flip_csv="/work/outputs/results/4th_changerate_SAcorr/hcpd/combat_gam/CV${CVTHR}/alignment_summary_flip_age.csv"
+exec_sif Rscript --vanilla /work/development_script/4th_changerate_SAcorr/S2nd_fitgammodels_SA12sumSCinvnode_ageseperate_HCPD.R \
+  --project_root=/work \
+  --cvthr="${CVTHR}" \
+  --flip_age_csv="${flip_csv}" \
+  ${N_EDGES:+--n_edges=${N_EDGES}} \
+  --force="${FORCE}"

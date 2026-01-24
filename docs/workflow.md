@@ -32,7 +32,7 @@
 - 目标：在 1,000 个年龄点上，计算“posterior derivative（SC change rate） vs S-A axis rank”的 Spearman rho，并从 1,000 个 posterior draws 得到中位数与 95% CI；同时在日志中输出 flip-age（rho≈0 的年龄）及其 CI 等关键数值。
 - 前置：需要 `development_script/2nd_fitdevelopmentalmodel` 生成的 `derivative.df*` 与 `derivative.posterior.df*`（sbatch 脚本会在缺失时自动补跑上游步骤；可用 `FORCE=1` 强制重算）。
 - 提交命令（用户在集群上执行）：
-  - HCP-D：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch`
+  - HCP-D：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch`（包含 4th 的 S1+S2 完整流程：对齐曲线 + flip-age 分组 GAM）
   - ABCD：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_CV75_container.sbatch`
 - 常用参数（环境变量）：
   - `CVTHR=75`（默认 75）

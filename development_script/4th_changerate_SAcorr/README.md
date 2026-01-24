@@ -16,7 +16,15 @@ Cluster submission (Singularity container):
 
 Both scripts generate alignment figures (`.tiff` + `.pdf`) and print key numeric results to the SLURM log (e.g., flip-age median/CI and rho extrema).
 
+## S2nd_fitgammodels_SA12sumSCinvnode_ageseperate_HCPD (Rscript)
+For a full HCP-D 4th-step run, the age-separated (flip-age) GAM analysis script is available as:
+- `S2nd_fitgammodels_SA12sumSCinvnode_ageseperate_HCPD.R` (Rscript; reads flip age from `alignment_summary_flip_age.csv` by default)
+
+The HCP-D sbatch `sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch` runs:
+1) derivative generation (if missing),
+2) age-resolved alignment (S1),
+3) age-separated GAM analysis (S2).
+
 
 ## S2nd_fitgammodels_SA12sumSCinvnode_ageseperate_HCPD.Rmd
 At the age point where the alignment of developmental rates with the S-A connectional axis experiences a reversal, the HCP-D dataset is partitioned into two sub-datasets. Next, developmental effects were estimated for each connection within the two subdatasets. Following this, correlations between the age effect size, as measured by partial R-square, and the connectional axis rank were computed.
-
