@@ -25,6 +25,16 @@ rm(list = ls())
 library(parallel)
 library(ggplot2)
 
+melt_df <- function(x, id.vars) {
+  if (requireNamespace("reshape2", quietly = TRUE)) {
+    return(reshape2::melt(x, id.vars = id.vars))
+  }
+  if (requireNamespace("reshape", quietly = TRUE)) {
+    return(reshape::melt(x, id.vars = id.vars))
+  }
+  stop("Missing package for melt(): install reshape2 or reshape in the runtime environment.")
+}
+
 parse_args <- function(args) {
   res <- list()
   for (a in args) {
@@ -240,3 +250,174 @@ p_hist <- ggplot(data.frame(flip_age = flip_age_each_draw), aes(x = flip_age)) +
   )
 ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.tiff"), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
 ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.pdf"), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
+
+save_svg_if_available <- function(filename, plot, width_cm, height_cm, dpi = 600) {
+  if (!requireNamespace("svglite", quietly = TRUE)) {
+    message("[INFO] svglite not available; skip svg: ", filename)
+    return(invisible(FALSE))
+  }
+  ggsave(filename, plot, dpi = dpi, width = width_cm, height = height_cm, units = "cm", bg = "transparent")
+  invisible(TRUE)
+}
+
+# Also save figures using the original Rmd filenames (tiff+svg), when possible.
+ggsave(file.path(figure_dir, "SA12_posDeriv_divweight_corr.tiff"), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
+save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_divweight_corr.svg"), p_align, width_cm = 20, height_cm = 15)
+
+# Original-style flip-age histogram (no axes) used in Rmd.
+p_hist_rmd <- ggplot() +
+  geom_histogram(aes(flip_age_each_draw, y = ..count..), binwidth = 0.5, linewidth = 1, color = "black", fill = "white") +
+  geom_vline(aes(xintercept = flip_median), colour = "red", linetype = "solid", linewidth = 1) +
+  labs(x = NULL, y = NULL) +
+  theme_classic() +
+  scale_y_discrete(breaks = NULL) +
+  scale_x_continuous(breaks = NULL) +
+  theme(
+    axis.line = element_blank(),
+    aspect.ratio = 0.5,
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    axis.title = element_text(color = "black", size = 15),
+    axis.text.x = element_text(color = "black", size = 20)
+  )
+ggsave(file.path(figure_dir, "Agedistribution_0corr.tiff"), p_hist_rmd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+save_svg_if_available(file.path(figure_dir, "Agedistribution_0corr.svg"), p_hist_rmd, width_cm = 6, height_cm = 6)
+
+# Additional figures from the original Rmd: age-specific derivative scatter/matrix and derivative line plot.
+derivative_df <- readRDS(in_derivative)
+if (!is.data.frame(derivative_df)) stop("Invalid derivative.df RDS: ", in_derivative)
+if (!all(c("age", "label_ID", "derivative") %in% names(derivative_df))) {
+  stop("derivative.df missing required columns age/label_ID/derivative: ", in_derivative)
+}
+
+age_grid <- sort(unique(as.numeric(derivative_df$age)))
+age_min <- min(age_grid)
+age_max <- max(age_grid)
+age_mid <- age_grid[[which.min(abs(age_grid - flip_median))]]
+message(sprintf("[INFO] age_min=%.5f age_mid(nearest_flip)=%.5f age_max=%.5f", age_min, age_mid, age_max))
+
+build_age_deriv_df <- function(target_age) {
+  parcel_all <- paste0("SC.", seq_len(length(posterior_list)), "_h")
+  df_out <- data.frame(label_ID = parcel_all, derivative = NA_real_)
+  for (i in seq_along(parcel_all)) {
+    lab <- parcel_all[[i]]
+    sub <- derivative_df[derivative_df$label_ID == lab, , drop = FALSE]
+    if (nrow(sub) == 0) next
+    idx <- which.min(abs(as.numeric(sub$age) - target_age))
+    df_out$derivative[[i]] <- as.numeric(sub$derivative[[idx]])
+  }
+  df_out
+}
+
+df_age_min <- build_age_deriv_df(age_min)
+df_age_mid <- build_age_deriv_df(age_mid)
+df_age_max <- build_age_deriv_df(age_max)
+
+spearman_r <- function(x, y) suppressWarnings(cor(x, y, method = "spearman", use = "pairwise.complete.obs"))
+message(sprintf("[RESULT] age_min rho(derivative,SArank)=%.5f", spearman_r(df_age_min$derivative, sa_rank)))
+message(sprintf("[RESULT] age_mid rho(derivative,SArank)=%.5f", spearman_r(df_age_mid$derivative, sa_rank)))
+message(sprintf("[RESULT] age_max rho(derivative,SArank)=%.5f", spearman_r(df_age_max$derivative, sa_rank)))
+
+# 3-line scatter plot
+df_scatter <- rbind(
+  data.frame(age = sprintf("%.2f", age_min), SCrank = sa_rank, derivative = df_age_min$derivative),
+  data.frame(age = sprintf("%.2f", age_mid), SCrank = sa_rank, derivative = df_age_mid$derivative),
+  data.frame(age = sprintf("%.2f", age_max), SCrank = sa_rank, derivative = df_age_max$derivative)
+)
+df_scatter$age <- as.factor(df_scatter$age)
+
+p_scatter <- ggplot(df_scatter) +
+  geom_smooth(aes(x = SCrank, y = derivative, group = age), color = "black", method = "lm", se = TRUE) +
+  labs(x = "S-A connectional axis rank", y = "SC change rate") +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 15.4, color = "black"),
+    axis.title = element_text(size = 15.4, color = "black"),
+    aspect.ratio = 0.82,
+    axis.line = element_line(linewidth = 0.35),
+    axis.ticks = element_line(linewidth = 0.35),
+    legend.position = "none",
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+ggsave(file.path(figure_dir, "deri.diw_corr_SCrank12ageAll.tiff"), p_scatter, dpi = 600, width = 14, height = 12, units = "cm", bg = "transparent")
+save_svg_if_available(file.path(figure_dir, "deri.diw_corr_SCrank12ageAll.svg"), p_scatter, width_cm = 12, height_cm = 10)
+ggsave(file.path(figure_dir, "deri.diw_corr_SCrank12ageAll.pdf"), p_scatter, dpi = 600, width = 14, height = 12, units = "cm", bg = "transparent")
+
+make_matrix_plot <- function(values_vec, title, out_tiff) {
+  matsize <- ds.resolution
+  mat <- matrix(NA_real_, nrow = matsize, ncol = matsize)
+  idx_lower <- lower.tri(mat, diag = TRUE)
+  idx_upper <- upper.tri(mat)
+  mat[idx_lower] <- values_vec
+  mat[idx_upper] <- t(mat)[idx_upper]
+  colnames(mat) <- seq_len(matsize)
+  rownames(mat) <- seq_len(matsize)
+  mat_df <- as.data.frame(mat)
+  mat_df$nodeid <- seq_len(matsize)
+  m <- melt_df(mat_df, id.vars = c("nodeid"))
+  m$variable <- as.numeric(m$variable)
+  m$nodeid <- 0 - m$nodeid
+
+  linerange_frame <- data.frame(
+    x = c(0.5, matsize + 0.5), ymin = rep(-matsize - 0.5, times = 2), ymax = rep(-0.5, times = 2),
+    y = c(-0.5, -matsize - 0.5), xmin = rep(0.5, times = 2), xmax = rep(matsize + 0.5, times = 2)
+  )
+
+  ggplot(m) +
+    geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
+    scale_fill_distiller(type = "seq", palette = "RdBu", limits = c(-maxderiv, maxderiv)) +
+    scale_color_distiller(type = "seq", palette = "RdBu", limits = c(-maxderiv, maxderiv)) +
+    geom_segment(aes(x = 0.5, y = -0.5, xend = matsize + 0.5, yend = -0.5 - matsize), color = "black", linewidth = 0.5) +
+    geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
+    geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
+    ggtitle(label = title) +
+    labs(x = "", y = "") +
+    scale_y_continuous(breaks = NULL, labels = NULL) +
+    scale_x_continuous(breaks = NULL, labels = NULL) +
+    theme(
+      axis.line = element_line(linewidth = 0),
+      axis.text.x = element_text(size = 20),
+      axis.text.y = element_text(size = 20),
+      axis.title = element_text(size = 20),
+      plot.title = element_text(size = 20, hjust = 0.5),
+      legend.title = element_text(size = 20),
+      legend.text = element_text(size = 20),
+      panel.background = element_rect(fill = NA, color = NA),
+      panel.grid.major = element_line(linewidth = 0),
+      panel.grid.minor = element_line(linewidth = 1)
+    )
+}
+
+maxderiv <- max(abs(c(df_age_min$derivative, df_age_mid$derivative, df_age_max$derivative)), na.rm = TRUE)
+
+p_mat_min <- make_matrix_plot(df_age_min$derivative, sprintf("Age = %.2f", age_min), "Deri_SA12_diw_age8.tiff")
+ggsave(file.path(figure_dir, "Deri_SA12_diw_age8.tiff"), p_mat_min, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
+p_mat_mid <- make_matrix_plot(df_age_mid$derivative, sprintf("Age = %.2f", age_mid), "Deri_SA12_diw_age15.tiff")
+ggsave(file.path(figure_dir, "Deri_SA12_diw_age15.tiff"), p_mat_mid, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
+p_mat_max <- make_matrix_plot(df_age_max$derivative, sprintf("Age = %.2f", age_max), "Deri_SA12_diw_age21.tiff")
+ggsave(file.path(figure_dir, "Deri_SA12_diw_age21.tiff"), p_mat_max, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
+
+# Derivative line plot across age
+sc_rank_first <- rank(edge_sarank_value, ties.method = "first")
+rank_df <- data.frame(label_ID = paste0("SC.", seq_len(length(posterior_list)), "_h"), SCrank12 = sc_rank_first)
+derivative_merge <- merge(derivative_df, rank_df, by = "label_ID", all.x = TRUE)
+p_line <- ggplot(derivative_merge) +
+  geom_line(aes(x = age, y = derivative, group = label_ID, color = SCrank12), size = 1.4, alpha = 1) +
+  scale_color_distiller(type = "seq", palette = "RdBu") +
+  scale_fill_distiller(type = "seq", palette = "RdBu") +
+  labs(x = "Age (years)", y = "SC change rate", color = "Axis rank") +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 21.2, color = "black"),
+    axis.title = element_text(size = 21.2, color = "black"),
+    aspect.ratio = 0.65,
+    axis.line = element_line(linewidth = 0.5),
+    axis.ticks = element_line(linewidth = 0.5),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    legend.position = "none"
+  )
+ggsave(file.path(figure_dir, "derivative_diw_SA12_changerate.tiff"), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")
+save_svg_if_available(file.path(figure_dir, "derivative_diw_SA12_changerate.svg"), p_line, width_cm = 20, height_cm = 16)
+ggsave(file.path(figure_dir, "derivative_diw_SA12_changerate.pdf"), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")
