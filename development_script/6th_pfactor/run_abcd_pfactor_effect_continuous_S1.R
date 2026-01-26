@@ -428,7 +428,7 @@ for (i in 1:10) {
   Fig <- ggplot(data = plotdf.tmp) +
     geom_line(aes(x = age, y = fit.avg, group = label, linetype = label), linewidth = 1.2, color = colorindex) +
     scale_x_continuous(labels = function(x) x * age_label_mult) +
-    scale_y_continuous(breaks = c(0.9, 1.0), limits = c(0.90, 1.1)) +
+    scale_y_continuous(breaks = c(0.9, 1.0, 1.1), limits = c(0.90, 1.1)) +
     scale_linetype_manual(values = c("dashed", "solid")) +
     labs(x = NULL, y = "SC strength (ratio)") +
     mytheme
