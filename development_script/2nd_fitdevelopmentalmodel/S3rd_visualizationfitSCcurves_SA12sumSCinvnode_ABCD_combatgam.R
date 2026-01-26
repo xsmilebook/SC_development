@@ -72,6 +72,10 @@ n_cores <- max(1L, n_cores)
 gamresultsum.SAorder.delLM <- readRDS(file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
 gammodelsum <- readRDS(file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
 derivative <- readRDS(file.path(resultFolder, paste0("derivative.df", elementnum, "_CV", CVthr, ".rds")))
+if (is.data.frame(gamresultsum.SAorder.delLM)) {
+  gamresultsum.SAorder.delLM$partialRsq <- as.numeric(gamresultsum.SAorder.delLM$partialRsq)
+  gamresultsum.SAorder.delLM$meanderv2 <- as.numeric(gamresultsum.SAorder.delLM$meanderv2)
+}
 
 ensure_sig_derivative_fdr <- function(derivative_df) {
   if (!is.data.frame(derivative_df) || nrow(derivative_df) == 0) return(derivative_df)
@@ -192,7 +196,7 @@ SA12_10$SC_label <- parcel_all
 write.csv(SA12_10, out_sa12_csv, row.names = FALSE)
 
 ## Plots: 78 developmental trajectories (fit.ratio colored by partial R^2)
-lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq))
+lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq), na.rm = TRUE)
 p1 <- ggplot() +
   geom_line(data = plotdatasum.df, aes(x = age, y = fit.ratio, group = SC_label, color = PartialRsq), linewidth = 0.8, alpha = 0.8) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr), guide = "none") +
