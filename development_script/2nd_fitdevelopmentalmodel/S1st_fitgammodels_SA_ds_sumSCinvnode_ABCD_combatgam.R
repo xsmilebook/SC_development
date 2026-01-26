@@ -189,6 +189,7 @@ if (need_raw) {
     writeLines(failed, file.path(interfileFolder, paste0("failed_edges_sumSCinvnode_CV", CVthr, ".txt")))
     saveRDS(ok_idx, file.path(interfileFolder, paste0("ok_edge_index_sumSCinvnode_CV", CVthr, ".rds")))
     message("[INFO] Successful edges: ", length(ok_idx), " / ", n_edges)
+    stop("GAMM fits failed for ", length(failed), " edges; see failed_edges_sumSCinvnode_CV", CVthr, ".txt")
   }
 
   gamresultsum.df <- dplyr::bind_rows(result_rows[ok_idx])
@@ -263,6 +264,11 @@ if (need_scaled) {
 
   scaled_ok <- which(!vapply(scaled_models, is.null, logical(1)))
   if (length(scaled_ok) == 0) stop("All scaled GAMM fits failed; see warnings above.")
+  if (length(scaled_ok) < length(sc_cols_ok)) {
+    failed_scaled <- sc_cols_ok[setdiff(seq_along(sc_cols_ok), scaled_ok)]
+    writeLines(failed_scaled, file.path(interfileFolder, paste0("failed_edges_sumSCinvnode_CV", CVthr, "_scale_TRUE.txt")))
+    stop("Scaled GAMM fits failed for ", length(failed_scaled), " edges; see failed_edges_sumSCinvnode_CV", CVthr, "_scale_TRUE.txt")
+  }
   sc_cols_scaled_ok <- sc_cols_ok[scaled_ok]
   scaled_models <- scaled_models[scaled_ok]
 
@@ -275,7 +281,7 @@ if (need_scaled) {
   if (length(scaled_ok2) < length(sc_cols_scaled_ok)) {
     failed_scaled <- sc_cols_scaled_ok[setdiff(seq_along(sc_cols_scaled_ok), scaled_ok2)]
     writeLines(failed_scaled, file.path(interfileFolder, paste0("failed_edges_sumSCinvnode_CV", CVthr, "_scale_TRUE.txt")))
-    message("[INFO] Successful scaled edges: ", length(scaled_ok2), " / ", length(sc_cols_scaled_ok))
+    stop("Scaled GAMM result extraction failed for ", length(failed_scaled), " edges; see failed_edges_sumSCinvnode_CV", CVthr, "_scale_TRUE.txt")
   }
 
   sc_cols_scaled_ok <- sc_cols_scaled_ok[scaled_ok2]
