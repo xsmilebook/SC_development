@@ -143,9 +143,10 @@
 	     - 注：为避免 `pandoc` 依赖，复现入口使用 `Rscript`（不走 `rmarkdown::render`）。
 	     - 协变量设定（可选）：
 	       - `COG_ASSOC_MODE=original`（默认）：控制 `s(age,k=3)+sex+mean_fd`
+	       - `COG_ASSOC_MODE=sex_meanfd`：控制 `sex+mean_fd`（不含 `s(age, ...)`；适用于 age-corrected cognition 未校正性别的情况）
 	       - `COG_ASSOC_MODE=meanfd_only`：仅控制 `mean_fd`（不含 `s(age, ...)`，不含 `sex`）
-	     - 输出命名：默认不使用 tag（即覆盖式输出 16 张标准图与对应 rds）。如需并行保留多个变体，可用 `COG_ASSOC_TAG=<tag>` 作为文件名后缀（写成 `..._comp_agecorrected_<tag>.*`）。对 `meanfd_only` 若未设置 tag，将自动使用 `_meanfd_only` 后缀以避免覆盖默认版本。
-	     - `meanfd_only` 一键提交（容器版）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_meanfd_only_container.sbatch`
+	     - 输出命名：默认不使用 tag（即覆盖式输出 16 张标准图与对应 rds）。如需并行保留多个变体，可用 `COG_ASSOC_TAG=<tag>` 作为文件名后缀（写成 `..._comp_agecorrected_<tag>.*`）。若未设置 tag 且 `COG_ASSOC_MODE!=original`，将自动使用 `_<mode>` 后缀以避免覆盖默认版本（例如 `_meanfd_only`、`_sex_meanfd`）。
+	     - `sex_meanfd` 一键提交（容器版）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_sex_meanfd_container.sbatch`
 	     - 注：sbatch 会依次运行 `run_abcd_cognition_comp_agecorrected_S{1,2,3}.R`；其中 S3 会在 `Cogvar/Interaction/` 下输出 `developmentcurve_decile*` 图像，并复用 `COG_ASSOC_TAG`/`COG_ASSOC_MODE` 后缀避免覆盖。
 	     - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
 	     - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
@@ -154,7 +155,7 @@
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_fc_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/fluid_fc/`
 	     - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/fluid_fc/`
-	     - 协变量设定：同 age-corrected 入口，支持 `COG_ASSOC_MODE={original,meanfd_only}` 与 `COG_ASSOC_TAG`。
+	     - 协变量设定：同 age-corrected 入口，支持 `COG_ASSOC_MODE={original,sex_meanfd,meanfd_only}` 与 `COG_ASSOC_TAG`。
 
 	   - S3（development curve）额外依赖：
 	     - `ABCD_SA12_CSV`：默认 `wd/interdataFolder_ABCD/SA12_10.csv`

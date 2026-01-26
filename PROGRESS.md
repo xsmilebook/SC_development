@@ -165,3 +165,4 @@
 - 2026-01-23: 修复 `abcd_variance_decomp_cognition_fluidcomp_fc` 图中 `fluidcomp_fc` 图例缺失：为 `fluidcomp_fc` 补齐 palette 映射并设置 `drop=FALSE`，同时强制将 `nihtbx_fluidcomp_fc` 转为 numeric。
 - 2026-01-23: 新增基于 ComBat-GAM 数据的年龄分辨 S-A 对齐分析：`development_script/4th_changerate_SAcorr/S1st_SAcorr_alongAge_{HCPD,ABCD}.R`，并提供对应容器 sbatch（生成图片且在日志输出 flip-age 与 rho 等关键数值）。
 - 2026-01-23: 为 HCP-D 4th 分析补齐 flip-age 分组的 GAM 模型脚本（Rscript）并接入 `sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch`，实现 S1+S2 完整流程输出。
+- 2026-01-26: ABCD fluid cognition（age-corrected，baseline-only）新增协变量模式 `COG_ASSOC_MODE=sex_meanfd`（控制 `sex+mean_fd`，不含 `s(age)`）；并将一键提交脚本重命名为 `sbatch/run_abcd_cognition_comp_agecorrected_sex_meanfd_container.sbatch`。

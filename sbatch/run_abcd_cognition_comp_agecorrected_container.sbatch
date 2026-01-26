@@ -24,6 +24,7 @@ FORCE="${FORCE:-0}"
 # Assoc model variant for `nihtbx_fluidcomp_agecorrected`:
 # - original: adjust `s(age)` + `sex` + `mean_fd`
 # - meanfd_only: adjust only `mean_fd` (no `s(age)`, no `sex`)
+# - sex_meanfd: adjust `sex` + `mean_fd` (no `s(age)`)
 COG_ASSOC_MODE="${COG_ASSOC_MODE:-original}"
 # Optional suffix to avoid overwriting outputs when running multiple variants.
 COG_ASSOC_TAG="${COG_ASSOC_TAG:-}"

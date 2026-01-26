@@ -18,7 +18,7 @@ CVthr <- 75
 Cogvar <- "nihtbx_fluidcomp_agecorrected"
 mode <- Sys.getenv("COG_ASSOC_MODE", unset = "original")
 variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "")
-variant_suffix <- if (nzchar(variant_tag)) paste0("_", variant_tag) else if (mode == "meanfd_only") "_meanfd_only" else ""
+variant_suffix <- if (nzchar(variant_tag)) paste0("_", variant_tag) else if (mode != "original") paste0("_", mode) else ""
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -120,11 +120,14 @@ dataname <- "SCdata.cog"
 if (mode == "meanfd_only") {
   smooth_var <- ""
   covariates <- "mean_fd"
+} else if (mode == "sex_meanfd") {
+  smooth_var <- ""
+  covariates <- "sex+mean_fd"
 } else if (mode == "original") {
   smooth_var <- "age"
   covariates <- "sex+mean_fd"
 } else {
-  stop("Unknown COG_ASSOC_MODE: ", mode, " (supported: original, meanfd_only)")
+  stop("Unknown COG_ASSOC_MODE: ", mode, " (supported: original, meanfd_only, sex_meanfd)")
 }
 knots <- 3
 corrmethod <- "pearson"
