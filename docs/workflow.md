@@ -22,7 +22,7 @@
 - 构建（集群）：`sbatch sbatch/build_scdevelopment_r41_container.sbatch`，默认生成新镜像 `outputs/containers/scdevelopment_r41_<tag>.sif`（避免覆盖正在使用的旧镜像）；可用 `SIF_TAG` 自定义 `<tag>`。
 - 运行（集群）：`sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch`（与非容器版参数一致，支持 `N_EDGES`/`SKIP_POSTERIOR`）；如需指定新镜像，传入 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif`。
   - 补图策略：脚本会在检测到 S3 的 decile 图或 S4 的相关性散点图缺失时，自动对对应步骤启用 `--force=1` 以回填图片（可用 `FORCE_S3=0/1`、`FORCE_S4=0/1` 覆盖）。
-- 定义文件：`containers/scdevelopment_r41.def`（可按需扩展依赖，但应尽量保持版本稳定）。
+- 定义文件：`containers/scdevelopment_r41.def`（可按需扩展依赖，但应尽量保持版本稳定；已补齐 `svglite/Cairo` 用于 `svg/pdf/tiff` 输出）。
   - 常见构建报错：`could not use fakeroot: no mapping entry found in /etc/subuid for <user>`：说明集群未为该用户配置 fakeroot/subuid。当前构建脚本不使用 `--fakeroot`；若仍失败需联系管理员开启 setuid build 或提供可用的 fakeroot 配置。
   - 常见构建报错：`You must be the root user ... use --remote or --fakeroot`：说明本地 build 需要 root/setuid；当前构建脚本使用 `singularity build --remote`。
   - 常见构建报错：`Error: object ‘attr’ is not exported by 'namespace:xfun'`（`knitr` lazy-load 失败）：通常是 `xfun` API 随 CRAN 更新发生漂移。处理：在容器定义中固定 `xfun==0.52` 与 `knitr==1.43`，并确保安装时不自动拉取 `Suggests` 依赖导致的版本覆盖。
