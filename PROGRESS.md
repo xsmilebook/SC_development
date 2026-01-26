@@ -171,3 +171,4 @@
 - 2026-01-26: 修复 `gamfunction/gammsmooth.R` 中 gratia 导数输出列名变动导致的 `.lower_ci` 报错，兼容新旧列名格式。
 - 2026-01-26: 修复 ABCD S3 图像生成时 `partialRsq`/`meanderv2` 非数值导致的 `abs()` 报错。
 - 2026-01-26: 修复 ABCD S3 在 `partialRsq`/`meanderv2` 为空时的赋值错误（填充 NA 并按行扩展）。
+- 2026-01-26: ABCD S1 自动检测 `gamresults` 缺列并强制重算，避免旧版最小输出导致后续为空。

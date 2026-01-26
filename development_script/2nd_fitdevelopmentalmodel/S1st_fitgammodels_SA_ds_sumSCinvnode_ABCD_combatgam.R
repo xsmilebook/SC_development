@@ -80,6 +80,13 @@ out_baseline_csv <- file.path(interfileFolder, paste0("baseline_fits_sumSCinvnod
 
 should_run <- function(path) force || !file.exists(path)
 
+has_required_cols <- function(path, required_cols) {
+  if (!file.exists(path)) return(FALSE)
+  obj <- tryCatch(readRDS(path), error = function(e) NULL)
+  if (!is.data.frame(obj)) return(FALSE)
+  all(required_cols %in% names(obj))
+}
+
 n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = NA))
 if (is.na(n_cores) || n_cores < 1) n_cores <- parallel::detectCores()
 n_cores <- max(1L, n_cores)
@@ -156,7 +163,10 @@ safe_fit_row <- function(SClabel) {
 }
 
 ## Raw GAMM results/models
-if (should_run(out_gamresults_raw) || should_run(out_gammodel_raw)) {
+need_raw <- should_run(out_gamresults_raw) ||
+  should_run(out_gammodel_raw) ||
+  !has_required_cols(out_gamresults_raw, c("partialRsq", "meanderv2", "bootstrap_pvalue"))
+if (need_raw) {
   result_rows <- mclapply(sc_cols[seq_len(n_edges)], safe_fit_row, mc.cores = n_cores)
   model_objs <- mclapply(sc_cols[seq_len(n_edges)], function(SClabel) {
     tryCatch(
@@ -234,7 +244,10 @@ if (should_run(out_scdata_diw)) {
 
 ## Scaled GAMM models + results
 dataname <- "SCdata.diw"
-if (should_run(out_gammodel_scaled) || should_run(out_gamresults_scaled)) {
+need_scaled <- should_run(out_gammodel_scaled) ||
+  should_run(out_gamresults_scaled) ||
+  !has_required_cols(out_gamresults_scaled, c("partialRsq", "meanderv2"))
+if (need_scaled) {
   scaled_models <- mclapply(sc_cols_ok, function(SClabel) {
     tryCatch(
       gamm.fit.smooth(
