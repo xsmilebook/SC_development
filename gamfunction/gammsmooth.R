@@ -73,15 +73,35 @@ gamm.fit.smooth <- function(region, dataname, smooth_var, covariates, knots, set
   }
   pred <- thisPred %>% dplyr::select(-init)
   
-  #GAMM derivatives
-  derv <- derivatives(gamm.model$gam, term = sprintf('s(%s)',smooth_var), interval = "simultaneous", unconditional = F, data = pred) #derivative at 200 indices of smooth_var with a simultaneous CI
-  #Identify derivative significance window(s)
-  derv <- derv %>% #add "sig" column (TRUE/FALSE) to derv
-    mutate(sig = !(0 > .lower_ci & 0 < .upper_ci)) #derivative is sig if the lower CI is not < 0 while the upper CI is > 0 (i.e., when the CI does not include 0)
-  derv$sig_deriv = derv$.derivative*derv$sig #add "sig_deriv derivatives column where non-significant derivatives are set to 0
+  #GAMM derivatives (gratia column names vary by version; normalize for stability)
+  derv_raw <- derivatives(gamm.model$gam, term = sprintf("s(%s)", smooth_var), interval = "simultaneous", unconditional = FALSE, data = pred)
+  derv_raw <- as.data.frame(derv_raw)
+  age_col <- if ("age" %in% names(derv_raw)) "age" else if ("data" %in% names(derv_raw)) "data" else smooth_var
+  deriv_col <- if (".derivative" %in% names(derv_raw)) ".derivative" else if ("derivative" %in% names(derv_raw)) "derivative" else NA_character_
+  lower_col <- if (".lower_ci" %in% names(derv_raw)) ".lower_ci" else if ("lower" %in% names(derv_raw)) "lower" else NA_character_
+  upper_col <- if (".upper_ci" %in% names(derv_raw)) ".upper_ci" else if ("upper" %in% names(derv_raw)) "upper" else NA_character_
+  if (is.na(deriv_col) || is.na(lower_col) || is.na(upper_col)) {
+    stop("Unsupported gratia::derivatives() output columns: ", paste(names(derv_raw), collapse = ", "))
+  }
+  derv <- data.frame(
+    age = as.numeric(derv_raw[[age_col]]),
+    derivative = as.numeric(derv_raw[[deriv_col]]),
+    lower_ci = as.numeric(derv_raw[[lower_col]]),
+    upper_ci = as.numeric(derv_raw[[upper_col]])
+  )
+  # Identify derivative significance window(s)
+  derv <- derv %>% mutate(sig = !(0 > lower_ci & 0 < upper_ci))
+  derv$sig_deriv <- derv$derivative * derv$sig
+  derv$.derivative <- derv$derivative
+  derv$.lower_ci <- derv$lower_ci
+  derv$.upper_ci <- derv$upper_ci
+  derv[[smooth_var]] <- derv$age
   
-  derv2 <- derivatives(gamm.model$gam, order = 2,term=sprintf('s(%s)',smooth_var), type = "central", unconditional = F, data = pred)
-  meanderv2<-mean(derv2[[names(derv2)[str_detect(names(derv2),"derivative")]]])
+  derv2 <- derivatives(gamm.model$gam, order = 2, term = sprintf("s(%s)", smooth_var), type = "central", unconditional = FALSE, data = pred)
+  derv2 <- as.data.frame(derv2)
+  deriv2_col <- if (".derivative" %in% names(derv2)) ".derivative" else if ("derivative" %in% names(derv2)) "derivative" else NA_character_
+  if (is.na(deriv2_col)) stop("Unsupported gratia::derivatives() output columns (order=2): ", paste(names(derv2), collapse = ", "))
+  meanderv2 <- mean(as.numeric(derv2[[deriv2_col]]))
 
   #GAM statistics
   #F value for the smooth term and GAMM-based significance of the smooth term
@@ -190,7 +210,6 @@ gamm.fit.smooth <- function(region, dataname, smooth_var, covariates, knots, set
   if(stats_only == FALSE)
     return(full.results)
 }
-
 
 
 

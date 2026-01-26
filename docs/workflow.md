@@ -120,6 +120,7 @@
        - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - figures：`outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
+   - 注意：若出现 `object '.lower_ci' not found`（gratia 输出列名变动），请使用已修复的 `gamfunction/gammsmooth.R` 并重新提交对应作业。
    - ABCD（基于 ComBat-GAM 输出）的可复现运行入口：
      - 输入默认：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
      - sbatch（容器版，50 核）：`sbatch sbatch/run_abcd_devmodel_combatgam_CV75_container.sbatch`
