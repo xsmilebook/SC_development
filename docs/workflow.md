@@ -138,7 +138,7 @@
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_pfactor_effect_continuous_container.sbatch`
      - 结果：`outputs/results/6th_pfactor/abcd/pfactor/`
      - 图像（tiff + svg/pdf）：`outputs/figures/6th_pfactor/abcd/pfactor/`
-     - 注：交互曲线图需要 `ABCD_PLOTDATASUM_RDS`（默认指向 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`；可在提交时覆盖）。
+     - 注：交互曲线图需要 `ABCD_PLOTDATASUM_RDS`（默认指向 `outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`；可在提交时覆盖）。
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
@@ -167,7 +167,7 @@
 
 	   - S3（development curve）额外依赖：
 	     - `ABCD_SA12_CSV`：默认 `wd/interdataFolder_ABCD/SA12_10.csv`
-	     - `ABCD_PLOTDATASUM_RDS`：默认 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`（如需用项目内/其他版本，请在提交时覆盖该环境变量）
+	     - `ABCD_PLOTDATASUM_RDS`：默认 `outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`（如需用其他版本，请在提交时覆盖该环境变量）
 	     - S3 会在**纵向** SC 数据上拟合 `age × baseline cognition`（`gamm4` 需要每个 `subID` 至少两次观测；baseline-only 会失败）。
 	       - uncorrected：优先从输入 SCdata 自身按 baseline `eventname` 提取；若纵向 SCdata 缺少 `nihtbx_fluidcomp_uncorrected`，则从 `demopath/DemodfScreenFinal.csv` 回填 baseline cognition；
 	       - age-corrected：纵向 SCdata 通常不包含 `nihtbx_fluidcomp_agecorrected`，因此从 `demopath/DemodfScreenFinal.csv`（git-ignored）按 `subID` 回填 baseline cognition 后再拟合。

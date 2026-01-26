@@ -175,3 +175,4 @@
 - 2026-01-26: 修复 ABCD S4 控制欧氏距离残差时的长度不一致问题（NA 行回填）。
 - 2026-01-26: 修复 ABCD S4 残差索引为非数字导致的赋值错误（直接使用 na.exclude 残差向量）。
 - 2026-01-26: ABCD S1 增加“全边成功”硬检查，若任一边拟合失败则中止并写出失败边清单。
+- 2026-01-26: ABCD plotdata 默认路径统一到项目内 `outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`，并更新 sbatch/脚本引用。

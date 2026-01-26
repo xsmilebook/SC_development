@@ -42,7 +42,10 @@ SA12_10 <- read.csv(sa12_csv, stringsAsFactors = FALSE)
 
 plotdatasum_rds <- Sys.getenv(
   "ABCD_PLOTDATASUM_RDS",
-  unset = "/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds"
+  unset = file.path(
+    project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
+    "abcd", "combat_gam", "CV75", "plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds"
+  )
 )
 if (!file.exists(plotdatasum_rds)) stop("Missing ABCD_PLOTDATASUM_RDS: ", plotdatasum_rds)
 plotdata <- readRDS(plotdatasum_rds)

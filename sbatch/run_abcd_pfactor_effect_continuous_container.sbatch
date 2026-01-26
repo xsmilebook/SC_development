@@ -12,7 +12,7 @@ project_root="/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment"
 sif="${SIF_PATH:-${project_root}/outputs/containers/scdevelopment_r41.sif}"
 
 ABCD_EUCLID_CSV_HOST="${ABCD_EUCLID_CSV:-${project_root}/wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv}"
-ABCD_PLOTDATASUM_RDS_HOST="${ABCD_PLOTDATASUM_RDS:-/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds}"
+ABCD_PLOTDATASUM_RDS_HOST="${ABCD_PLOTDATASUM_RDS:-${project_root}/outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds}"
 FORCE="${FORCE:-0}"
 
 mkdir -p "${project_root}/outputs/logs"

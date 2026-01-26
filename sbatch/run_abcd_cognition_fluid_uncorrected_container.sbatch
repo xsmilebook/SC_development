@@ -16,7 +16,7 @@ ABCD_EUCLID_CSV_HOST="${ABCD_EUCLID_CSV:-${project_root}/wd/interdataFolder_ABCD
 
 # ABCD S-A decile assignment and developmental-model fit cache used by S3.
 ABCD_SA12_CSV_HOST="${ABCD_SA12_CSV:-${project_root}/wd/interdataFolder_ABCD/SA12_10.csv}"
-ABCD_PLOTDATASUM_RDS_HOST="${ABCD_PLOTDATASUM_RDS:-/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_ABCD/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds}"
+ABCD_PLOTDATASUM_RDS_HOST="${ABCD_PLOTDATASUM_RDS:-${project_root}/outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds}"
 
 # Force recomputation (0=use cached results when available).
 FORCE="${FORCE:-0}"
