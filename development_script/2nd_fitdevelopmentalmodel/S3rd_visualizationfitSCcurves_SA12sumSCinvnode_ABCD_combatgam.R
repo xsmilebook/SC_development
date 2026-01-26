@@ -184,8 +184,12 @@ plotdatasum.df <- dplyr::bind_rows(lapply(ok_plot_idx, function(i) {
   }
   tmp$SC_label <- sc_label
   tmp$SCrank <- unname(SCrank_map[[sc_label]])
-  tmp$PartialRsq <- gamresultsum.SAorder.delLM$partialRsq[[i]]
-  tmp$meanderv2 <- gamresultsum.SAorder.delLM$meanderv2[[i]]
+  partial_val <- gamresultsum.SAorder.delLM$partialRsq[[i]]
+  if (length(partial_val) != 1 || is.na(partial_val)) partial_val <- NA_real_
+  tmp$PartialRsq <- rep(partial_val, nrow(tmp))
+  meanderv2_val <- gamresultsum.SAorder.delLM$meanderv2[[i]]
+  if (length(meanderv2_val) != 1 || is.na(meanderv2_val)) meanderv2_val <- NA_real_
+  tmp$meanderv2 <- rep(meanderv2_val, nrow(tmp))
   tmp
 }))
 
