@@ -140,10 +140,8 @@ SCrank_correlation <- do.call(
 gamresult$EucDistance <- unname(Edist_map[gamresult$parcel])
 fit_pr <- lm(partialRsq2 ~ EucDistance, data = gamresult, na.action = na.exclude)
 fit_md <- lm(meanderv2 ~ EucDistance, data = gamresult, na.action = na.exclude)
-gamresult$partialRsq_control_distance <- NA_real_
-gamresult$meanderv2_control_distance <- NA_real_
-gamresult$partialRsq_control_distance[as.integer(names(residuals(fit_pr)))] <- residuals(fit_pr)
-gamresult$meanderv2_control_distance[as.integer(names(residuals(fit_md)))] <- residuals(fit_md)
+gamresult$partialRsq_control_distance <- as.numeric(residuals(fit_pr))
+gamresult$meanderv2_control_distance <- as.numeric(residuals(fit_md))
 SCrank_correlation <- rbind(
   SCrank_correlation,
   SCrankcorr(gamresult, "partialRsq_control_distance", ds.resolution, dsdata = FALSE),
