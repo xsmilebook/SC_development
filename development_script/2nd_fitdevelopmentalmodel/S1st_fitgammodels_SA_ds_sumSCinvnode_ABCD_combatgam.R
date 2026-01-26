@@ -1,18 +1,21 @@
-## ABCD (ComBat-GAM) | Fit GAMM models per edge (scaled)
+## ABCD (ComBat-GAM) | Fit GAMM models per edge (raw + scaled)
 ##
-## Purpose (for downstream derivative + alignment analyses):
-## - Fit edge-wise GAMM (random intercept for subject) to estimate SC trajectories.
+## Purpose:
+## - Fit edge-wise GAMM to estimate SC trajectories.
+## - Generate plotdata (raw) for trajectory visualizations.
 ## - Scale each edge by its fitted value at the youngest age (ratio-to-baseline),
-##   and refit models on the scaled data ("_scale_TRUE").
+##   then refit models on the scaled data ("_scale_TRUE").
 ##
 ## Inputs:
 ## - outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds
 ##
 ## Outputs (project-relative):
+## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/gamresults78_sumSCinvnode_over8_siteall_CV75.rds
+## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/gammodel78_sumSCinvnode_over8_siteall_CV75.rds
+## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds
 ## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/SCdata.diw_SA12CV75.rds
-## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/gammodel78_sumSCinvnode_over8_CV75_scale_TRUE.rds
 ## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/gamresults78_sumSCinvnode_over8_CV75_scale_TRUE.rds
-## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/baseline_fits_sumSCinvnode_CV75.csv
+## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/gammodel78_sumSCinvnode_over8_CV75_scale_TRUE.rds
 ##
 ## Usage:
 ##   Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/S1st_fitgammodels_SA_ds_sumSCinvnode_ABCD_combatgam.R
@@ -23,6 +26,7 @@ rm(list = ls())
 library(parallel)
 library(mgcv)
 library(gamm4)
+library(tidyverse)
 
 parse_args <- function(args) {
   res <- list()
@@ -66,16 +70,15 @@ input_rds <- if (!is.null(args$input_rds)) {
 }
 if (!file.exists(input_rds)) stop("Missing input_rds: ", input_rds)
 
+out_gamresults_raw <- file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_siteall_CV", CVthr, ".rds"))
+out_gammodel_raw <- file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_siteall_CV", CVthr, ".rds"))
+out_plotdatasum_df <- file.path(interfileFolder, paste0("plotdatasum.df_SA", ds.resolution, "_sumSCinvnode_siteall_CV", CVthr, ".rds"))
 out_scdata_diw <- file.path(interfileFolder, paste0("SCdata.diw_SA", ds.resolution, "CV", CVthr, ".rds"))
-out_models_scaled <- file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
-out_results_scaled <- file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
+out_gamresults_scaled <- file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
+out_gammodel_scaled <- file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
 out_baseline_csv <- file.path(interfileFolder, paste0("baseline_fits_sumSCinvnode_CV", CVthr, ".csv"))
 
 should_run <- function(path) force || !file.exists(path)
-if (!should_run(out_scdata_diw) && !should_run(out_models_scaled) && !should_run(out_results_scaled) && !should_run(out_baseline_csv)) {
-  message("[INFO] Outputs exist; skipping (set --force=1 to re-run): ", interfileFolder)
-  quit(save = "no", status = 0)
-}
 
 n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = NA))
 if (is.na(n_cores) || n_cores < 1) n_cores <- parallel::detectCores()
@@ -88,6 +91,10 @@ message("[INFO] input_rds=", input_rds)
 message("[INFO] interfileFolder=", interfileFolder)
 message("[INFO] n_edges=", n_edges, " n_cores=", n_cores)
 
+functionFolder <- file.path(project_root, "gamfunction")
+source(file.path(functionFolder, "gammsmooth.R"))
+source(file.path(functionFolder, "plotdata_generate.R"))
+
 SCdata <- readRDS(input_rds)
 if (!is.data.frame(SCdata)) stop("Expected a data.frame in input_rds: ", input_rds)
 
@@ -95,7 +102,6 @@ required <- c("age", "sex", "mean_fd")
 missing_required <- setdiff(required, names(SCdata))
 if (length(missing_required) > 0) stop("Missing required columns in ABCD SCdata: ", paste(missing_required, collapse = ", "))
 
-# Map subject id column to `subID` for gamm4 random intercept
 if (!"subID" %in% names(SCdata)) {
   candidates <- c("src_subject_id", "subjectkey", "subject_id", "participant_id", "id")
   found <- candidates[candidates %in% names(SCdata)][1]
@@ -107,7 +113,6 @@ if (!"subID" %in% names(SCdata)) {
 }
 SCdata$subID <- as.factor(SCdata$subID)
 
-# Normalize age units to years (ABCD is often stored in months)
 age_max <- suppressWarnings(max(as.numeric(SCdata$age), na.rm = TRUE))
 if (is.finite(age_max) && age_max > 30) {
   SCdata$age <- as.numeric(SCdata$age) / 12
@@ -120,95 +125,153 @@ SCdata$sex <- as.factor(SCdata$sex)
 SCdata$mean_fd <- as.numeric(SCdata$mean_fd)
 
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
+sc_cols <- sc_cols[str_detect(sc_cols, "_h$")]
 if (length(sc_cols) != elementnum) {
-  stop("Expected ", elementnum, " SC edge columns (SC.*), got ", length(sc_cols))
+  stop("Expected ", elementnum, " SC edge columns (SC.*_h), got ", length(sc_cols))
 }
 
-# Drop rows with missing covariates or any SC edge missing (to keep model fitting stable)
 keep_cols <- c("age", "sex", "mean_fd", "subID", sc_cols)
 SCdata <- SCdata[, keep_cols, drop = FALSE]
 SCdata <- SCdata[stats::complete.cases(SCdata), , drop = FALSE]
 if (nrow(SCdata) < 50) stop("Too few complete rows after filtering: ", nrow(SCdata))
 
-fit_one_edge <- function(SClabel, dat) {
+covariates <- "sex+mean_fd"
+dataname <- "SCdata"
+smooth_var <- "age"
+
+safe_fit_row <- function(SClabel) {
   tryCatch(
     {
-      f <- as.formula(sprintf("`%s` ~ s(age, k = 3, fx = TRUE) + sex + mean_fd", SClabel))
-      gamm4::gamm4(f, random = ~(1 | subID), REML = TRUE, data = dat)
+      gammresult <- gamm.fit.smooth(
+        SClabel, dataname, smooth_var, covariates,
+        knots = 3, set_fx = TRUE, stats_only = FALSE, mod_only = FALSE
+      )
+      as.data.frame(gammresult)
     },
     error = function(e) {
-      message("[WARN] gamm4 failed for ", SClabel, ": ", conditionMessage(e))
+      message("[WARN] gamm.fit.smooth failed for ", SClabel, ": ", conditionMessage(e))
       NULL
     }
   )
 }
 
-baseline_fit_one <- function(modobj) {
-  if (is.null(modobj) || is.null(modobj$gam) || !inherits(modobj$gam, "gam")) return(NA_real_)
-  gam <- modobj$gam
-  df <- gam$model
-  smooth_var <- "age"
-  theseVars <- attr(gam$terms, "term.labels")
-  varClasses <- attr(gam$terms, "dataClasses")
-  pred <- data.frame(init = 0)
-  for (v in theseVars) {
-    thisClass <- varClasses[[v]]
-    if (v == smooth_var) {
-      pred[[v]] <- min(as.numeric(df[[v]]), na.rm = TRUE)
-    } else {
-      if (thisClass %in% c("factor", "ordered") || is.factor(df[[v]]) || is.ordered(df[[v]])) {
-        tab <- table(df[[v]])
-        lvl <- names(tab)[which.max(tab)][1]
-        pred[[v]] <- factor(lvl, levels = levels(df[[v]]), ordered = is.ordered(df[[v]]))
-      } else {
-        pred[[v]] <- median(as.numeric(df[[v]]), na.rm = TRUE)
+## Raw GAMM results/models
+if (should_run(out_gamresults_raw) || should_run(out_gammodel_raw)) {
+  result_rows <- mclapply(sc_cols[seq_len(n_edges)], safe_fit_row, mc.cores = n_cores)
+  model_objs <- mclapply(sc_cols[seq_len(n_edges)], function(SClabel) {
+    tryCatch(
+      gamm.fit.smooth(
+        SClabel, dataname, smooth_var, covariates,
+        knots = 3, set_fx = TRUE, stats_only = TRUE, mod_only = TRUE
+      ),
+      error = function(e) {
+        message("[WARN] gamm model fit failed for ", SClabel, ": ", conditionMessage(e))
+        NULL
       }
-    }
+    )
+  }, mc.cores = n_cores)
+
+  ok_idx <- which(!vapply(result_rows, is.null, logical(1)) & !vapply(model_objs, is.null, logical(1)))
+  sc_cols_ok <- sc_cols[ok_idx]
+  if (length(ok_idx) == 0) stop("All GAMM fits failed; see warnings above.")
+  if (length(ok_idx) < n_edges) {
+    failed <- setdiff(sc_cols[seq_len(n_edges)], sc_cols_ok)
+    writeLines(failed, file.path(interfileFolder, paste0("failed_edges_sumSCinvnode_CV", CVthr, ".txt")))
+    saveRDS(ok_idx, file.path(interfileFolder, paste0("ok_edge_index_sumSCinvnode_CV", CVthr, ".rds")))
+    message("[INFO] Successful edges: ", length(ok_idx), " / ", n_edges)
   }
-  as.numeric(mgcv::predict.gam(gam, newdata = pred, se.fit = FALSE))[1]
+
+  gamresultsum.df <- dplyr::bind_rows(result_rows[ok_idx])
+  num_cols <- setdiff(names(gamresultsum.df), "parcel")
+  gamresultsum.df[num_cols] <- lapply(gamresultsum.df[num_cols], as.numeric)
+  gamresultsum.df$pfdr <- p.adjust(gamresultsum.df$bootstrap_pvalue, method = "fdr")
+  gamresultsum.df$sig <- (gamresultsum.df$pfdr < 0.05)
+  gammodelsum <- model_objs[ok_idx]
+
+  saveRDS(gamresultsum.df, out_gamresults_raw)
+  saveRDS(gammodelsum, out_gammodel_raw)
+} else {
+  gamresultsum.df <- readRDS(out_gamresults_raw)
+  gammodelsum <- readRDS(out_gammodel_raw)
+  sc_cols_ok <- as.character(gamresultsum.df$parcel)
 }
 
-message("[INFO] Fitting unscaled GAMM models (for baseline scaling)...")
-raw_models <- mclapply(sc_cols[seq_len(n_edges)], function(SClabel) fit_one_edge(SClabel, SCdata), mc.cores = n_cores)
-ok_raw <- which(!vapply(raw_models, is.null, logical(1)))
-if (length(ok_raw) == 0) stop("All unscaled GAMM fits failed; see warnings above.")
-sc_cols_ok <- sc_cols[ok_raw]
-raw_models <- raw_models[ok_raw]
-message("[INFO] Unscaled successful edges: ", length(sc_cols_ok), " / ", n_edges)
+## Plot data (raw fitted values)
+if (should_run(out_plotdatasum_df)) {
+  plotdatasum <- mclapply(seq_len(length(gammodelsum)), function(i) {
+    modobj <- gammodelsum[[i]]
+    plotdata <- plotdata_generate(modobj, "age")
+    plotdata$SC_label <- sc_cols_ok[[i]]
+    plotdata
+  }, mc.cores = n_cores)
+  plotdatasum.df <- dplyr::bind_rows(plotdatasum)
+  saveRDS(plotdatasum.df, out_plotdatasum_df)
+} else {
+  plotdatasum.df <- readRDS(out_plotdatasum_df)
+}
 
-baseline_fits <- vapply(raw_models, baseline_fit_one, numeric(1))
-baseline_df <- data.frame(parcel = sc_cols_ok, baseline_fit = baseline_fits)
+baseline_df <- data.frame(parcel = sc_cols_ok, baseline_fit = NA_real_)
+if (nrow(plotdatasum.df) > 0) {
+  baseline_df$baseline_fit <- vapply(sc_cols_ok, function(SClabel) {
+    tmp <- plotdatasum.df[plotdatasum.df$SC_label == SClabel, , drop = FALSE]
+    if (nrow(tmp) == 0) return(NA_real_)
+    as.numeric(tmp$fit[[1]])
+  }, numeric(1))
+}
 write.csv(baseline_df, out_baseline_csv, row.names = FALSE)
 
-bad_baseline <- which(!is.finite(baseline_fits) | baseline_fits <= 0)
-if (length(bad_baseline) > 0) {
-  message("[WARN] Non-positive/invalid baseline fits for ", length(bad_baseline), " edges; these edges will be dropped in scaled pipeline.")
-  keep2 <- setdiff(seq_along(sc_cols_ok), bad_baseline)
-  sc_cols_ok <- sc_cols_ok[keep2]
-  baseline_fits <- baseline_fits[keep2]
+## Scale by baseline fit (ratio-to-baseline)
+if (should_run(out_scdata_diw)) {
+  SCdata.diw <- SCdata
+  for (SClabel in sc_cols_ok) {
+    plotdata.tmp <- plotdatasum.df[plotdatasum.df$SC_label == SClabel, ]
+    SCdata.diw[, SClabel] <- SCdata[, SClabel] / plotdata.tmp$fit[[1]]
+  }
+  saveRDS(SCdata.diw, out_scdata_diw)
+} else {
+  SCdata.diw <- readRDS(out_scdata_diw)
 }
-if (length(sc_cols_ok) == 0) stop("No edges left after removing invalid baseline fits.")
 
-message("[INFO] Creating scaled SCdata (ratio-to-baseline) ...")
-SCdata_diw <- SCdata[, c("age", "sex", "mean_fd", "subID", sc_cols_ok), drop = FALSE]
-for (i in seq_along(sc_cols_ok)) {
-  SCdata_diw[[sc_cols_ok[[i]]]] <- SCdata_diw[[sc_cols_ok[[i]]]] / baseline_fits[[i]]
+## Scaled GAMM models + results
+dataname <- "SCdata.diw"
+if (should_run(out_gammodel_scaled) || should_run(out_gamresults_scaled)) {
+  scaled_models <- mclapply(sc_cols_ok, function(SClabel) {
+    tryCatch(
+      gamm.fit.smooth(
+        SClabel, dataname, smooth_var, covariates,
+        knots = 3, set_fx = TRUE, stats_only = TRUE, mod_only = TRUE
+      ),
+      error = function(e) {
+        message("[WARN] scaled GAMM model fit failed for ", SClabel, ": ", conditionMessage(e))
+        NULL
+      }
+    )
+  }, mc.cores = n_cores)
+
+  scaled_ok <- which(!vapply(scaled_models, is.null, logical(1)))
+  if (length(scaled_ok) == 0) stop("All scaled GAMM fits failed; see warnings above.")
+  sc_cols_scaled_ok <- sc_cols_ok[scaled_ok]
+  scaled_models <- scaled_models[scaled_ok]
+
+  scaled_rows <- mclapply(sc_cols_scaled_ok, function(SClabel) {
+    safe_fit_row(SClabel)
+  }, mc.cores = n_cores)
+
+  scaled_ok2 <- which(!vapply(scaled_rows, is.null, logical(1)))
+  if (length(scaled_ok2) == 0) stop("All scaled GAMM result extraction failed; see warnings above.")
+  if (length(scaled_ok2) < length(sc_cols_scaled_ok)) {
+    failed_scaled <- sc_cols_scaled_ok[setdiff(seq_along(sc_cols_scaled_ok), scaled_ok2)]
+    writeLines(failed_scaled, file.path(interfileFolder, paste0("failed_edges_sumSCinvnode_CV", CVthr, "_scale_TRUE.txt")))
+    message("[INFO] Successful scaled edges: ", length(scaled_ok2), " / ", length(sc_cols_scaled_ok))
+  }
+
+  sc_cols_scaled_ok <- sc_cols_scaled_ok[scaled_ok2]
+  scaled_models <- scaled_models[scaled_ok2]
+  scaled_rows <- scaled_rows[scaled_ok2]
+
+  gamresultsum_scaled <- dplyr::bind_rows(scaled_rows)
+  num_cols <- setdiff(names(gamresultsum_scaled), "parcel")
+  gamresultsum_scaled[num_cols] <- lapply(gamresultsum_scaled[num_cols], as.numeric)
+  saveRDS(gamresultsum_scaled, out_gamresults_scaled)
+  saveRDS(scaled_models, out_gammodel_scaled)
 }
-saveRDS(SCdata_diw, out_scdata_diw)
-
-message("[INFO] Fitting scaled GAMM models ...")
-scaled_models <- mclapply(sc_cols_ok, function(SClabel) fit_one_edge(SClabel, SCdata_diw), mc.cores = n_cores)
-ok_scaled <- which(!vapply(scaled_models, is.null, logical(1)))
-if (length(ok_scaled) == 0) stop("All scaled GAMM fits failed; see warnings above.")
-
-scaled_models <- scaled_models[ok_scaled]
-sc_cols_scaled_ok <- sc_cols_ok[ok_scaled]
-names(scaled_models) <- sc_cols_scaled_ok
-
-# Minimal results object for downstream steps (derivative scripts need `$parcel`).
-gamresults_scaled <- data.frame(parcel = sc_cols_scaled_ok, stringsAsFactors = FALSE)
-
-saveRDS(scaled_models, out_models_scaled)
-saveRDS(gamresults_scaled, out_results_scaled)
-message("[INFO] Saved scaled models: ", out_models_scaled)
-

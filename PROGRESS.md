@@ -167,3 +167,4 @@
 - 2026-01-23: 为 HCP-D 4th 分析补齐 flip-age 分组的 GAM 模型脚本（Rscript）并接入 `sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch`，实现 S1+S2 完整流程输出。
 - 2026-01-26: ABCD fluid cognition（age-corrected，baseline-only）新增协变量模式 `COG_ASSOC_MODE=sex_meanfd`（控制 `sex+mean_fd`，不含 `s(age)`）；并将一键提交脚本重命名为 `sbatch/run_abcd_cognition_comp_agecorrected_sex_meanfd_container.sbatch`。
 - 2026-01-26: 容器定义补齐绘图依赖 `svglite`/`Cairo`，用于稳定生成 `svg/pdf/tiff` 输出；需重建 `scdevelopment_r41` 镜像后生效。
+- 2026-01-26: 完善 ABCD ComBat-GAM 2nd 发育模型流程：补齐 S3/S4 Rscript、扩展 S1 产出 `plotdatasum.df_*` 与完整 stats，并新增容器 sbatch `sbatch/run_abcd_devmodel_combatgam_CV75_container.sbatch`。

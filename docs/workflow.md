@@ -120,6 +120,13 @@
        - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - figures：`outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
+   - ABCD（基于 ComBat-GAM 输出）的可复现运行入口：
+     - 输入默认：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
+     - sbatch（容器版，50 核）：`sbatch sbatch/run_abcd_devmodel_combatgam_CV75_container.sbatch`
+     - 产物目录：
+       - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
+       - results：`outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
+       - figures：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
 3) S-A 轴可视化（`development_script/3rd_plotConnectionalAxis`）
 4) 年龄分段与变化率分析（`development_script/4th_changerate_SAcorr`）
 5) 认知与心理病理相关分析（`development_script/5th_cognition`、`development_script/6th_pfactor`）
