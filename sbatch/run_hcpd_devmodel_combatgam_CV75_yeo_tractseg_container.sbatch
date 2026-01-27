@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J hcpd_devmodel_yeo_trk_cg_cv75_sif
 #SBATCH -p q_fat_c,q_fat,q_fat_l
-#SBATCH -c 50
+#SBATCH -c 72
 #SBATCH -o outputs/logs/hcpd_devmodel_yeo_tractseg_combatgam_CV75_container_%j.log
 
 set -euo pipefail
@@ -157,4 +157,3 @@ echo "[INFO] FORCE_TRACTSEG_S3=${FORCE_TRACTSEG_S3} FORCE_TRACTSEG_S4=${FORCE_TR
 run_yeo 7 "${YEO7_INPUT_RDS}" "${FORCE_YEO7_S3}" "${FORCE_YEO7_S4}"
 run_yeo 17 "${YEO17_INPUT_RDS}" "${FORCE_YEO17_S3}" "${FORCE_YEO17_S4}"
 run_tractseg "${TRACTSEG_INPUT_RDS}" "${FORCE_TRACTSEG_S3}" "${FORCE_TRACTSEG_S4}"
-
