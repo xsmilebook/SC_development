@@ -9,10 +9,16 @@ For cluster runs on the current repo layout (inputs under `outputs/results/comba
 
 - `S1st_SAcorr_alongAge_HCPD.R` (default inputs: `outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/*derivative*.rds`)
 - `S1st_SAcorr_alongAge_ABCD.R` (default inputs: `outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/*derivative*.rds`)
+- HCP-D Yeo/TractSeg variants:
+  - `V_Yeo_network/V1st_SAcorr_alongAge_Yeo_HCPD_combatgam.R` (`--yeo=7/17`)
+  - `V_Yeo_network/V2nd_fitgammodels_Yeo_ageseperate_HCPD_combatgam.R` (`--yeo=7/17`)
+  - `V_TractSeg/S1st_SAcorr_alongAge_HCPD_TractSeg_combatgam.R`
+  - `V_TractSeg/S2nd_fitgammodels_TractSeg_ageseperate_HCPD_combatgam.R`
 
 Cluster submission (Singularity container):
 - `sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch`
 - `sbatch sbatch/run_abcd_changerate_sacorr_combatgam_CV75_container.sbatch`
+- HCP-D Yeo7/Yeo17/TractSeg: `sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_yeo_tractseg_container.sbatch`
 
 Both scripts generate alignment figures (`.tiff` + `.pdf`) and print key numeric results to the SLURM log (e.g., flip-age median/CI and rho extrema).
 

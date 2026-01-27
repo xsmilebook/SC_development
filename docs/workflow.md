@@ -33,6 +33,7 @@
 - 前置：需要 `development_script/2nd_fitdevelopmentalmodel` 生成的 `derivative.df*` 与 `derivative.posterior.df*`（sbatch 脚本会在缺失时自动补跑上游步骤；可用 `FORCE=1` 强制重算）。
 - 提交命令（用户在集群上执行）：
   - HCP-D：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch`（包含 4th 的 S1+S2 完整流程：对齐曲线 + flip-age 分组 GAM）
+  - HCP-D（Yeo7/Yeo17/TractSeg major-bundle）：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_yeo_tractseg_container.sbatch`（依次跑 Yeo7→Yeo17→TractSeg；同样会在 log 中输出 `[RESULT]` 数值）
   - ABCD：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_CV75_container.sbatch`
 - 常用参数（环境变量）：
   - `CVTHR=75`（默认 75）
@@ -41,8 +42,13 @@
   - `FORCE=0/1`
   - ABCD 输入可覆盖：`INPUT_RDS=/ibmgpfs/.../SCdata_...combatgam_age_sex_meanfd.rds`
 - 输出位置：
-  - 结果表：`outputs/results/4th_changerate_SAcorr/{hcpd,abcd}/combat_gam/CV75/`
-  - 图片：`outputs/figures/4th_changerate_SAcorr/{hcpd,abcd}/combat_gam/CV75/Alignment_development/`（默认 `.tiff + .pdf`）
+  - 结果表：
+    - SA12：`outputs/results/4th_changerate_SAcorr/{hcpd,abcd}/combat_gam/CV75/`
+    - HCP-D Yeo/TractSeg：`outputs/results/4th_changerate_SAcorr/hcpd/{yeo/Yeo7,yeo/Yeo17,tractseg}/combat_gam/CV75/`
+  - 图片：
+    - SA12：`outputs/figures/4th_changerate_SAcorr/{hcpd,abcd}/combat_gam/CV75/Alignment_development/`
+    - HCP-D Yeo/TractSeg：`outputs/figures/4th_changerate_SAcorr/hcpd/{yeo/Yeo7,yeo/Yeo17,tractseg}/combat_gam/CV75/Alignment_development/`
+    - 以上默认输出 `.tiff + .pdf`
   - 日志：`outputs/logs/4th_changerate_SAcorr_{dataset}_CV75_<jobid>.log`（包含 `[RESULT]` 行的具体数值）
 
 ## ComBat-GAM 运行约定
