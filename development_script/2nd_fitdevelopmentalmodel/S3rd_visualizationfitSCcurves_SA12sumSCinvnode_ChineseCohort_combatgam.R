@@ -12,7 +12,7 @@
 ##
 ## Outputs (project-relative):
 ## - outputs/intermediate/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/plotdatasum_scale_TRUE_SA12.rds
-## - outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/** (tiff+svg)
+## - outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/** (tiff+pdf)
 
 rm(list = ls())
 
@@ -201,7 +201,7 @@ p1 <- ggplot() +
     legend.position = "none"
   )
 ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff"), p1, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.svg"), p1, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.pdf"), p1, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
 
 ## Plots: 78 developmental trajectories (fit.Z colored by mean 2nd derivative)
 colorbarvalues.meanderiv2 <- colorbarvalues(
@@ -226,7 +226,7 @@ p2 <- ggplot() +
     legend.position = "none"
   )
 ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff"), p2, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.svg"), p2, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.pdf"), p2, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
 
 ## Average fitted values for 10 deciles of connectional axis
 SA12_10 <- data.frame(SCrank = Matrix12.SCrank[indexsave12]) %>%
@@ -258,7 +258,7 @@ p3 <- ggplot(data = plotdatasum.df.decile, aes(x = age, y = fit.Z, group = decil
     legend.position = "none"
   )
 ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.tiff"), p3, dpi = 600, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.svg"), p3, dpi = 600, width = 15, height = 13, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.pdf"), p3, dpi = 600, width = 15, height = 13, units = "cm", bg = "transparent")
 
 ## Optional: example edges (not produced by default; enable via --make_examples=1)
 if (make_examples) {
@@ -296,6 +296,6 @@ if (make_examples) {
         panel.background = element_rect(fill = "transparent", color = NA)
       )
     ggsave(file.path(FigureFolder_SCfit, paste0("example_", SClabel, ".tiff")), Scatter_Fig, dpi = 600, width = 10, height = 9, units = "cm", bg = "transparent")
-    ggsave(file.path(FigureFolder_SCfit, paste0("example_", SClabel, ".svg")), Scatter_Fig, dpi = 600, width = 10, height = 9, units = "cm", bg = "transparent")
+    ggsave(file.path(FigureFolder_SCfit, paste0("example_", SClabel, ".pdf")), Scatter_Fig, dpi = 600, width = 10, height = 9, units = "cm", bg = "transparent")
   }
 }

@@ -179,10 +179,11 @@
 - 2026-01-27: 修复 ABCD p-factor 交互曲线年龄范围异常：`run_abcd_pfactor_effect_continuous_S1.R` 的 `age_to_years()` 兼容 `years/12`（疑似重复按月缩放）并回补到“年”。
 - 2026-01-27: p-factor 交互曲线自动检测并刷新旧缓存（当缓存 age 范围明显不合理时强制重算），避免 `FORCE=0` 时继续复用错误年龄范围。
 - 2026-01-27: 新增 Chinese Cohort（ComBat-GAM 输出）的 2nd 发育模型可复现流程：补齐 S1–S4 Rscript（GAM + 导数 + 可视化 + S-A 相关）并提供容器 sbatch `sbatch/run_chinese_devmodel_combatgam_CV75_container.sbatch`。
-- 2026-01-27: Chinese devmodel 图像输出对齐原始 Rmd：S3 默认输出 3 张（tiff+svg）；S4 默认输出 3 张（2×tiff + 1×svg），并保留 matrix graph 的可选开关。
+- 2026-01-27: Chinese devmodel 图像输出对齐原始 Rmd：S3 默认输出 3 张（tiff+pdf）；S4 默认输出 3 张（2×tiff + 1×pdf），并保留 matrix graph 的可选开关（避免依赖 `svglite`）。
 - 2026-01-27: 新增 HCP-D（Yeo7/Yeo17/TractSeg major-bundle）ComBat-GAM 一键 sbatch：`combat_gam/sbatch/hcpd_combat_gam_yeo_tractseg_CV75.sbatch`，输出写入 `outputs/results/combat_gam/hcpd/`。
 - 2026-01-27: 基于 `development_script/2nd_fitdevelopmentalmodel/V_Yeo_network` 与 `V_TractSeg` 补齐 HCP-D 的 Yeo7/Yeo17/TractSeg（ComBat-GAM 输出）发育模型可复现入口（S1–S4）并提供容器一键提交：`sbatch/run_hcpd_devmodel_combatgam_CV75_yeo_tractseg_container.sbatch`，图像命名与原脚本保持一致。
 - 2026-01-27: 修复 HCP-D Yeo/TractSeg ComBat-GAM sbatch 读取外部 `.rds` 报错：`run_combat_gam_neuroharmonize.py` 在 `pyreadr` 失败时自动回退到 `rpy2 + readRDS()` 读取，以兼容新版本 RDS 序列化特性。
 - 2026-01-27: HCP-D 派生表（Yeo/TractSeg）若缺少 `site` 列，ComBat-GAM 脚本支持从 SA12 merge 表按 `subID` 回填 `site`（`--batch-source-rds`），并已在 `combat_gam/sbatch/hcpd_combat_gam_yeo_tractseg_CV75.sbatch` 默认启用。
 - 2026-01-27: 修复 HCP-D Yeo/TractSeg devmodel 容器作业缺少 `svglite` 导致 SVG 输出失败：相关脚本默认改为输出 `tiff+pdf`（不再依赖 `svglite`）。
 - 2026-01-27: 修复 HCP-D Yeo/TractSeg devmodel 容器作业 OpenBLAS `pthread_create failed`：在 sbatch 中强制设置 `OPENBLAS_NUM_THREADS/OMP_NUM_THREADS/MKL_NUM_THREADS=1`（通过 `SINGULARITYENV_*` 传入容器）。
+- 2026-01-27: 修复 Chinese devmodel 容器作业缺少 `svglite` 导致 SVG 输出失败：Chinese S3/S4 默认改为输出 `tiff+pdf`；对应 sbatch 默认改为 72 核，并设置 `SINGULARITYENV_*` 限制 BLAS/OMP 线程数。

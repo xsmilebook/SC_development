@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J chinese_devmodel_cg_cv75_sif
 #SBATCH -p q_fat_c,q_fat,q_fat_l
-#SBATCH -c 50
+#SBATCH -c 72
 #SBATCH -o outputs/logs/chinese_devmodel_combatgam_CV75_container_%j.log
 
 set -euo pipefail
@@ -22,6 +22,13 @@ cd "${project_root}"
 
 module load singularity/3.7.0
 singularity --version
+
+# Avoid OpenBLAS/OMP over-threading inside the container when using many cores.
+export SINGULARITYENV_OPENBLAS_NUM_THREADS=1
+export SINGULARITYENV_OMP_NUM_THREADS=1
+export SINGULARITYENV_MKL_NUM_THREADS=1
+export SINGULARITYENV_NUMEXPR_NUM_THREADS=1
+export SINGULARITYENV_VECLIB_MAXIMUM_THREADS=1
 
 if [ ! -f "${sif}" ]; then
   echo "[ERROR] Missing SIF: ${sif}"
@@ -50,6 +57,18 @@ fi
 
 corr_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV${CVTHR}/correlation_sumSCinvnode_SCrank/meanmeanderv2_c_control_distance_SCrankcorr_n12.tiff"
 if [ ! -f "${corr_tiff}" ]; then
+  FORCE_S4=1
+fi
+
+# If S3/S4 were previously run when SVG outputs were enabled, only TIFF may exist.
+# Ensure we backfill PDF versions after switching away from svglite.
+decile_pdf="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV${CVTHR}/SA12_decile_sumSCinvnode_fit/devcurve_SCrank_fit.Z_SCtype10.pdf"
+if [ ! -f "${decile_pdf}" ]; then
+  FORCE_S3=1
+fi
+
+corr_pdf="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV${CVTHR}/correlation_sumSCinvnode_SCrank/meanmeanderv2_c_control_distance_SCrankcorr_n12.pdf"
+if [ ! -f "${corr_pdf}" ]; then
   FORCE_S4=1
 fi
 
