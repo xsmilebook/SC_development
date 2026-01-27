@@ -354,7 +354,31 @@ SCdata.diw[, sc_cols] <- lapply(SCdata.diw[, sc_cols, drop = FALSE], as.numeric)
 dataname <- "SCdata.diw"
 stats_only <- FALSE
 cache_rds <- file.path(intermediateFolder, paste0("plotdata_high90_low10_pFactor_", int_var, "_develop_CV", CVthr, ".rds"))
-if (force || !file.exists(cache_rds)) {
+should_recompute_cache <- force || !file.exists(cache_rds)
+if (!should_recompute_cache) {
+  tmp_cache <- tryCatch(readRDS(cache_rds), error = function(e) NULL)
+  cache_df <- NULL
+  if (is.list(tmp_cache)) {
+    cache_df <- tryCatch(do.call(rbind, tmp_cache), error = function(e) NULL)
+  }
+  if (!is.data.frame(cache_df) || !"age" %in% names(cache_df)) {
+    message("[WARN] Interaction cache invalid/unreadable; will recompute: ", cache_rds)
+    should_recompute_cache <- TRUE
+  } else {
+    cache_age_max <- suppressWarnings(max(as.numeric(cache_df$age), na.rm = TRUE))
+    cur_age_max <- suppressWarnings(max(as.numeric(SCdata.diw$age), na.rm = TRUE))
+    # If cache looks like "years/12" (<=2) but current data is in years, it was built under a wrong scaling.
+    if (is.finite(cache_age_max) && cache_age_max <= 2 && is.finite(cur_age_max) && cur_age_max > 5) {
+      message(
+        "[WARN] Interaction cache age range looks scaled (max=", round(cache_age_max, 3),
+        "), but current SCdata age max=", round(cur_age_max, 3), "; will recompute cache."
+      )
+      should_recompute_cache <- TRUE
+    }
+  }
+}
+
+if (should_recompute_cache) {
   resultsum <- vector("list", length = 78)
   for (x in 1:78) {
     region <- sc_cols[[x]]
