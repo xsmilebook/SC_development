@@ -121,6 +121,16 @@
        - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - figures：`outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
+     - HCP-D（Yeo7/Yeo17/TractSeg major-bundle，使用各自 ComBat-GAM 输出）的容器版一键提交：
+       - sbatch：`sbatch/run_hcpd_devmodel_combatgam_CV75_yeo_tractseg_container.sbatch`
+       - 输入（默认）：
+         - `outputs/results/combat_gam/hcpd/SCdata_Yeo7_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+         - `outputs/results/combat_gam/hcpd/SCdata_Yeo17_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+         - `outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.TractSeg.combatgam.rds`
+       - 产物目录：
+         - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/{yeo,tractseg}/**/CV75/`
+         - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/{yeo,tractseg}/**/CV75/`
+         - figures：`outputs/figures/2nd_fitdevelopmentalmodel/hcpd/{yeo,tractseg}/**/CV75/`
    - 注意：若出现 `object '.lower_ci' not found`（gratia 输出列名变动），请使用已修复的 `gamfunction/gammsmooth.R` 并重新提交对应作业。
    - Chinese Cohort（基于 ComBat-GAM 输出）的可复现运行入口：
      - 输入默认：`outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`

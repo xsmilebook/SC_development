@@ -181,3 +181,4 @@
 - 2026-01-27: 新增 Chinese Cohort（ComBat-GAM 输出）的 2nd 发育模型可复现流程：补齐 S1–S4 Rscript（GAM + 导数 + 可视化 + S-A 相关）并提供容器 sbatch `sbatch/run_chinese_devmodel_combatgam_CV75_container.sbatch`。
 - 2026-01-27: Chinese devmodel 图像输出对齐原始 Rmd：S3 默认输出 3 张（tiff+svg）；S4 默认输出 3 张（2×tiff + 1×svg），并保留 matrix graph 的可选开关。
 - 2026-01-27: 新增 HCP-D（Yeo7/Yeo17/TractSeg major-bundle）ComBat-GAM 一键 sbatch：`combat_gam/sbatch/hcpd_combat_gam_yeo_tractseg_CV75.sbatch`，输出写入 `outputs/results/combat_gam/hcpd/`。
+- 2026-01-27: 基于 `development_script/2nd_fitdevelopmentalmodel/V_Yeo_network` 与 `V_TractSeg` 补齐 HCP-D 的 Yeo7/Yeo17/TractSeg（ComBat-GAM 输出）发育模型可复现入口（S1–S4）并提供容器一键提交：`sbatch/run_hcpd_devmodel_combatgam_CV75_yeo_tractseg_container.sbatch`，图像命名与原脚本保持一致。
