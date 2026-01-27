@@ -26,10 +26,35 @@ def _ensure_numeric(series):
 
 
 def _load_rds(path):
-    data = pyreadr.read_r(path)
-    if not data:
-        raise ValueError(f"No objects found in {path}")
-    return next(iter(data.values()))
+    """
+    Load an RDS file into a pandas.DataFrame.
+
+    Primary backend: pyreadr (fast).
+    Fallback: R's readRDS via rpy2 (handles newer RDS features that librdata/pyreadr may not support).
+    """
+    try:
+        data = pyreadr.read_r(path)
+        if not data:
+            raise ValueError(f"No objects found in {path}")
+        obj = next(iter(data.values()))
+        if not isinstance(obj, pd.DataFrame):
+            raise ValueError(f"Expected data.frame in {path}, got {type(obj)}")
+        return obj
+    except Exception as e:
+        # Common failure on HPC: pyreadr/librdata can't parse RDS created with newer R versions
+        # (e.g., unsupported serialization features). Fall back to R itself.
+        sys.stderr.write(f"[WARN] pyreadr failed to read {path}: {e}\n")
+        sys.stderr.write("[WARN] Falling back to rpy2 + readRDS(). This is slower but more compatible.\n")
+        try:
+            ro.globalenv[".rds_path"] = ro.StrVector([path])[0]
+            r_obj = ro.r('as.data.frame(readRDS(.rds_path))')
+            with localconverter(default_converter + pandas2ri.converter):
+                df = ro.conversion.rpy2py(r_obj)
+            if not isinstance(df, pd.DataFrame):
+                raise ValueError(f"rpy2 readRDS did not return a DataFrame for {path}: {type(df)}")
+            return df
+        except Exception as e2:
+            raise RuntimeError(f"Failed to read RDS via both pyreadr and rpy2: {path}. pyreadr_error={e} rpy2_error={e2}") from e2
 
 
 def _build_mgcv_basis(age_values, age_col):

@@ -182,3 +182,4 @@
 - 2026-01-27: Chinese devmodel 图像输出对齐原始 Rmd：S3 默认输出 3 张（tiff+svg）；S4 默认输出 3 张（2×tiff + 1×svg），并保留 matrix graph 的可选开关。
 - 2026-01-27: 新增 HCP-D（Yeo7/Yeo17/TractSeg major-bundle）ComBat-GAM 一键 sbatch：`combat_gam/sbatch/hcpd_combat_gam_yeo_tractseg_CV75.sbatch`，输出写入 `outputs/results/combat_gam/hcpd/`。
 - 2026-01-27: 基于 `development_script/2nd_fitdevelopmentalmodel/V_Yeo_network` 与 `V_TractSeg` 补齐 HCP-D 的 Yeo7/Yeo17/TractSeg（ComBat-GAM 输出）发育模型可复现入口（S1–S4）并提供容器一键提交：`sbatch/run_hcpd_devmodel_combatgam_CV75_yeo_tractseg_container.sbatch`，图像命名与原脚本保持一致。
+- 2026-01-27: 修复 HCP-D Yeo/TractSeg ComBat-GAM sbatch 读取外部 `.rds` 报错：`run_combat_gam_neuroharmonize.py` 在 `pyreadr` 失败时自动回退到 `rpy2 + readRDS()` 读取，以兼容新版本 RDS 序列化特性。
