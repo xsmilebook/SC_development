@@ -49,6 +49,7 @@
 - 小型测试可直接运行 `combat_gam/scripts/*.sh`；正式任务必须使用 `combat_gam/sbatch/*.sbatch` 提交到 `q_fat_c`。
 - ComBat-GAM 使用项目专用环境：`/GPFS/cuizaixu_lab_permanent/xuhaoshu/miniconda3/envs/scdevelopment`。
 - HCP-D/Chinese 推荐使用 neuroHarmonize 原生 `smooth_terms`（GAM）实现：`combat_gam/scripts/run_combat_gam_neuroharmonize_native.py`（支持 `smooth_fx` 固定平滑或 k-fold 选择）。
+- HCP-D 派生表（如 Yeo/TractSeg）若缺少 `site` 列，可在 ComBat-GAM 时从 SA12 merge 表按 `subID` 回填：`/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds`（`combat_gam/scripts/run_combat_gam_neuroharmonize.py` 支持 `--batch-source-rds`）。
 - 运行相关依赖应安装在 `scdevelopment` 环境；若包依赖冲突需建立独立虚拟环境，并在此处补充说明。
 - Reviewer2（Q5）补充：ABCD baseline 的 `age+sex+meanFD` 纵向 ComBat（不保护 cognition）可用 `combat_gam/sbatch/abcd_combat_gam_baseline_age_sex_meanfd.sbatch` 提交，输出 `*combatgam_age_sex_meanfd_baseline.rds`。
 - ABCD 纵向 Nonlinear-ComBat-GAM（新增变体）：

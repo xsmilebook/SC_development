@@ -101,6 +101,16 @@ def main():
     parser.add_argument("--input-rds", required=True)
     parser.add_argument("--output-rds", required=True)
     parser.add_argument("--batch-col", required=True)
+    parser.add_argument(
+        "--batch-source-rds",
+        default="",
+        help="Optional RDS providing the batch column (e.g., site). If input lacks --batch-col, "
+        "we will merge it from this table using --batch-source-id-col and --batch-source-batch-col.",
+    )
+    parser.add_argument("--batch-source-id-col", default="", help="ID column in --batch-source-rds (defaults to --id-col).")
+    parser.add_argument(
+        "--batch-source-batch-col", default="", help="Batch column in --batch-source-rds (defaults to --batch-col)."
+    )
     parser.add_argument("--id-col", required=True)
     parser.add_argument("--age-col", required=True)
     parser.add_argument("--sex-col", required=True)
@@ -114,6 +124,37 @@ def main():
     sc_cols = [c for c in df.columns if c.startswith("SC.")]
     if not sc_cols:
         raise ValueError("No SC.* columns found in input data.")
+
+    # Optional: inject missing batch column from a "source" RDS (common for derived tables).
+    if args.batch_col not in df.columns and args.batch_source_rds:
+        src_id_col = args.batch_source_id_col or args.id_col
+        src_batch_col = args.batch_source_batch_col or args.batch_col
+        src = _load_rds(args.batch_source_rds)
+        if src_id_col not in src.columns or src_batch_col not in src.columns:
+            raise ValueError(
+                f"batch-source-rds missing required columns: {src_id_col}, {src_batch_col}. "
+                f"Available: {list(src.columns)}"
+            )
+        src_map = src[[src_id_col, src_batch_col]].dropna().drop_duplicates()
+        before = df.shape[0]
+        df = df.merge(src_map, how="left", left_on=args.id_col, right_on=src_id_col)
+        # If id column name differs, drop the extra join key.
+        if src_id_col != args.id_col and src_id_col in df.columns:
+            df = df.drop(columns=[src_id_col])
+        if args.batch_col not in df.columns:
+            # If the source batch column name is different, rename it to the requested batch-col.
+            if src_batch_col in df.columns:
+                df = df.rename(columns={src_batch_col: args.batch_col})
+        missing_n = int(df[args.batch_col].isna().sum()) if args.batch_col in df.columns else before
+        sys.stderr.write(
+            f"[INFO] Injected batch column '{args.batch_col}' from {args.batch_source_rds}; "
+            f"rows={before}, missing_batch_after_merge={missing_n}\n"
+        )
+        if args.batch_col not in df.columns or missing_n == before:
+            raise ValueError(
+                f"Failed to inject batch column '{args.batch_col}' from {args.batch_source_rds}. "
+                f"Check ID alignment between {args.id_col} (input) and {src_id_col} (source)."
+            )
 
     covar_cols = [args.id_col, args.batch_col, args.age_col, args.sex_col, args.mean_fd_col]
     extra_cols = [c for c in args.extra_covars.split(",") if c]

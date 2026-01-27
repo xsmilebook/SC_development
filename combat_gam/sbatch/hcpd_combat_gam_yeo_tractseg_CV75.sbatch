@@ -22,6 +22,11 @@ MEAN_FD_COL="${MEAN_FD_COL:-mean_fd}"
 out_dir="${OUT_DIR:-${project_root}/outputs/results/combat_gam/hcpd}"
 log_dir="${project_root}/outputs/logs/combat_gam"
 
+# Some derived HCPD tables (e.g., Yeo/TractSeg) may miss the `site` column.
+# If so, merge `site` from the canonical SA12 merge table by `subID`.
+DEFAULT_BATCH_SOURCE_RDS="/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
+BATCH_SOURCE_RDS="${BATCH_SOURCE_RDS:-${DEFAULT_BATCH_SOURCE_RDS}}"
+
 mkdir -p "${out_dir}" "${log_dir}"
 cd "${project_root}"
 
@@ -57,6 +62,9 @@ run_one() {
     --input-rds "${input_rds}" \
     --output-rds "${output_rds}" \
     --batch-col "${BATCH_COL}" \
+    --batch-source-rds "${BATCH_SOURCE_RDS}" \
+    --batch-source-id-col "${ID_COL}" \
+    --batch-source-batch-col "${BATCH_COL}" \
     --id-col "${ID_COL}" \
     --age-col "${AGE_COL}" \
     --sex-col "${SEX_COL}" \
@@ -85,4 +93,3 @@ run_one "${in_yeo17}" "${out_yeo17}" "HCPD_Yeo17"
 run_one "${in_tractseg}" "${out_tractseg}" "HCPD_TractSeg_major_bundle"
 
 echo "[INFO] All done."
-
