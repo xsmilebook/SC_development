@@ -12,7 +12,7 @@
 ##
 ## Outputs (project-relative):
 ## - outputs/intermediate/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/plotdatasum_scale_TRUE_SA12.rds
-## - outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/** (tiff+pdf)
+## - outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/** (tiff+svg)
 
 rm(list = ls())
 
@@ -40,6 +40,7 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
+make_examples <- as.integer(if (!is.null(args$make_examples)) args$make_examples else 0L) == 1L
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 ds.resolution <- 12
@@ -200,7 +201,7 @@ p1 <- ggplot() +
     legend.position = "none"
   )
 ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff"), p1, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.pdf"), p1, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.svg"), p1, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
 
 ## Plots: 78 developmental trajectories (fit.Z colored by mean 2nd derivative)
 colorbarvalues.meanderiv2 <- colorbarvalues(
@@ -225,7 +226,7 @@ p2 <- ggplot() +
     legend.position = "none"
   )
 ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff"), p2, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.pdf"), p2, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.svg"), p2, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
 
 ## Average fitted values for 10 deciles of connectional axis
 SA12_10 <- data.frame(SCrank = Matrix12.SCrank[indexsave12]) %>%
@@ -257,43 +258,44 @@ p3 <- ggplot(data = plotdatasum.df.decile, aes(x = age, y = fit.Z, group = decil
     legend.position = "none"
   )
 ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.tiff"), p3, dpi = 600, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.pdf"), p3, dpi = 600, width = 15, height = 13, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.svg"), p3, dpi = 600, width = 15, height = 13, units = "cm", bg = "transparent")
 
-## Example edges (SC.2_h and SC.77_h)
-BuRd <- rev(brewer.pal(10, "RdBu"))
-for (SClabel in c("SC.2_h", "SC.77_h")) {
-  idx <- which(gamresultsum.SAorder.delLM$parcel == SClabel)[1]
-  if (is.na(idx) || length(idx) == 0) {
-    message("[WARN] Example edge not available in gamresults (skipping): ", SClabel)
-    next
-  }
-  rangev <- max(gamresultsum.SAorder.delLM$meanderv2) - min(gamresultsum.SAorder.delLM$meanderv2)
-  coloridx <- round((gamresultsum.SAorder.delLM$meanderv2[gamresultsum.SAorder.delLM$parcel == SClabel] - min(gamresultsum.SAorder.delLM$meanderv2)) / rangev * 10)
-  if (is.na(coloridx) || coloridx == 0) coloridx <- 1
-  if (coloridx > 10) coloridx <- 10
-  colorID <- BuRd[[coloridx]]
+## Optional: example edges (not produced by default; enable via --make_examples=1)
+if (make_examples) {
+  BuRd <- rev(brewer.pal(10, "RdBu"))
+  for (SClabel in c("SC.2_h", "SC.77_h")) {
+    idx <- which(gamresultsum.SAorder.delLM$parcel == SClabel)[1]
+    if (is.na(idx) || length(idx) == 0) {
+      message("[WARN] Example edge not available in gamresults (skipping): ", SClabel)
+      next
+    }
+    rangev <- max(gamresultsum.SAorder.delLM$meanderv2) - min(gamresultsum.SAorder.delLM$meanderv2)
+    coloridx <- round((gamresultsum.SAorder.delLM$meanderv2[gamresultsum.SAorder.delLM$parcel == SClabel] - min(gamresultsum.SAorder.delLM$meanderv2)) / rangev * 10)
+    if (is.na(coloridx) || coloridx == 0) coloridx <- 1
+    if (coloridx > 10) coloridx <- 10
+    colorID <- BuRd[[coloridx]]
 
-  plotdatasum.df.tmp <- plotdatasum.df[plotdatasum.df$SC_label == SClabel, ]
-  if (idx > length(gammodelsum) || is.null(gammodelsum[[idx]])) {
-    message("[WARN] Example edge model not available (skipping): ", SClabel)
-    next
+    plotdatasum.df.tmp <- plotdatasum.df[plotdatasum.df$SC_label == SClabel, ]
+    if (idx > length(gammodelsum) || is.null(gammodelsum[[idx]])) {
+      message("[WARN] Example edge model not available (skipping): ", SClabel)
+      next
+    }
+    scatterdata <- gammodelsum[[idx]]$model
+    scatterdata$SC <- scatterdata[, 1]
+    Scatter_Fig <- ggplot() +
+      geom_ribbon(data = plotdatasum.df.tmp, aes(x = age, ymin = selo, ymax = sehi), alpha = 0.3, fill = colorID) +
+      geom_point(data = scatterdata, aes(x = age, y = SC), alpha = 0.5, color = colorID) +
+      geom_line(data = plotdatasum.df.tmp, aes(x = age, y = fit), linewidth = 1.4, alpha = 1, color = colorID) +
+      labs(y = "SC strength (ratio)") + xlab(NULL) +
+      theme_classic() +
+      theme(
+        axis.text = element_text(size = 18.5, color = "black"),
+        axis.title = element_text(size = 18.5),
+        plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA)
+      )
+    ggsave(file.path(FigureFolder_SCfit, paste0("example_", SClabel, ".tiff")), Scatter_Fig, dpi = 600, width = 10, height = 9, units = "cm", bg = "transparent")
+    ggsave(file.path(FigureFolder_SCfit, paste0("example_", SClabel, ".svg")), Scatter_Fig, dpi = 600, width = 10, height = 9, units = "cm", bg = "transparent")
   }
-  scatterdata <- gammodelsum[[idx]]$model
-  scatterdata$SC <- scatterdata[, 1]
-  Scatter_Fig <- ggplot() +
-    geom_ribbon(data = plotdatasum.df.tmp, aes(x = age, ymin = selo, ymax = sehi), alpha = 0.3, fill = colorID) +
-    geom_point(data = scatterdata, aes(x = age, y = SC), alpha = 0.5, color = colorID) +
-    geom_line(data = plotdatasum.df.tmp, aes(x = age, y = fit), linewidth = 1.4, alpha = 1, color = colorID) +
-    labs(y = "SC strength (ratio)") + xlab(NULL) +
-    theme_classic() +
-    theme(
-      axis.text = element_text(size = 18.5, color = "black"),
-      axis.title = element_text(size = 18.5),
-      plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
-      plot.background = element_rect(fill = "transparent", color = NA),
-      panel.background = element_rect(fill = "transparent", color = NA)
-    )
-  ggsave(file.path(FigureFolder_SCfit, paste0("example_", SClabel, ".tiff")), Scatter_Fig, dpi = 600, width = 10, height = 9, units = "cm", bg = "transparent")
-  ggsave(file.path(FigureFolder_SCfit, paste0("example_", SClabel, ".pdf")), Scatter_Fig, dpi = 600, width = 10, height = 9, units = "cm", bg = "transparent")
 }
-

@@ -48,7 +48,7 @@ if [ ! -f "${decile_tiff}" ]; then
   FORCE_S3=1
 fi
 
-corr_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV${CVTHR}/correlation_sumSCinvnode_SCrank/meanpartialRsq_SCrankcorr_n12.tiff"
+corr_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV${CVTHR}/correlation_sumSCinvnode_SCrank/meanmeanderv2_c_control_distance_SCrankcorr_n12.tiff"
 if [ ! -f "${corr_tiff}" ]; then
   FORCE_S4=1
 fi
@@ -88,4 +88,3 @@ exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S4
   --euclid_csv="/work/${EUCLID_CSV#${project_root}/}" \
   --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}" \
   --force="${FORCE_S4}"
-

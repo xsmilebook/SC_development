@@ -11,8 +11,8 @@
 ##
 ## Outputs:
 ## - outputs/results/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/SCrank_correlation_summary.csv
-## - outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/correlation_sumSCinvnode_SCrank/*.tiff + *.pdf
-## - (optional) outputs/figures/.../Matrix12_sumSCinvnode_gamstats_*.tiff
+## - outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/correlation_sumSCinvnode_SCrank/*.tiff (+ one *.svg)
+## - (optional) outputs/figures/.../Matrix12_sumSCinvnode_gamstats_Age8_22/*.tiff
 
 rm(list = ls())
 
@@ -98,9 +98,25 @@ EucDistance <- read.csv(euclid_csv)
 message(sum(gamresult$sig), " edges have significant developmental effects.")
 
 out_summary <- file.path(resultFolder, "SCrank_correlation_summary.csv")
-if (!force && file.exists(out_summary)) {
-  message("[INFO] S4 summary exists, skipping: ", out_summary, " (set --force=1 to re-run)")
+FigCorrFolder <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank")
+dir.create(FigCorrFolder, showWarnings = FALSE, recursive = TRUE)
+
+out_fig_meanderv2 <- file.path(FigCorrFolder, paste0("meanmeanderv2_c_SCrankcorr_n", ds.resolution, ".tiff"))
+out_fig_meanderv2_ctrl_tiff <- file.path(FigCorrFolder, paste0("meanmeanderv2_c_control_distance_SCrankcorr_n", ds.resolution, ".tiff"))
+out_fig_meanderv2_ctrl_svg <- file.path(FigCorrFolder, paste0("meanmeanderv2_c_control_distance_SCrankcorr_n", ds.resolution, ".svg"))
+
+if (!force && file.exists(out_summary) && file.exists(out_fig_meanderv2) && file.exists(out_fig_meanderv2_ctrl_tiff) && file.exists(out_fig_meanderv2_ctrl_svg)) {
+  message("[INFO] S4 outputs exist; skipping S4. Set --force=1 to re-run.")
   quit(save = "no", status = 0)
+}
+
+placeholder_plot <- function(title, subtitle) {
+  ggplot() +
+    annotate("text", x = 0, y = 0.2, label = title, size = 6) +
+    annotate("text", x = 0, y = -0.2, label = subtitle, size = 4.5) +
+    xlim(-1, 1) + ylim(-1, 1) +
+    theme_void() +
+    theme(plot.background = element_rect(fill = "transparent", color = NA))
 }
 
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
@@ -171,69 +187,74 @@ if ("meanderv2_c" %in% names(gamresult)) {
 
 write.csv(SCrank_correlation, out_summary, row.names = FALSE)
 
-## scatter plots
-FigCorrFolder <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank")
-dir.create(FigCorrFolder, showWarnings = FALSE, recursive = TRUE)
-
-plot_one_scatter <- function(computevar, ylab) {
-  df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
-  names(df) <- c("SCrank", computevar)
-  ct <- suppressWarnings(corr.test(df$SCrank, df[[computevar]], method = "spearman"))
-  extract_corr <- function(ct_obj) {
-    r_obj <- ct_obj$r
-    p_obj <- ct_obj$p
-    if (is.matrix(r_obj) || is.data.frame(r_obj)) {
-      r_val <- if (ncol(r_obj) >= 2) r_obj[1, 2] else r_obj[1, 1]
-      p_val <- if (is.matrix(p_obj) || is.data.frame(p_obj)) {
-        if (ncol(p_obj) >= 2) p_obj[1, 2] else p_obj[1, 1]
-      } else {
-        as.numeric(p_obj)[1]
-      }
-      return(list(r = as.numeric(r_val), p = as.numeric(p_val)))
-    }
-    list(r = as.numeric(r_obj)[1], p = as.numeric(p_obj)[1])
-  }
-  rp <- extract_corr(ct)
-  r <- rp$r
-  p <- rp$p
-  ggplot(df, aes(x = SCrank, y = .data[[computevar]])) +
-    geom_point(alpha = 0.9, size = 3.2) +
-    geom_smooth(method = "lm", se = TRUE, linewidth = 1.0, color = "black") +
-    labs(
-      x = "S-A rank",
-      y = ylab,
-      title = sprintf("%s (Spearman r=%.3f, p=%.3g)", computevar, r, p)
-    ) +
-    theme_classic() +
-    theme(
-      axis.text = element_text(size = 18, color = "black"),
-      axis.title = element_text(size = 18, color = "black"),
-      plot.title = element_text(size = 14, hjust = 0.5),
-      plot.background = element_rect(fill = "transparent", color = NA),
-      panel.background = element_rect(fill = "transparent", color = NA)
-    )
-}
-
-scatter_targets <- list(
-  partialRsq = "Age effect (partial R^2)",
-  meanderv2_c = "Mean 2nd derivative",
-  partialRsq_control_distance = "Partial R^2 (residualized by Euclidean distance)",
-  meanderv2_c_control_distance = "Mean 2nd derivative (residualized by Euclidean distance)"
+## scatter plots (match historical Chinese Rmd output count/names)
+mytheme <- theme(
+  axis.text = element_text(size = 23, color = "black"),
+  axis.title = element_text(size = 23),
+  aspect.ratio = 0.9,
+  axis.line = element_line(linewidth = 0.6),
+  axis.ticks = element_line(linewidth = 0.6),
+  plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+  plot.background = element_rect(fill = "transparent", color = NA),
+  panel.background = element_rect(fill = "transparent", color = NA),
+  legend.position = "none"
 )
 
-for (nm in names(scatter_targets)) {
-  if (!nm %in% names(gamresult)) next
-  p <- plot_one_scatter(nm, scatter_targets[[nm]])
-  ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")), p, dpi = 600, width = 20, height = 12, units = "cm", bg = "transparent")
-  ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf")), p, dpi = 600, width = 16, height = 14, units = "cm", bg = "transparent")
+## 1) meanderv2_c: tiff only
+if ("meanderv2_c" %in% names(gamresult)) {
+  computevar <- "meanderv2_c"
+  correlation.df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
+  if (!any(is.finite(correlation.df$meanderv2_c))) {
+    p_meanderv2 <- placeholder_plot("meanderv2_c", "No finite values available.")
+  } else {
+    p_meanderv2 <- ggplot(data = correlation.df) +
+      geom_point(aes(x = SCrank, y = meanderv2_c, color = SCrank), size = 5) +
+      geom_smooth(aes(x = SCrank, y = meanderv2_c), linewidth = 2, method = "lm", color = "black") +
+      scale_color_distiller(type = "seq", palette = "RdBu", direction = -1) +
+      labs(x = "S-A connectional axis rank", y = "Second derivative") +
+      scale_y_continuous(breaks = c(-0.003, 0, 0.003), labels = c(-3, 0, 3)) +
+      theme_classic() + mytheme
+  }
+  ggsave(out_fig_meanderv2, p_meanderv2, width = 13, height = 12, units = "cm", bg = "transparent")
+}
+
+## 2) meanderv2_c_control_distance: tiff + svg
+if ("meanderv2_c_control_distance" %in% names(gamresult)) {
+  computevar <- "meanderv2_c_control_distance"
+  correlation.df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
+  if (!any(is.finite(correlation.df$meanderv2_c_control_distance))) {
+    p_meanderv2_ctrl <- placeholder_plot("meanderv2_c_control_distance", "No finite values available.")
+  } else {
+    lmthr <- max(abs(correlation.df$meanderv2_c_control_distance), na.rm = TRUE)
+    p_meanderv2_ctrl <- ggplot(data = correlation.df) +
+      geom_point(aes(x = SCrank, y = meanderv2_c_control_distance, color = meanderv2_c_control_distance), size = 5.5) +
+      geom_smooth(aes(x = SCrank, y = meanderv2_c_control_distance), linewidth = 1.2, method = "lm", color = "black") +
+      scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr)) +
+      labs(x = "S-A connectional axis rank", y = "Second derivative") +
+      scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) +
+      theme_classic() +
+      theme(
+        axis.text = element_text(size = 23, color = "black"),
+        axis.title = element_text(size = 23),
+        aspect.ratio = 0.75,
+        axis.line = element_line(linewidth = 0.6),
+        axis.ticks = element_line(linewidth = 0.6),
+        plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA),
+        legend.position = "none"
+      )
+  }
+  ggsave(out_fig_meanderv2_ctrl_tiff, p_meanderv2_ctrl, width = 16, height = 14, units = "cm", bg = "transparent")
+  ggsave(out_fig_meanderv2_ctrl_svg, p_meanderv2_ctrl, dpi = 600, width = 16, height = 14, units = "cm", bg = "transparent")
 }
 
 ## matrix graphs (optional)
 if (make_matrix_graphs) {
   Matrix.tmp <- matrix(NA, nrow = 12, ncol = 12)
-  computevar.list2 <- c("partialRsq", "meanderv2_c", "partialRsq_control_distance", "meanderv2_c_control_distance")
+  computevar.list2 <- c("partialRsq", "increase.onset", "increase.offset", "peak.increase.change", "meanderv2_c")
 
-  FigMatrixFolder <- file.path(FigureRoot, "Matrix12_sumSCinvnode_gamstats")
+  FigMatrixFolder <- file.path(FigureRoot, "Matrix12_sumSCinvnode_gamstats_Age8_22")
   dir.create(FigMatrixFolder, showWarnings = FALSE, recursive = TRUE)
 
   linerange_frame <- data.frame(
@@ -246,9 +267,13 @@ if (make_matrix_graphs) {
     SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
   }, mc.cores = min(6L, n_cores))
 
+  colorbar.prob <- c(
+    0.5, 0.4, 0.6, 0.5,
+    abs(min(gamresult$meanderv2, na.rm = TRUE)) / (max(gamresult$meanderv2, na.rm = TRUE) - min(gamresult$meanderv2, na.rm = TRUE))
+  )
+
   for (i in seq_along(computevar.list2)) {
     computevar <- computevar.list2[[i]]
-    Matrix.tmp[,] <- NA
     Matrix.tmp[lower.tri(Matrix.tmp, diag = TRUE)] <- SCrank_correlation.df[[i]][, 2]
     Matrix.tmp[upper.tri(Matrix.tmp)] <- t(Matrix.tmp)[upper.tri(Matrix.tmp)]
     colnames(Matrix.tmp) <- seq(1, 12)
@@ -261,32 +286,106 @@ if (make_matrix_graphs) {
     matrixtmp.df.melt$nodeid <- 0 - matrixtmp.df.melt$nodeid
     matrixtmp.df.melt$value <- as.numeric(matrixtmp.df.melt$value)
 
-    lmthr <- max(abs(matrixtmp.df.melt$value), na.rm = TRUE)
-    p <- ggplot(data = matrixtmp.df.melt) +
-      geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
-      scale_fill_distiller(type = "seq", palette = "RdBu", limits = c(-lmthr, lmthr), na.value = "grey") +
-      scale_color_distiller(type = "seq", palette = "RdBu", limits = c(-lmthr, lmthr), na.value = "grey") +
-      geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
-      geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
-      geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
-      ggtitle(label = computevar) + labs(x = NULL, y = NULL) +
-      scale_y_continuous(breaks = NULL, labels = NULL) +
-      scale_x_continuous(breaks = NULL, labels = NULL) +
-      theme(
-        axis.line = element_blank(),
-        axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
-        axis.title = element_text(size = 18),
-        plot.title = element_text(size = 18, hjust = 0.5),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 18),
-        panel.background = element_rect(fill = NA),
-        panel.grid.major = element_line(linewidth = 0),
-        panel.grid.minor = element_line(linewidth = 1),
-        plot.background = element_rect(fill = "transparent", color = NA)
-      )
+    values_vec <- SCrank_correlation.df[[i]][, 2]
+    if (!any(is.finite(values_vec))) {
+      Fig <- placeholder_plot(computevar, "No finite values available.")
+      filename <- file.path(FigMatrixFolder, paste0(computevar, "_12net_delLM_CV", CVthr, ".tiff"))
+      ggsave(filename, Fig, height = 18, width = 20, units = "cm", dpi = 600, bg = "transparent")
+      next
+    }
 
-    ggsave(file.path(FigMatrixFolder, paste0("Matrix12_sumSCinvnode_", computevar, ".tiff")), p, width = 12, height = 10, units = "cm", dpi = 600, bg = "transparent")
-    ggsave(file.path(FigMatrixFolder, paste0("Matrix12_sumSCinvnode_", computevar, ".pdf")), p, width = 12, height = 10, units = "cm", dpi = 600, bg = "transparent")
+    colorbarvalues.tmp <- colorbarvalues(values_vec, colorbar.prob[[i]])
+    if (computevar == "partialRsq") {
+      lmthr <- max(abs(gamresult$partialRsq), na.rm = TRUE)
+      Matrix.tmp.sig <- matrix(NA, nrow = 12, ncol = 12)
+      Matrix.tmp.sig[lower.tri(Matrix.tmp.sig, diag = TRUE)] <- (gamresult$pfdr < 0.05)
+      Matrix.tmp.sig[upper.tri(Matrix.tmp.sig)] <- t(Matrix.tmp.sig)[upper.tri(Matrix.tmp.sig)]
+      colnames(Matrix.tmp.sig) <- seq(1, 12)
+      rownames(Matrix.tmp.sig) <- seq(1, 12)
+      matrixtmp.df.sig <- as.data.frame(Matrix.tmp.sig)
+      matrixtmp.df.sig$nodeid <- seq(1, 12)
+      matrixtmp.df.sig.melt <- melt(matrixtmp.df.sig, id.vars = c("nodeid"))
+      matrixtmp.df.sig.melt$variable <- as.numeric(matrixtmp.df.sig.melt$variable)
+      matrixtmp.df.sig.melt$nodeid <- 0 - matrixtmp.df.sig.melt$nodeid
+      matrixtmp.df.sig.melt$value <- as.numeric(matrixtmp.df.sig.melt$value)
+      matrixtmp.df.sig.melt <- matrixtmp.df.sig.melt[-which(matrixtmp.df.sig.melt$value == 0), ]
+
+      Fig <- ggplot(data = matrixtmp.df.melt) +
+        geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
+        scale_fill_distiller(type = "seq", palette = "RdBu", limit = c(-lmthr, lmthr), na.value = "grey") +
+        scale_color_distiller(type = "seq", palette = "RdBu", limit = c(-lmthr, lmthr), na.value = "grey") +
+        geom_text(data = matrixtmp.df.sig.melt, aes(x = variable, y = nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size = 6) +
+        geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
+        geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
+        geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+        ggtitle(label = computevar) + labs(x = NULL, y = NULL) +
+        scale_y_continuous(breaks = NULL, labels = NULL) +
+        scale_x_continuous(breaks = NULL, labels = NULL) +
+        theme(
+          axis.line = element_blank(),
+          axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+          axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
+          axis.title = element_text(size = 18),
+          plot.title = element_text(size = 18, hjust = 0.5),
+          legend.title = element_text(size = 18),
+          legend.text = element_text(size = 18),
+          panel.background = element_rect(fill = NA),
+          panel.grid.major = element_line(linewidth = 0),
+          panel.grid.minor = element_line(linewidth = 1),
+          plot.background = element_rect(fill = "transparent", color = NA)
+        )
+    } else if (computevar == "meanderv2_c") {
+      lmthr <- max(abs(gamresult$meanderv2_c), na.rm = TRUE)
+      Fig <- ggplot(data = matrixtmp.df.melt) +
+        geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
+        scale_fill_distiller(type = "seq", palette = "RdBu", limit = c(-lmthr, lmthr), na.value = "#053061") +
+        scale_color_distiller(type = "seq", palette = "RdBu", limit = c(-lmthr, lmthr), na.value = "#053061") +
+        geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
+        geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
+        geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+        ggtitle(label = computevar) + labs(x = NULL, y = NULL) +
+        scale_y_continuous(breaks = NULL, labels = NULL) +
+        scale_x_continuous(breaks = NULL, labels = NULL) +
+        theme(
+          axis.line = element_blank(),
+          axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+          axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
+          axis.title = element_text(size = 18),
+          plot.title = element_text(size = 18, hjust = 0.5),
+          legend.title = element_text(size = 18),
+          legend.text = element_text(size = 18),
+          panel.background = element_rect(fill = NA),
+          panel.grid.major = element_line(linewidth = 0),
+          panel.grid.minor = element_line(linewidth = 1),
+          plot.background = element_rect(fill = "transparent", color = NA)
+        )
+    } else {
+      Fig <- ggplot(data = matrixtmp.df.melt) +
+        geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
+        scale_fill_distiller(type = "seq", palette = "RdBu", values = colorbarvalues.tmp, na.value = "grey") +
+        scale_color_distiller(type = "seq", palette = "RdBu", values = colorbarvalues.tmp, na.value = "grey") +
+        geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
+        geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
+        geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+        ggtitle(label = computevar) + labs(x = NULL, y = NULL) +
+        scale_y_continuous(breaks = NULL, labels = NULL) +
+        scale_x_continuous(breaks = NULL, labels = NULL) +
+        theme(
+          axis.line = element_blank(),
+          axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+          axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
+          axis.title = element_text(size = 18),
+          plot.title = element_text(size = 18, hjust = 0.5),
+          legend.title = element_text(size = 18),
+          legend.text = element_text(size = 18),
+          panel.background = element_rect(fill = NA),
+          panel.grid.major = element_line(linewidth = 0),
+          panel.grid.minor = element_line(linewidth = 1),
+          plot.background = element_rect(fill = "transparent", color = NA)
+        )
+    }
+
+    filename <- file.path(FigMatrixFolder, paste0(computevar, "_12net_delLM_CV", CVthr, ".tiff"))
+    ggsave(filename, Fig, height = 18, width = 20, units = "cm", dpi = 600, bg = "transparent")
   }
 }
