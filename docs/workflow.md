@@ -94,8 +94,8 @@
 ## 分析流程（对应现有脚本）
 1) 数据整理与 SC 强度提取（`development_script/1st_dataclean`）
 
-## 发育模型脚本的“存在即跳过”约定（HCP-D）
-- 为避免重复计算（尤其是 S1 拟合与 S2 posterior derivative），`development_script/2nd_fitdevelopmentalmodel` 的 HCP-D Rscript 版本默认采用 **存在即跳过**：
+## 发育模型脚本的“存在即跳过”约定（HCP-D/ABCD/Chinese）
+- 为避免重复计算（尤其是 S1 拟合与 S2 posterior derivative），`development_script/2nd_fitdevelopmentalmodel` 的 Rscript 版本默认采用 **存在即跳过**（HCP-D/ABCD/Chinese 的 ComBat-GAM 可复现脚本均遵循该约定）：
   - S1：当 `gamresults*.rds` 与 `gammodel*.rds` 对应输出已存在时跳过重新拟合；其他中间文件（如 `plotdatasum.df_*`、`SCdata.diw_*`、`*_scale_TRUE.rds`）同理按文件存在判断跳过。
   - S2：当 `derivative.df*.rds`（以及 posterior 的 `derivative.posterior*.rds`）存在时跳过。
   - S3：当 `plotdatasum_scale_TRUE_SA12.rds` 与关键图（`devcurve_Rsq_fit.ratio.tiff`、`devcurve_meanderv2_fit.Z.tiff`）存在时跳过。
@@ -121,6 +121,13 @@
        - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - figures：`outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
    - 注意：若出现 `object '.lower_ci' not found`（gratia 输出列名变动），请使用已修复的 `gamfunction/gammsmooth.R` 并重新提交对应作业。
+   - Chinese Cohort（基于 ComBat-GAM 输出）的可复现运行入口：
+     - 输入默认：`outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+     - sbatch（容器版，50 核）：`sbatch sbatch/run_chinese_devmodel_combatgam_CV75_container.sbatch`
+     - 产物目录：
+       - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
+       - results：`outputs/results/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
+       - figures：`outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
    - ABCD（基于 ComBat-GAM 输出）的可复现运行入口：
      - 输入默认：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
      - sbatch（容器版，50 核）：`sbatch sbatch/run_abcd_devmodel_combatgam_CV75_container.sbatch`

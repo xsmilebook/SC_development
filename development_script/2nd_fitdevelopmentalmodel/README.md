@@ -40,6 +40,20 @@ Scripts:
 - `S1st_fitgammodels_SA_ds_sumSCinvnode_ABCD_combatgam.R`
 - `S2nd_calculatederivative_ABCD_combatgam.R`
 
+## Chinese Cohort (ComBat-GAM) in-repo runnable scripts
+For Chinese Cohort, we add project-root relative scripts to generate scaled GAM models and derivatives from the ComBat-GAM output. Outputs are written under `SCDevelopment/outputs/` (no writes to historical `wd/`).
+
+- Input (default): `outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+- Intermediates: `outputs/intermediate/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
+- Results: `outputs/results/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
+- Figures: `outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
+
+Scripts:
+- `S1st_fitgammodels_SA_ds_sumSCinvnode_ChineseCohort_combatgam.R`
+- `S2nd_calculatederivative_ChineseCohort_combatgam.R`
+- `S3rd_visualizationfitSCcurves_SA12sumSCinvnode_ChineseCohort_combatgam.R`
+- `S4th_correlationTo_SArank_SA12sumSCinvnode_ChineseCohort_combatgam.R`
+
 ## V1st_check_k.R
 This script was utilized to select the optimal (k) values for the smoothing functions in GAM and GAMM. 
 
