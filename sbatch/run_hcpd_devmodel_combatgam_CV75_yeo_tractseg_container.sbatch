@@ -36,6 +36,23 @@ if [ ! -f "${sif}" ]; then
   exit 1
 fi
 
+# Prevent thread oversubscription / pthread_create failures (OpenBLAS/MKL/OMP).
+# NOTE: exec_sif uses `singularity exec --cleanenv`, so pass env vars via
+# SINGULARITYENV_* for them to be visible inside the container.
+export OPENBLAS_NUM_THREADS=1
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+export BLIS_NUM_THREADS=1
+
+export SINGULARITYENV_OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS}"
+export SINGULARITYENV_OMP_NUM_THREADS="${OMP_NUM_THREADS}"
+export SINGULARITYENV_MKL_NUM_THREADS="${MKL_NUM_THREADS}"
+export SINGULARITYENV_NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS}"
+export SINGULARITYENV_VECLIB_MAXIMUM_THREADS="${VECLIB_MAXIMUM_THREADS}"
+export SINGULARITYENV_BLIS_NUM_THREADS="${BLIS_NUM_THREADS}"
+
 echo "[INFO] project_root=${project_root}"
 echo "[INFO] sif=${sif}"
 echo "[INFO] CVTHR=${CVTHR}"
@@ -46,6 +63,7 @@ echo "[INFO] N_EDGES=${N_EDGES:-<unset>}"
 echo "[INFO] SKIP_POSTERIOR=${SKIP_POSTERIOR}"
 echo "[INFO] MAKE_MATRIX_GRAPHS_YEO=${MAKE_MATRIX_GRAPHS_YEO}"
 echo "[INFO] MAKE_MATRIX_GRAPHS_TRACTSEG=${MAKE_MATRIX_GRAPHS_TRACTSEG}"
+echo "[INFO] OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS} OMP_NUM_THREADS=${OMP_NUM_THREADS} MKL_NUM_THREADS=${MKL_NUM_THREADS}"
 
 exec_sif() {
   singularity exec --cleanenv \

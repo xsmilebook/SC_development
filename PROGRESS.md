@@ -185,3 +185,4 @@
 - 2026-01-27: 修复 HCP-D Yeo/TractSeg ComBat-GAM sbatch 读取外部 `.rds` 报错：`run_combat_gam_neuroharmonize.py` 在 `pyreadr` 失败时自动回退到 `rpy2 + readRDS()` 读取，以兼容新版本 RDS 序列化特性。
 - 2026-01-27: HCP-D 派生表（Yeo/TractSeg）若缺少 `site` 列，ComBat-GAM 脚本支持从 SA12 merge 表按 `subID` 回填 `site`（`--batch-source-rds`），并已在 `combat_gam/sbatch/hcpd_combat_gam_yeo_tractseg_CV75.sbatch` 默认启用。
 - 2026-01-27: 修复 HCP-D Yeo/TractSeg devmodel 容器作业缺少 `svglite` 导致 SVG 输出失败：相关脚本默认改为输出 `tiff+pdf`（不再依赖 `svglite`）。
+- 2026-01-27: 修复 HCP-D Yeo/TractSeg devmodel 容器作业 OpenBLAS `pthread_create failed`：在 sbatch 中强制设置 `OPENBLAS_NUM_THREADS/OMP_NUM_THREADS/MKL_NUM_THREADS=1`（通过 `SINGULARITYENV_*` 传入容器）。
