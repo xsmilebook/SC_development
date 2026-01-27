@@ -176,3 +176,4 @@
 - 2026-01-26: 修复 ABCD S4 残差索引为非数字导致的赋值错误（直接使用 na.exclude 残差向量）。
 - 2026-01-26: ABCD S1 增加“全边成功”硬检查，若任一边拟合失败则中止并写出失败边清单。
 - 2026-01-26: ABCD plotdata 默认路径统一到项目内 `outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`，并更新 sbatch/脚本引用。
+- 2026-01-27: 修复 ABCD p-factor 交互曲线年龄范围异常：`run_abcd_pfactor_effect_continuous_S1.R` 的 `age_to_years()` 兼容 `years/12`（疑似重复按月缩放）并回补到“年”。
