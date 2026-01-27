@@ -80,6 +80,7 @@
 ## HCP-D/Chinese ComBat-GAM（neuroHarmonize 原生 smooth_terms）
 - HCP-D 提交：`sbatch combat_gam/sbatch/hcpd_combat_gam_native.sbatch`
 - Chinese 提交：`sbatch combat_gam/sbatch/chinese_combat_gam_native.sbatch`
+- HCP-D（Yeo7/Yeo17/TractSeg major-bundle，CV75，输入来自 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD`）：`sbatch combat_gam/sbatch/hcpd_combat_gam_yeo_tractseg_CV75.sbatch`
 - 输出默认写入：
   - `outputs/results/combat_gam/hcpd/*combatgam_native.rds`
   - `outputs/results/combat_gam/chinese/*combatgam_native.rds`

@@ -180,3 +180,4 @@
 - 2026-01-27: p-factor 交互曲线自动检测并刷新旧缓存（当缓存 age 范围明显不合理时强制重算），避免 `FORCE=0` 时继续复用错误年龄范围。
 - 2026-01-27: 新增 Chinese Cohort（ComBat-GAM 输出）的 2nd 发育模型可复现流程：补齐 S1–S4 Rscript（GAM + 导数 + 可视化 + S-A 相关）并提供容器 sbatch `sbatch/run_chinese_devmodel_combatgam_CV75_container.sbatch`。
 - 2026-01-27: Chinese devmodel 图像输出对齐原始 Rmd：S3 默认输出 3 张（tiff+svg）；S4 默认输出 3 张（2×tiff + 1×svg），并保留 matrix graph 的可选开关。
+- 2026-01-27: 新增 HCP-D（Yeo7/Yeo17/TractSeg major-bundle）ComBat-GAM 一键 sbatch：`combat_gam/sbatch/hcpd_combat_gam_yeo_tractseg_CV75.sbatch`，输出写入 `outputs/results/combat_gam/hcpd/`。
