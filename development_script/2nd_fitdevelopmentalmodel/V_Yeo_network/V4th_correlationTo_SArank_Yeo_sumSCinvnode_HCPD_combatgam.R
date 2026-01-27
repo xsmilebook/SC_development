@@ -4,8 +4,8 @@
 ##   V4th_correlationTo_SArank_Yeo_sumSCinvnode_HCPD.R
 ##
 ## Figures (match original naming):
-## - correlation_sumSCinvnode_SCrank/meanpartialRsq_SCrankcorr_n{ds}.(tiff,svg)
-## - correlation_sumSCinvnode_SCrank/meanmeanderv2_2_SCrankcorr_n{ds}.(tiff,svg)
+## - correlation_sumSCinvnode_SCrank/meanpartialRsq_SCrankcorr_n{ds}.(tiff,pdf)
+## - correlation_sumSCinvnode_SCrank/meanmeanderv2_2_SCrankcorr_n{ds}.(tiff,pdf)
 ## - Matrix{ds}_sumSCinvnode_gamstats_Age8_22/{computevar}_{ds}net_delLM_CV75.tiff
 
 rm(list = ls())
@@ -110,11 +110,11 @@ if (!force && file.exists(out_summary)) {
 
 ## scatter plots (match original)
 out_partial_tiff <- file.path(FigCorrFolder, paste0("meanpartialRsq_SCrankcorr_n", ds.resolution, ".tiff"))
-out_partial_svg <- file.path(FigCorrFolder, paste0("meanpartialRsq_SCrankcorr_n", ds.resolution, ".svg"))
+out_partial_pdf <- file.path(FigCorrFolder, paste0("meanpartialRsq_SCrankcorr_n", ds.resolution, ".pdf"))
 out_meanderv2_tiff <- file.path(FigCorrFolder, paste0("meanmeanderv2_2_SCrankcorr_n", ds.resolution, ".tiff"))
-out_meanderv2_svg <- file.path(FigCorrFolder, paste0("meanmeanderv2_2_SCrankcorr_n", ds.resolution, ".svg"))
+out_meanderv2_pdf <- file.path(FigCorrFolder, paste0("meanmeanderv2_2_SCrankcorr_n", ds.resolution, ".pdf"))
 
-if (!force && file.exists(out_partial_tiff) && file.exists(out_partial_svg) && file.exists(out_meanderv2_tiff) && file.exists(out_meanderv2_svg)) {
+if (!force && file.exists(out_partial_tiff) && file.exists(out_partial_pdf) && file.exists(out_meanderv2_tiff) && file.exists(out_meanderv2_pdf)) {
   message("[INFO] Yeo S4 scatter outputs exist; skipping. Set --force=1 to re-run.")
 } else {
   ## partial Rsq
@@ -136,7 +136,7 @@ if (!force && file.exists(out_partial_tiff) && file.exists(out_partial_svg) && f
       legend.position = "none"
     )
   ggsave(out_partial_tiff, p1, width = 17, height = 14, units = "cm", bg = "transparent")
-  ggsave(out_partial_svg, p1, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+  ggsave(out_partial_pdf, p1, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
 
   ## meanderv2_2
   correlation.df <- SCrankcorr(gamresult, "meanderv2_2", ds.resolution, dsdata = TRUE)
@@ -160,7 +160,7 @@ if (!force && file.exists(out_partial_tiff) && file.exists(out_partial_svg) && f
       legend.position = "none"
     )
   ggsave(out_meanderv2_tiff, p2, width = 13, height = 12, units = "cm", bg = "transparent")
-  ggsave(out_meanderv2_svg, p2, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
+  ggsave(out_meanderv2_pdf, p2, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
 }
 
 ## matrix graphs (match original naming)
@@ -265,4 +265,3 @@ if (make_matrix_graphs) {
     ggsave(filename, Fig, height = 18, width = 20, units = "cm", dpi = 600, bg = "transparent")
   }
 }
-

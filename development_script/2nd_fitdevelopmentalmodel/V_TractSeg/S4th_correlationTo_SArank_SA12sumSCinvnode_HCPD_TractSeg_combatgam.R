@@ -4,7 +4,7 @@
 ##   V_TractSeg/S4th_correlationTo_SArank_SA12sumSCinvnode_HCPD.R
 ##
 ## Figures (match original naming):
-## - TractSeg/correlation_sumSCinvnode_SCrank/meanmeanderv2_SCrankcorr_n12.(tiff,svg)
+## - TractSeg/correlation_sumSCinvnode_SCrank/meanmeanderv2_SCrankcorr_n12.(tiff,pdf)
 ## - TractSeg/Matrix12_sumSCinvnode_gamstats_Age8_22/{computevar}_12net_delLM_CV75.tiff
 
 rm(list = ls())
@@ -86,9 +86,9 @@ if (force || !file.exists(out_summary)) {
 
 ## scatter plot: meanderv2 (match original)
 out_meanderv2_tiff <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".tiff"))
-out_meanderv2_svg <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".svg"))
+out_meanderv2_pdf <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".pdf"))
 
-if (force || !file.exists(out_meanderv2_tiff) || !file.exists(out_meanderv2_svg)) {
+if (force || !file.exists(out_meanderv2_tiff) || !file.exists(out_meanderv2_pdf)) {
   correlation.df <- SCrankcorr(gamresult, "meanderv2", ds.resolution, dsdata = TRUE)
   mytheme <- theme(
     axis.text = element_text(size = 23, color = "black"),
@@ -109,7 +109,7 @@ if (force || !file.exists(out_meanderv2_tiff) || !file.exists(out_meanderv2_svg)
     scale_y_continuous(breaks = c(-0.004, -0.002, 0, 0.002), labels = c(-4, -2, 0, 2)) +
     theme_classic() + mytheme
   ggsave(out_meanderv2_tiff, p, width = 13, height = 12, units = "cm", bg = "transparent")
-  ggsave(out_meanderv2_svg, p, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
+  ggsave(out_meanderv2_pdf, p, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
 }
 
 ## matrix graphs (match original naming)
@@ -221,4 +221,3 @@ if (make_matrix_graphs) {
     ggsave(filename, Fig, height = 18, width = 20, units = "cm", dpi = 600, bg = "transparent")
   }
 }
-

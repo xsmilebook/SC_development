@@ -1,7 +1,7 @@
 ## HCP-D (ComBat-GAM) | TractSeg (major-bundle) | Visualization of fitted SC curves
 ##
-## Adapted to be runnable (project-root relative) and to match the original
-## TractSeg figure outputs (two trajectory plots; tiff+svg).
+## Adapted to be runnable (project-root relative) and container-safe:
+## TractSeg figure outputs (two trajectory plots; tiff+pdf).
 
 rm(list = ls())
 
@@ -55,11 +55,11 @@ if (nrow(gamresult) == 0 || length(gammodelsum) == 0) {
 }
 
 out_fig1_tiff <- file.path(FigureFolder, "devcurve_Rsq_fit.ratio.tiff")
-out_fig1_svg <- file.path(FigureFolder, "devcurve_Rsq_fit.ratio.svg")
+out_fig1_pdf <- file.path(FigureFolder, "devcurve_Rsq_fit.ratio.pdf")
 out_fig2_tiff <- file.path(FigureFolder, "devcurve_meanderv2_fit.Z.tiff")
-out_fig2_svg <- file.path(FigureFolder, "devcurve_meanderv2_fit.Z.svg")
+out_fig2_pdf <- file.path(FigureFolder, "devcurve_meanderv2_fit.Z.pdf")
 
-if (!force && file.exists(out_fig1_tiff) && file.exists(out_fig1_svg) && file.exists(out_fig2_tiff) && file.exists(out_fig2_svg)) {
+if (!force && file.exists(out_fig1_tiff) && file.exists(out_fig1_pdf) && file.exists(out_fig2_tiff) && file.exists(out_fig2_pdf)) {
   message("[INFO] TractSeg S3 outputs exist; skipping. Set --force=1 to re-run.")
   quit(save = "no", status = 0)
 }
@@ -113,7 +113,7 @@ p1 <- ggplot() +
     legend.position = "none"
   )
 ggsave(out_fig1_tiff, p1, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(out_fig1_svg, p1, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(out_fig1_pdf, p1, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
 
 ## Plot 2: z-scored trajectories colored by mean 2nd derivative
 SC_label_derv2_order <- gamresult$parcel[order(gamresult$meanderv2)]
@@ -135,5 +135,4 @@ p2 <- ggplot() +
     legend.position = "none"
   )
 ggsave(out_fig2_tiff, p2, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(out_fig2_svg, p2, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
-
+ggsave(out_fig2_pdf, p2, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")

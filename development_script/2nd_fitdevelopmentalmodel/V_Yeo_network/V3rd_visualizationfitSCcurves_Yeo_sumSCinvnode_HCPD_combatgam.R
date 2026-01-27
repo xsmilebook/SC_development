@@ -3,9 +3,9 @@
 ## Runnable version adapted from:
 ##   V3rd_visualizationfitSCcurves_Yeo_sumSCinvnode_HCPD.R
 ##
-## Outputs (match original figure naming):
-## - devcurve_Rsq_fit.ratio.{tiff,svg}
-## - devcurve_SCrank_fit.Z.{tiff,svg}
+## Outputs (cluster/container-safe):
+## - devcurve_Rsq_fit.ratio.{tiff,pdf}
+## - devcurve_SCrank_fit.Z.{tiff,pdf}
 
 rm(list = ls())
 
@@ -72,11 +72,11 @@ n_cores <- max(1L, n_cores)
 
 out_fig1_tiff <- file.path(FigureFolder, "devcurve_Rsq_fit.ratio.tiff")
 out_fig2_tiff <- file.path(FigureFolder, "devcurve_SCrank_fit.Z.tiff")
-out_fig1_svg <- file.path(FigureFolder, "devcurve_Rsq_fit.ratio.svg")
-out_fig2_svg <- file.path(FigureFolder, "devcurve_SCrank_fit.Z.svg")
+out_fig1_pdf <- file.path(FigureFolder, "devcurve_Rsq_fit.ratio.pdf")
+out_fig2_pdf <- file.path(FigureFolder, "devcurve_SCrank_fit.Z.pdf")
 out_plotdatasum <- file.path(interfileFolder, paste0("plotdatasum_scale_TRUE_Yeo", yeo, ".rds"))
 
-if (!force && file.exists(out_fig1_tiff) && file.exists(out_fig2_tiff) && file.exists(out_fig1_svg) && file.exists(out_fig2_svg)) {
+if (!force && file.exists(out_fig1_tiff) && file.exists(out_fig2_tiff) && file.exists(out_fig1_pdf) && file.exists(out_fig2_pdf)) {
   message("[INFO] Yeo S3 outputs exist; skipping. Set --force=1 to re-run.")
   quit(save = "no", status = 0)
 }
@@ -143,7 +143,7 @@ p1 <- ggplot() +
     legend.position = "none"
   )
 ggsave(out_fig1_tiff, p1, width = 15, height = 14, units = "cm", bg = "transparent")
-ggsave(out_fig1_svg, p1, dpi = 600, width = 15, height = 12, units = "cm", bg = "transparent")
+ggsave(out_fig1_pdf, p1, dpi = 600, width = 15, height = 12, units = "cm", bg = "transparent")
 
 ## Plot 2: z-scored trajectories colored by S-A rank (SCrank)
 SC_label_derv2_order <- gamresultsum$parcel[order(gamresultsum$meanderv2)]
@@ -166,5 +166,4 @@ p2 <- ggplot() +
     legend.position = "none"
   )
 ggsave(out_fig2_tiff, p2, width = 15, height = 14, units = "cm", bg = "transparent")
-ggsave(out_fig2_svg, p2, dpi = 600, width = 16, height = 16, units = "cm", bg = "transparent")
-
+ggsave(out_fig2_pdf, p2, dpi = 600, width = 16, height = 16, units = "cm", bg = "transparent")
