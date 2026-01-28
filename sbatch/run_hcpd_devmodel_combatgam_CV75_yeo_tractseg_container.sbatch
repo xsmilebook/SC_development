@@ -77,8 +77,8 @@ run_yeo() {
   local yeo="$1"
   local input_rds="$2"
 
-  local force_s3="${3:-0}"
-  local force_s4="${4:-0}"
+  local force_s3="${3:-1}"
+  local force_s4="${4:-1}"
 
   echo "[INFO] === HCPD Yeo${yeo} (ComBat-GAM) ==="
   echo "[INFO] input_rds=${input_rds}"
@@ -114,8 +114,8 @@ run_yeo() {
 
 run_tractseg() {
   local input_rds="$1"
-  local force_s3="${2:-0}"
-  local force_s4="${3:-0}"
+  local force_s3="${2:-1}"
+  local force_s4="${3:-1}"
 
   echo "[INFO] === HCPD TractSeg (major-bundle, ComBat-GAM) ==="
   echo "[INFO] input_rds=${input_rds}"
@@ -145,33 +145,8 @@ run_tractseg() {
     --force="${force_s4}"
 }
 
-# Auto-enable --force for S3/S4 only when their expected figure outputs are missing.
-FORCE_YEO7_S3="${FORCE_YEO7_S3:-0}"
-FORCE_YEO7_S4="${FORCE_YEO7_S4:-0}"
-FORCE_YEO17_S3="${FORCE_YEO17_S3:-0}"
-FORCE_YEO17_S4="${FORCE_YEO17_S4:-0}"
-FORCE_TRACTSEG_S3="${FORCE_TRACTSEG_S3:-0}"
-FORCE_TRACTSEG_S4="${FORCE_TRACTSEG_S4:-0}"
+echo "[INFO] NOTE: S3/S4 always run with --force=1 to re-draw figures."
 
-yeo7_s3_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/hcpd/yeo/Yeo7/combat_gam/CV${CVTHR}/Yeo7_sumSCinvnode_fit/devcurve_Rsq_fit.ratio.tiff"
-if [ ! -f "${yeo7_s3_tiff}" ]; then FORCE_YEO7_S3=1; fi
-yeo7_s4_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/hcpd/yeo/Yeo7/combat_gam/CV${CVTHR}/correlation_sumSCinvnode_SCrank/meanpartialRsq_SCrankcorr_n6.tiff"
-if [ ! -f "${yeo7_s4_tiff}" ]; then FORCE_YEO7_S4=1; fi
-
-yeo17_s3_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/hcpd/yeo/Yeo17/combat_gam/CV${CVTHR}/Yeo17_sumSCinvnode_fit/devcurve_Rsq_fit.ratio.tiff"
-if [ ! -f "${yeo17_s3_tiff}" ]; then FORCE_YEO17_S3=1; fi
-yeo17_s4_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/hcpd/yeo/Yeo17/combat_gam/CV${CVTHR}/correlation_sumSCinvnode_SCrank/meanpartialRsq_SCrankcorr_n15.tiff"
-if [ ! -f "${yeo17_s4_tiff}" ]; then FORCE_YEO17_S4=1; fi
-
-tract_s3_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/hcpd/tractseg/combat_gam/CV${CVTHR}/TractSeg/SA12_sumSCinvnode_fit/devcurve_Rsq_fit.ratio.tiff"
-if [ ! -f "${tract_s3_tiff}" ]; then FORCE_TRACTSEG_S3=1; fi
-tract_s4_tiff="${project_root}/outputs/figures/2nd_fitdevelopmentalmodel/hcpd/tractseg/combat_gam/CV${CVTHR}/TractSeg/correlation_sumSCinvnode_SCrank/meanmeanderv2_SCrankcorr_n12.tiff"
-if [ ! -f "${tract_s4_tiff}" ]; then FORCE_TRACTSEG_S4=1; fi
-
-echo "[INFO] FORCE_YEO7_S3=${FORCE_YEO7_S3} FORCE_YEO7_S4=${FORCE_YEO7_S4}"
-echo "[INFO] FORCE_YEO17_S3=${FORCE_YEO17_S3} FORCE_YEO17_S4=${FORCE_YEO17_S4}"
-echo "[INFO] FORCE_TRACTSEG_S3=${FORCE_TRACTSEG_S3} FORCE_TRACTSEG_S4=${FORCE_TRACTSEG_S4}"
-
-run_yeo 7 "${YEO7_INPUT_RDS}" "${FORCE_YEO7_S3}" "${FORCE_YEO7_S4}"
-run_yeo 17 "${YEO17_INPUT_RDS}" "${FORCE_YEO17_S3}" "${FORCE_YEO17_S4}"
-run_tractseg "${TRACTSEG_INPUT_RDS}" "${FORCE_TRACTSEG_S3}" "${FORCE_TRACTSEG_S4}"
+run_yeo 7 "${YEO7_INPUT_RDS}" 1 1
+run_yeo 17 "${YEO17_INPUT_RDS}" 1 1
+run_tractseg "${TRACTSEG_INPUT_RDS}" 1 1

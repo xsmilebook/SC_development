@@ -21,7 +21,7 @@
 - 解决：使用项目内 Singularity 容器（R 4.1.3，固定 mgcv/nlme/ecostats/gratia 等关键版本），避免节点差异导致的依赖不一致。
 - 构建（集群）：`sbatch sbatch/build_scdevelopment_r41_container.sbatch`，默认生成新镜像 `outputs/containers/scdevelopment_r41_<tag>.sif`（避免覆盖正在使用的旧镜像）；可用 `SIF_TAG` 自定义 `<tag>`。
 - 运行（集群）：`sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_container.sbatch`（与非容器版参数一致，支持 `N_EDGES`/`SKIP_POSTERIOR`）；如需指定新镜像，传入 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif`。
-  - 补图策略：脚本会在检测到 S3 的 decile 图或 S4 的相关性散点图缺失时，自动对对应步骤启用 `--force=1` 以回填图片（可用 `FORCE_S3=0/1`、`FORCE_S4=0/1` 覆盖）。
+  - 绘图策略：S3/S4 默认始终使用 `--force=1` 强制重新绘图（绘图成本较低，且可避免“存在即跳过”导致的旧风格图片未刷新）。
 - 定义文件：`containers/scdevelopment_r41.def`（可按需扩展依赖，但应尽量保持版本稳定；为降低 HPC/容器环境的系统依赖，默认流程不依赖 `svglite`，图像输出推荐使用 `tiff + pdf`）。
   - 常见构建报错：`could not use fakeroot: no mapping entry found in /etc/subuid for <user>`：说明集群未为该用户配置 fakeroot/subuid。当前构建脚本不使用 `--fakeroot`；若仍失败需联系管理员开启 setuid build 或提供可用的 fakeroot 配置。
   - 常见构建报错：`You must be the root user ... use --remote or --fakeroot`：说明本地 build 需要 root/setuid；当前构建脚本使用 `singularity build --remote`。

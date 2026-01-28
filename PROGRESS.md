@@ -190,3 +190,4 @@
 - 2026-01-27: 新增 HCP-D（Yeo7/Yeo17/TractSeg）4th_changerate_SAcorr 可复现流程：实现年龄分辨对齐曲线（S1）与 flip-age 分组 GAM（S2）脚本，并提供容器一键提交 `sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_yeo_tractseg_container.sbatch`；日志输出 `[RESULT]` 的关键数值，图像输出为 `tiff+pdf`。
 - 2026-01-28: HCP-D（Yeo7/Yeo17/TractSeg，ComBat-GAM）与 Chinese Cohort（ComBat-GAM）发育模型 S4：即使 `SCrank_correlation_summary.csv` 已存在并跳过重算，也会在日志中打印各指标的 Spearman 相关系数与 p 值。
 - 2026-01-28: 统一 ABCD 与 HCP-D 的 2nd 发育模型（SA12，ComBat-GAM）绘图风格：对齐到 HCP-D Yeo7 图像（尺寸、配色、主题与散点/线宽设置），以保持跨数据集的可比性。
+- 2026-01-28: sbatch 提交流程默认强制重绘 S3/S4：在 HCP-D/ABCD 2nd devmodel 的 sbatch 中对 S3/S4 固定传入 `--force=1`，避免旧图残留并简化“补图”判断逻辑。

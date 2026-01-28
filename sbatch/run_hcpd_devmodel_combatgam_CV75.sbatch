@@ -78,11 +78,13 @@ Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/S2nd_calculateder
 
 Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/S3rd_visualizationfitSCcurves_SA12sumSCinvnode_HCPD.R \
   --project_root="${project_root}" \
-  --cvthr="${CVTHR}"
+  --cvthr="${CVTHR}" \
+  --force=1
 
 Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/S4th_correlationTo_SArank_SA12sumSCinvnode_HCPD.R \
   --project_root="${project_root}" \
   --cvthr="${CVTHR}" \
   --input_rds="${INPUT_RDS}" \
   --euclid_csv="${EUCLID_CSV}" \
-  --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}"
+  --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}" \
+  --force=1
