@@ -195,3 +195,4 @@
 - 2026-01-28: 新增 HCP-D（SA12）4th_changerate_SAcorr 的协变量敏感性分析（SES/ICV）容器 sbatch：基于 `development_script/4th_changerate_SAcorr/V_Covariates`，输出 `tiff+pdf` 并在日志中打印 flip-age 与 rho 等 `[RESULT]` 数值。
 - 2026-01-28: 加固 HCP-D 协变量敏感性分析脚本：在 covariate 管线的 S2/S4 中若检测到输入数据缺少 `income.adj/ICV`（或为 NA），则从 `demopath/HCPD_demo_behav.csv` 按 `subID` 回填并写出 backfilled 版本到项目 `outputs/intermediate/`，同时在日志输出缺失计数。
 - 2026-01-28: 修复 HCP-D covariates devmodel 容器作业 “All GAM fits failed / Not enough (non-NA) data”：S1 对 `subID` 做标准化（去除 `sub-` 前缀）后再从 `demopath/HCPD_demo_behav.csv` 回填 `income.adj/ICV`，并对 `age/sex/mean_fd/covariate` 做 complete-case 过滤与计数输出，避免回填不匹配导致全边失败。
+- 2026-01-28: HCP-D（SA12，ComBat-GAM）changerate S-A 对齐分析：S1 增加 control-distance 版本（对 change rate 按欧氏距离残差化后再相关），并将主要对齐图/flip-age 分布图风格对齐 TractSeg（尺寸/配色/主题一致；默认不生成 svg）。

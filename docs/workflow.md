@@ -54,6 +54,11 @@
     - SA12：`outputs/figures/4th_changerate_SAcorr/{hcpd,abcd}/combat_gam/CV75/Alignment_development/`
     - HCP-D Yeo/TractSeg：`outputs/figures/4th_changerate_SAcorr/hcpd/{yeo/Yeo7,yeo/Yeo17,tractseg}/combat_gam/CV75/Alignment_development/`
     - 以上默认输出 `.tiff + .pdf`
+  - HCP-D（SA12，ComBat-GAM）S1 额外输出（control-distance 版本）：
+    - 思路：在每个年龄点上先对 change rate 按边的欧氏距离做线性残差化（`derivative ~ Edistance`），再与 S-A rank 做 Spearman 相关。
+    - 结果表：`alignment_*_control_distance.csv*`（与主版本同目录）
+    - 图片：`*_control_distance.{tiff,pdf}`（与主版本同目录）
+    - 欧氏距离默认读取：`wd/interdataFolder_HCPD/average_EuclideanDistance_12.csv`（可用 `Rscript ... --euclid_csv=/path/to.csv` 覆盖）
   - 日志：`outputs/logs/4th_changerate_SAcorr_{dataset}_CV75_<jobid>.log`（包含 `[RESULT]` 行的具体数值）
 
 ## ComBat-GAM 运行约定
