@@ -26,6 +26,32 @@ parse_args <- function(args) {
   res
 }
 
+print_spearman_summary <- function(summary_df, prefix = "[INFO]") {
+  required <- c("ds.resolution", "Interest.var", "r.spearman", "p.spearman")
+  missing <- setdiff(required, names(summary_df))
+  if (length(missing) > 0) {
+    message(prefix, " SCrank summary missing columns: ", paste(missing, collapse = ", "))
+    return(invisible(NULL))
+  }
+
+  summary_df <- summary_df %>%
+    mutate(
+      ds.resolution = as.integer(ds.resolution),
+      Interest.var = as.character(Interest.var),
+      r.spearman = as.numeric(r.spearman),
+      p.spearman = as.numeric(p.spearman)
+    )
+
+  ds <- unique(summary_df$ds.resolution)
+  ds_label <- if (length(ds) == 1) as.character(ds[[1]]) else paste(ds, collapse = ",")
+  message(prefix, " SCrank Spearman summary (ds.resolution=", ds_label, "):")
+
+  for (i in seq_len(nrow(summary_df))) {
+    message(prefix, "  ", summary_df$Interest.var[[i]], ": r=", sprintf("%.4f", summary_df$r.spearman[[i]]), ", p=", format(summary_df$p.spearman[[i]], digits = 3, scientific = TRUE))
+  }
+  invisible(NULL)
+}
+
 args <- parse_args(commandArgs(trailingOnly = TRUE))
 project_root <- normalizePath(if (!is.null(args$project_root)) args$project_root else getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -83,6 +109,12 @@ if (force || !file.exists(out_summary)) {
   )
   write.csv(SCrank_correlation, out_summary, row.names = FALSE)
 }
+tryCatch({
+  SCrank_correlation <- read.csv(out_summary, stringsAsFactors = FALSE)
+  print_spearman_summary(SCrank_correlation)
+}, error = function(e) {
+  message("[WARN] Failed to read/print S4 summary: ", out_summary, " | ", conditionMessage(e))
+})
 
 ## scatter plot: meanderv2 (match original)
 out_meanderv2_tiff <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".tiff"))

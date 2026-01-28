@@ -27,6 +27,32 @@ parse_args <- function(args) {
   res
 }
 
+print_spearman_summary <- function(summary_df, prefix = "[INFO]") {
+  required <- c("ds.resolution", "Interest.var", "r.spearman", "p.spearman")
+  missing <- setdiff(required, names(summary_df))
+  if (length(missing) > 0) {
+    message(prefix, " SCrank summary missing columns: ", paste(missing, collapse = ", "))
+    return(invisible(NULL))
+  }
+
+  summary_df <- summary_df %>%
+    mutate(
+      ds.resolution = as.integer(ds.resolution),
+      Interest.var = as.character(Interest.var),
+      r.spearman = as.numeric(r.spearman),
+      p.spearman = as.numeric(p.spearman)
+    )
+
+  ds <- unique(summary_df$ds.resolution)
+  ds_label <- if (length(ds) == 1) as.character(ds[[1]]) else paste(ds, collapse = ",")
+  message(prefix, " SCrank Spearman summary (ds.resolution=", ds_label, "):")
+
+  for (i in seq_len(nrow(summary_df))) {
+    message(prefix, "  ", summary_df$Interest.var[[i]], ": r=", sprintf("%.4f", summary_df$r.spearman[[i]]), ", p=", format(summary_df$p.spearman[[i]], digits = 3, scientific = TRUE))
+  }
+  invisible(NULL)
+}
+
 infer_resolution_from_edges <- function(n_edges) {
   n <- (sqrt(8 * n_edges + 1) - 1) / 2
   n_int <- as.integer(round(n))
@@ -99,6 +125,12 @@ gamresult$meanderv2_2[(gamresult$meanderv2 < (mean(gamresult$meanderv2, na.rm = 
 out_summary <- file.path(resultFolder, "SCrank_correlation_summary.csv")
 if (!force && file.exists(out_summary)) {
   message("[INFO] S4 summary exists; skipping summary recompute: ", out_summary)
+  tryCatch({
+    SCrank_correlation <- read.csv(out_summary, stringsAsFactors = FALSE)
+    print_spearman_summary(SCrank_correlation)
+  }, error = function(e) {
+    message("[WARN] Failed to read/print S4 summary: ", out_summary, " | ", conditionMessage(e))
+  })
 } else {
   computevar.list <- c("partialRsq", "increase.onset2", "increase.offset2", "peak.increase.change", "meanderv2_2")
   SCrank_correlation <- do.call(
@@ -106,6 +138,7 @@ if (!force && file.exists(out_summary)) {
     lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
   )
   write.csv(SCrank_correlation, out_summary, row.names = FALSE)
+  print_spearman_summary(SCrank_correlation)
 }
 
 ## scatter plots (match original)

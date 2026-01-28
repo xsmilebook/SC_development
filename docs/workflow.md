@@ -107,7 +107,7 @@
   - S1：当 `gamresults*.rds` 与 `gammodel*.rds` 对应输出已存在时跳过重新拟合；其他中间文件（如 `plotdatasum.df_*`、`SCdata.diw_*`、`*_scale_TRUE.rds`）同理按文件存在判断跳过。
   - S2：当 `derivative.df*.rds`（以及 posterior 的 `derivative.posterior*.rds`）存在时跳过。
   - S3：当 `plotdatasum_scale_TRUE_SA12.rds` 与关键图（`devcurve_Rsq_fit.ratio.tiff`、`devcurve_meanderv2_fit.Z.tiff`）存在时跳过。
-  - S4：当 `SCrank_correlation_summary.csv` 存在时跳过。
+  - S4：当 `SCrank_correlation_summary.csv` 存在时跳过重算（但会在日志中读取并打印 Spearman 相关系数与 p 值，便于检查）。
 - 强制重跑：为任一步脚本增加 `--force=1`（例如：`Rscript .../S3rd_visualizationfitSCcurves_SA12sumSCinvnode_HCPD.R --force=1`）。
 
 ## HCP-D 发育模型输出 QC（conda 环境）
