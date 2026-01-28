@@ -188,4 +188,4 @@
 - 2026-01-27: 修复 HCP-D Yeo/TractSeg devmodel 容器作业 OpenBLAS `pthread_create failed`：在 sbatch 中强制设置 `OPENBLAS_NUM_THREADS/OMP_NUM_THREADS/MKL_NUM_THREADS=1`（通过 `SINGULARITYENV_*` 传入容器）。
 - 2026-01-27: 修复 Chinese devmodel 容器作业缺少 `svglite` 导致 SVG 输出失败：Chinese S3/S4 默认改为输出 `tiff+pdf`；对应 sbatch 默认改为 72 核，并设置 `SINGULARITYENV_*` 限制 BLAS/OMP 线程数。
 - 2026-01-27: 新增 HCP-D（Yeo7/Yeo17/TractSeg）4th_changerate_SAcorr 可复现流程：实现年龄分辨对齐曲线（S1）与 flip-age 分组 GAM（S2）脚本，并提供容器一键提交 `sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_yeo_tractseg_container.sbatch`；日志输出 `[RESULT]` 的关键数值，图像输出为 `tiff+pdf`。
-- 2026-01-28: HCP-D（Yeo7/Yeo17/TractSeg，ComBat-GAM）发育模型 S4：即使 `SCrank_correlation_summary.csv` 已存在并跳过重算，也会在日志中打印各指标的 Spearman 相关系数与 p 值。
+- 2026-01-28: HCP-D（Yeo7/Yeo17/TractSeg，ComBat-GAM）与 Chinese Cohort（ComBat-GAM）发育模型 S4：即使 `SCrank_correlation_summary.csv` 已存在并跳过重算，也会在日志中打印各指标的 Spearman 相关系数与 p 值。
