@@ -39,6 +39,7 @@
   - HCP-D：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch`（包含 4th 的 S1+S2 完整流程：对齐曲线 + flip-age 分组 GAM）
   - HCP-D（SES/ICV 协变量敏感性分析，SA12）：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_covariates_ses_icv_container.sbatch`（输出 `tiff+pdf`，日志输出 `[RESULT]` 关键数值）
   - HCP-D（Yeo7/Yeo17/TractSeg major-bundle）：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_yeo_tractseg_container.sbatch`（依次跑 Yeo7→Yeo17→TractSeg；同样会在 log 中输出 `[RESULT]` 数值）
+  - Chinese Cohort：`sbatch sbatch/run_chinese_changerate_sacorr_combatgam_CV75_container.sbatch`（输出 `tiff+pdf`；日志输出 `[RESULT]` 的 flip-age、rho 以及分组相关 r/p）
   - ABCD：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_CV75_container.sbatch`
 - 常用参数（环境变量）：
   - `CVTHR=75`（默认 75）
