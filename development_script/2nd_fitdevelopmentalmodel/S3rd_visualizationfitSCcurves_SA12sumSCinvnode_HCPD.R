@@ -184,23 +184,23 @@ plotdatasum.df <- dplyr::bind_rows(lapply(ok_plot_idx, function(i) {
 }))
 
 ## Plots: 78 developmental trajectories (fit.ratio colored by partial R^2)
-lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq))
+lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq), na.rm = TRUE)
 p1 <- ggplot() +
-  geom_line(data = plotdatasum.df, aes(x = age, y = fit.ratio, group = SC_label, color = PartialRsq), linewidth = 0.8, alpha = 0.8) +
+  geom_line(data = plotdatasum.df, aes(x = age, y = fit.ratio, group = SC_label, color = PartialRsq), linewidth = 1.5, alpha = 0.8) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr), guide = "none") +
   labs(x = "Age (years)", y = "SC strength (ratio)") +
   theme_classic() +
   theme(
-    axis.text = element_text(size = 20.5, color = "black"),
-    axis.title = element_text(size = 20.5, color = "black"),
+    axis.text = element_text(size = 22, color = "black"),
+    axis.title = element_text(size = 22, color = "black"),
     aspect.ratio = 1,
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA),
-    plot.title = element_text(size = 15, hjust = 0.5),
+    plot.title = element_text(size = 22, hjust = 0.5),
     legend.position = "none"
   )
-ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff"), p1, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.pdf"), p1, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff"), p1, width = 15, height = 14, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.pdf"), p1, dpi = 600, width = 15, height = 12, units = "cm", bg = "transparent")
 
 ## Plots: 78 developmental trajectories (fit.Z colored by mean 2nd derivative)
 colorbarvalues.meanderiv2 <- colorbarvalues(
@@ -216,16 +216,18 @@ p2 <- ggplot() +
   scale_y_continuous(breaks = c(-1.5, 0.0, 1.5)) +
   theme_classic() +
   theme(
-    axis.text = element_text(size = 20.5, color = "black"),
-    axis.title = element_text(size = 20.5, color = "black"),
-    aspect.ratio = 1,
+    axis.text = element_text(size = 23, color = "black"),
+    axis.title = element_text(size = 23),
+    aspect.ratio = 0.9,
+    axis.line = element_line(linewidth = 0.6),
+    axis.ticks = element_line(linewidth = 0.6),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA),
-    plot.title = element_text(size = 15, hjust = 0.5),
+    plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
     legend.position = "none"
   )
-ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff"), p2, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.pdf"), p2, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff"), p2, width = 15, height = 14, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.pdf"), p2, dpi = 600, width = 16, height = 16, units = "cm", bg = "transparent")
 
 ## Example edges (SC.2_h and SC.77_h)
 BuRd <- rev(brewer.pal(10, "RdBu"))
@@ -320,5 +322,5 @@ p3 <- ggplot(data = plotdatasum.df.decile, aes(x = age, y = fit.Z, group = decil
     plot.title = element_text(size = 15, hjust = 0.5),
     legend.position = "none"
   )
-ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.tiff"), p3, dpi = 600, width = 20, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.pdf"), p3, dpi = 600, width = 15, height = 13, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.tiff"), p3, dpi = 600, width = 15, height = 14, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder_SCdecile, "devcurve_SCrank_fit.Z_SCtype10.pdf"), p3, dpi = 600, width = 16, height = 16, units = "cm", bg = "transparent")

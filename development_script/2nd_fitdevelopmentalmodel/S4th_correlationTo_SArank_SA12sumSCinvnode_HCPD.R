@@ -152,6 +152,18 @@ write.csv(SCrank_correlation, out_summary, row.names = FALSE)
 FigCorrFolder <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank")
 dir.create(FigCorrFolder, showWarnings = FALSE, recursive = TRUE)
 
+yeo_scatter_theme <- theme(
+  axis.text = element_text(size = 23, color = "black"),
+  axis.title = element_text(size = 23),
+  aspect.ratio = 0.9,
+  axis.line = element_line(linewidth = 0.6),
+  axis.ticks = element_line(linewidth = 0.6),
+  plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+  plot.background = element_rect(fill = "transparent", color = NA),
+  panel.background = element_rect(fill = "transparent", color = NA),
+  legend.position = "none"
+)
+
 plot_one_scatter <- function(computevar, ylab) {
   df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
   names(df) <- c("SCrank", computevar)
@@ -173,22 +185,35 @@ plot_one_scatter <- function(computevar, ylab) {
   rp <- extract_corr(ct)
   r <- rp$r
   p <- rp$p
-  ggplot(df, aes(x = SCrank, y = .data[[computevar]])) +
-    geom_point(alpha = 0.9, size = 2) +
-    geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
+
+  if (computevar == "partialRsq") {
+    lmthr <- max(abs(gamresult$partialRsq), na.rm = TRUE)
+    return(
+      ggplot(df) +
+        geom_point(aes(x = SCrank, y = .data[[computevar]], color = .data[[computevar]]), size = 3.5, alpha = 0.9) +
+        geom_smooth(aes(x = SCrank, y = .data[[computevar]]), method = "lm", color = "black") +
+        scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr), guide = "none") +
+        scale_x_continuous(breaks = c(0, 20, 40, 60, 80, 100, 120)) +
+        labs(
+          x = "S-A connectional axis rank",
+          y = ylab,
+          title = sprintf("%s (Spearman r=%.3f, p=%.3g)", computevar, r, p)
+        ) +
+        theme_classic() + yeo_scatter_theme
+    )
+  }
+
+  ggplot(df) +
+    geom_point(aes(x = SCrank, y = .data[[computevar]], color = SCrank), size = 5.5, alpha = 0.9) +
+    geom_smooth(aes(x = SCrank, y = .data[[computevar]]), linewidth = 2, method = "lm", color = "black") +
+    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
+    scale_x_continuous(breaks = c(0, 20, 40, 60, 80, 100, 120)) +
     labs(
-      x = "S-A rank",
+      x = "S-A connectional axis rank",
       y = ylab,
       title = sprintf("%s (Spearman r=%.3f, p=%.3g)", computevar, r, p)
     ) +
-    theme_classic() +
-    theme(
-      axis.text = element_text(size = 14, color = "black"),
-      axis.title = element_text(size = 14, color = "black"),
-      plot.title = element_text(size = 12, hjust = 0.5),
-      plot.background = element_rect(fill = "transparent", color = NA),
-      panel.background = element_rect(fill = "transparent", color = NA)
-    )
+    theme_classic() + yeo_scatter_theme
 }
 
 scatter_targets <- list(
@@ -204,8 +229,13 @@ scatter_targets <- list(
 for (nm in names(scatter_targets)) {
   if (!nm %in% names(gamresult)) next
   p <- plot_one_scatter(nm, scatter_targets[[nm]])
-  ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")), p, dpi = 600, width = 20, height = 12, units = "cm", bg = "transparent")
-  ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf")), p, dpi = 600, width = 16, height = 14, units = "cm", bg = "transparent")
+  if (nm == "partialRsq") {
+    ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")), p, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+    ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf")), p, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+  } else {
+    ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")), p, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
+    ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf")), p, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
+  }
 }
 
 ## matrix graphs for resolution of 12 (optional; heavy)
