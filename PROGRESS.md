@@ -193,3 +193,4 @@
 - 2026-01-28: sbatch 提交流程默认强制重绘 S3/S4：在 HCP-D/ABCD 2nd devmodel 的 sbatch 中对 S3/S4 固定传入 `--force=1`，避免旧图残留并简化“补图”判断逻辑。
 - 2026-01-28: 新增 HCP-D（SA12，ComBat-GAM）协变量敏感性分析（SES 与 ICV 两版本）入口：基于 `development_script/2nd_fitdevelopmentalmodel/V_Covariates` 脚本，输出统一为 `tiff+pdf`（不生成 svg），并在日志打印 S4 的 Spearman r/p；提供容器 sbatch 一键提交 `sbatch/run_hcpd_devmodel_combatgam_CV75_covariates_ses_icv_container.sbatch`。
 - 2026-01-28: 新增 HCP-D（SA12）4th_changerate_SAcorr 的协变量敏感性分析（SES/ICV）容器 sbatch：基于 `development_script/4th_changerate_SAcorr/V_Covariates`，输出 `tiff+pdf` 并在日志中打印 flip-age 与 rho 等 `[RESULT]` 数值。
+- 2026-01-28: 加固 HCP-D 协变量敏感性分析脚本：在 covariate 管线的 S2/S4 中若检测到输入数据缺少 `income.adj/ICV`（或为 NA），则从 `demopath/HCPD_demo_behav.csv` 按 `subID` 回填并写出 backfilled 版本到项目 `outputs/intermediate/`，同时在日志输出缺失计数。

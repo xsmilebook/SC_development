@@ -31,6 +31,32 @@ parse_args <- function(args) {
   res
 }
 
+backfill_covariate_from_demo <- function(scdata, covariate, demo_csv) {
+  if (!"subID" %in% names(scdata)) stop("SCdata missing subID")
+  if (!file.exists(demo_csv)) stop("demo_csv not found: ", demo_csv)
+  demo <- read.csv(demo_csv)
+  if (!"subID" %in% names(demo)) stop("demo_csv missing subID: ", demo_csv)
+  if (!covariate %in% names(demo)) stop("demo_csv missing covariate '", covariate, "': ", demo_csv)
+
+  demo2 <- demo %>%
+    dplyr::select(subID, !!covariate) %>%
+    dplyr::mutate(subID = as.character(subID)) %>%
+    dplyr::group_by(subID) %>%
+    dplyr::summarise(!!covariate := median(.data[[covariate]], na.rm = TRUE), .groups = "drop")
+
+  sc2 <- scdata %>%
+    dplyr::mutate(subID = as.character(subID)) %>%
+    dplyr::left_join(demo2, by = "subID", suffix = c("", ".demo"))
+
+  if (!covariate %in% names(sc2)) return(sc2)
+  demo_col <- paste0(covariate, ".demo")
+  if (demo_col %in% names(sc2)) {
+    sc2[[covariate]] <- dplyr::coalesce(sc2[[covariate]], sc2[[demo_col]])
+    sc2[[demo_col]] <- NULL
+  }
+  sc2
+}
+
 print_spearman_summary <- function(summary_df, prefix = "[INFO]") {
   required <- c("ds.resolution", "Interest.var", "r.spearman", "p.spearman")
   missing <- setdiff(required, names(summary_df))
@@ -66,6 +92,20 @@ force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 cov_tag <- if (!is.null(args$cov_tag)) args$cov_tag else "SES"
+add_covariate <- if (!is.null(args$add_covariate)) {
+  args$add_covariate
+} else {
+  if (cov_tag == "ICV") "ICV" else "income.adj"
+}
+demo_csv <- if (!is.null(args$demo_csv)) args$demo_csv else file.path(project_root, "demopath", "HCPD_demo_behav.csv")
+input_rds <- if (!is.null(args$input_rds)) {
+  args$input_rds
+} else {
+  file.path(
+    project_root, "outputs", "results", "combat_gam", "hcpd",
+    "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds"
+  )
+}
 make_matrix_graphs <- as.integer(if (!is.null(args$make_matrix_graphs)) args$make_matrix_graphs else 1L) == 1L
 
 ds.resolution <- 12
@@ -93,6 +133,22 @@ source(file.path(functionFolder, "colorbarvalue.R"))
 n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = NA))
 if (is.na(n_cores) || n_cores < 1) n_cores <- parallel::detectCores()
 n_cores <- max(1L, n_cores)
+
+## If the original input data is missing the requested covariate column, backfill
+## from demopath/HCPD_demo_behav.csv and save a project-local copy for auditing.
+if (file.exists(input_rds)) {
+  sc_tmp <- readRDS(input_rds)
+  if (!add_covariate %in% names(sc_tmp) || any(is.na(sc_tmp[[add_covariate]]))) {
+    n_missing_before <- if (add_covariate %in% names(sc_tmp)) sum(is.na(sc_tmp[[add_covariate]])) else nrow(sc_tmp)
+    message("[INFO] Backfilling covariate '", add_covariate, "' from: ", demo_csv, " (missing before=", n_missing_before, ")")
+    sc_tmp <- backfill_covariate_from_demo(sc_tmp, add_covariate, demo_csv)
+    n_missing_after <- if (add_covariate %in% names(sc_tmp)) sum(is.na(sc_tmp[[add_covariate]])) else nrow(sc_tmp)
+    message("[INFO] Covariate '", add_covariate, "' missing after backfill=", n_missing_after)
+    out_sc_backfilled <- file.path(interfileFolder, paste0("SCdata_input_backfilled_", add_covariate, ".rds"))
+    saveRDS(sc_tmp, out_sc_backfilled)
+    message("[INFO] Saved backfilled input RDS (for reference): ", out_sc_backfilled)
+  }
+}
 
 gamresult <- readRDS(file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
 if (!is.data.frame(gamresult) || !"parcel" %in% names(gamresult)) stop("Invalid gamresults under: ", interfileFolder)
@@ -277,4 +333,3 @@ if (make_matrix_graphs) {
     ggsave(filename, Fig, height = 18, width = 20, units = "cm", bg = "transparent", dpi = 600)
   }
 }
-
