@@ -32,6 +32,41 @@ parse_args <- function(args) {
   res
 }
 
+normalize_subid <- function(x) {
+  x <- as.character(x)
+  x <- trimws(x)
+  x <- sub("^sub[-_]", "", x)
+  x
+}
+
+backfill_covariate_from_demo <- function(scdata, covariate, demo_csv) {
+  if (!"subID" %in% names(scdata)) stop("SCdata missing subID")
+  if (!file.exists(demo_csv)) stop("demo_csv not found: ", demo_csv)
+
+  demo <- read.csv(demo_csv)
+  if (!"subID" %in% names(demo)) stop("demo_csv missing subID: ", demo_csv)
+  if (!covariate %in% names(demo)) stop("demo_csv missing covariate '", covariate, "': ", demo_csv)
+
+  sc2 <- scdata %>%
+    dplyr::mutate(subID_key = normalize_subid(subID))
+  demo2 <- demo %>%
+    dplyr::mutate(subID_key = normalize_subid(subID)) %>%
+    dplyr::select(subID_key, !!covariate) %>%
+    dplyr::group_by(subID_key) %>%
+    dplyr::summarise(!!covariate := median(.data[[covariate]], na.rm = TRUE), .groups = "drop")
+
+  sc2 <- sc2 %>%
+    dplyr::left_join(demo2, by = "subID_key", suffix = c("", ".demo"))
+
+  demo_col <- paste0(covariate, ".demo")
+  if (demo_col %in% names(sc2)) {
+    sc2[[covariate]] <- dplyr::coalesce(sc2[[covariate]], sc2[[demo_col]])
+    sc2[[demo_col]] <- NULL
+  }
+  sc2$subID_key <- NULL
+  sc2
+}
+
 args <- parse_args(commandArgs(trailingOnly = TRUE))
 project_root <- normalizePath(if (!is.null(args$project_root)) args$project_root else getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -84,30 +119,29 @@ if (length(sc_cols) != elementnum) {
   stop("Expected ", elementnum, " SC edge columns (SC.*), got ", length(sc_cols))
 }
 
-if (!add_covariate %in% names(SCdata.sum.merge)) {
-  if (!file.exists(demo_csv)) {
-    stop("Missing add_covariate '", add_covariate, "' in input_rds, and demo_csv not found: ", demo_csv)
+if (!add_covariate %in% names(SCdata.sum.merge) || any(is.na(SCdata.sum.merge[[add_covariate]]))) {
+  n_missing_before <- if (add_covariate %in% names(SCdata.sum.merge)) sum(is.na(SCdata.sum.merge[[add_covariate]])) else nrow(SCdata.sum.merge)
+  message("[INFO] Backfilling covariate '", add_covariate, "' from: ", demo_csv, " (missing before=", n_missing_before, ")")
+  SCdata.sum.merge <- backfill_covariate_from_demo(SCdata.sum.merge, add_covariate, demo_csv)
+  if (!add_covariate %in% names(SCdata.sum.merge)) {
+    stop("Failed to provide add_covariate '", add_covariate, "' in analysis data after backfill.")
   }
-  message("[INFO] Backfilling missing covariate '", add_covariate, "' from: ", demo_csv)
-  demo <- read.csv(demo_csv)
-  if (!"subID" %in% names(demo)) stop("demo_csv missing subID: ", demo_csv)
-  if (!add_covariate %in% names(demo)) stop("demo_csv missing covariate column '", add_covariate, "': ", demo_csv)
-
-  demo2 <- demo %>%
-    dplyr::select(subID, !!add_covariate) %>%
-    dplyr::mutate(subID = as.character(subID)) %>%
-    dplyr::group_by(subID) %>%
-    dplyr::summarise(!!add_covariate := median(.data[[add_covariate]], na.rm = TRUE), .groups = "drop")
-
-  SCdata.sum.merge <- SCdata.sum.merge %>%
-    dplyr::mutate(subID = as.character(subID)) %>%
-    dplyr::left_join(demo2, by = "subID", suffix = c("", ".demo"))
+  n_missing_after <- sum(is.na(SCdata.sum.merge[[add_covariate]]))
+  message("[INFO] Covariate '", add_covariate, "' missing after backfill=", n_missing_after)
 }
 
-if (!add_covariate %in% names(SCdata.sum.merge)) {
-  stop("Failed to provide add_covariate '", add_covariate, "' in analysis data. Available columns: ",
-       paste(names(SCdata.sum.merge), collapse = ", "))
+required_cov <- c("age", "sex", "mean_fd", add_covariate)
+missing_required <- setdiff(required_cov, names(SCdata.sum.merge))
+if (length(missing_required) > 0) stop("Missing required columns: ", paste(missing_required, collapse = ", "))
+
+complete_mask <- complete.cases(SCdata.sum.merge[, required_cov, drop = FALSE])
+message("[INFO] Complete cases for covariates (age, sex, mean_fd, ", add_covariate, "): ", sum(complete_mask), " / ", nrow(SCdata.sum.merge))
+if (sum(complete_mask) < 30) {
+  bad_ids <- head(unique(SCdata.sum.merge$subID[!complete_mask]), 10)
+  stop("Too few complete cases (", sum(complete_mask), ") after covariate backfill; check subID alignment and missingness. Example subIDs with missing covariates: ",
+       paste(bad_ids, collapse = ", "))
 }
+SCdata.sum.merge <- SCdata.sum.merge[complete_mask, , drop = FALSE]
 
 covariates <- paste0("sex+mean_fd+", add_covariate)
 dataname <- "SCdata.sum.merge"

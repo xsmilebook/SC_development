@@ -194,3 +194,4 @@
 - 2026-01-28: 新增 HCP-D（SA12，ComBat-GAM）协变量敏感性分析（SES 与 ICV 两版本）入口：基于 `development_script/2nd_fitdevelopmentalmodel/V_Covariates` 脚本，输出统一为 `tiff+pdf`（不生成 svg），并在日志打印 S4 的 Spearman r/p；提供容器 sbatch 一键提交 `sbatch/run_hcpd_devmodel_combatgam_CV75_covariates_ses_icv_container.sbatch`。
 - 2026-01-28: 新增 HCP-D（SA12）4th_changerate_SAcorr 的协变量敏感性分析（SES/ICV）容器 sbatch：基于 `development_script/4th_changerate_SAcorr/V_Covariates`，输出 `tiff+pdf` 并在日志中打印 flip-age 与 rho 等 `[RESULT]` 数值。
 - 2026-01-28: 加固 HCP-D 协变量敏感性分析脚本：在 covariate 管线的 S2/S4 中若检测到输入数据缺少 `income.adj/ICV`（或为 NA），则从 `demopath/HCPD_demo_behav.csv` 按 `subID` 回填并写出 backfilled 版本到项目 `outputs/intermediate/`，同时在日志输出缺失计数。
+- 2026-01-28: 修复 HCP-D covariates devmodel 容器作业 “All GAM fits failed / Not enough (non-NA) data”：S1 对 `subID` 做标准化（去除 `sub-` 前缀）后再从 `demopath/HCPD_demo_behav.csv` 回填 `income.adj/ICV`，并对 `age/sex/mean_fd/covariate` 做 complete-case 过滤与计数输出，避免回填不匹配导致全边失败。

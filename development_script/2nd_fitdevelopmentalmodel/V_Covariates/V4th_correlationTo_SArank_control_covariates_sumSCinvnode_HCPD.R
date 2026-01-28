@@ -31,6 +31,13 @@ parse_args <- function(args) {
   res
 }
 
+normalize_subid <- function(x) {
+  x <- as.character(x)
+  x <- trimws(x)
+  x <- sub("^sub[-_]", "", x)
+  x
+}
+
 backfill_covariate_from_demo <- function(scdata, covariate, demo_csv) {
   if (!"subID" %in% names(scdata)) stop("SCdata missing subID")
   if (!file.exists(demo_csv)) stop("demo_csv not found: ", demo_csv)
@@ -39,14 +46,14 @@ backfill_covariate_from_demo <- function(scdata, covariate, demo_csv) {
   if (!covariate %in% names(demo)) stop("demo_csv missing covariate '", covariate, "': ", demo_csv)
 
   demo2 <- demo %>%
-    dplyr::select(subID, !!covariate) %>%
-    dplyr::mutate(subID = as.character(subID)) %>%
-    dplyr::group_by(subID) %>%
+    dplyr::mutate(subID_key = normalize_subid(subID)) %>%
+    dplyr::select(subID_key, !!covariate) %>%
+    dplyr::group_by(subID_key) %>%
     dplyr::summarise(!!covariate := median(.data[[covariate]], na.rm = TRUE), .groups = "drop")
 
   sc2 <- scdata %>%
-    dplyr::mutate(subID = as.character(subID)) %>%
-    dplyr::left_join(demo2, by = "subID", suffix = c("", ".demo"))
+    dplyr::mutate(subID_key = normalize_subid(subID)) %>%
+    dplyr::left_join(demo2, by = "subID_key", suffix = c("", ".demo"))
 
   if (!covariate %in% names(sc2)) return(sc2)
   demo_col <- paste0(covariate, ".demo")
@@ -54,6 +61,7 @@ backfill_covariate_from_demo <- function(scdata, covariate, demo_csv) {
     sc2[[covariate]] <- dplyr::coalesce(sc2[[covariate]], sc2[[demo_col]])
     sc2[[demo_col]] <- NULL
   }
+  sc2$subID_key <- NULL
   sc2
 }
 
