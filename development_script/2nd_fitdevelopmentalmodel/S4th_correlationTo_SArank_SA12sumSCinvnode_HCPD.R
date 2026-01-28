@@ -41,9 +41,12 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-ds.resolution <- 12
+ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
 make_matrix_graphs <- as.integer(if (!is.null(args$make_matrix_graphs)) args$make_matrix_graphs else 0L) == 1L
+sa_axis_mode <- tolower(if (!is.null(args$sa_axis_mode)) args$sa_axis_mode else "addsquare")
+out_tag <- if (!is.null(args$out_tag)) args$out_tag else ""
+tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
 
 interfileFolder <- file.path(
   project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
@@ -59,8 +62,54 @@ dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureRoot, showWarnings = FALSE, recursive = TRUE)
 
 functionFolder <- file.path(project_root, "gamfunction")
-source(file.path(functionFolder, "SCrankcorr.R"))
 source(file.path(functionFolder, "colorbarvalue.R"))
+
+infer_resolution_from_edges <- function(n_edges) {
+  n <- (sqrt(8 * n_edges + 1) - 1) / 2
+  n_int <- as.integer(round(n))
+  if (n_int < 1 || n_int * (n_int + 1) / 2 != n_edges) {
+    stop("Cannot infer resolution from n_edges=", n_edges, " (expected triangular number).")
+  }
+  n_int
+}
+
+build_sa_rank <- function(ds, mode = c("addsquare", "multiply")) {
+  mode <- match.arg(mode)
+  mat <- matrix(NA_real_, nrow = ds, ncol = ds)
+  for (x in 1:ds) {
+    for (y in 1:ds) {
+      mat[x, y] <- if (mode == "multiply") x * y else x^2 + y^2
+    }
+  }
+  mat <- mat[lower.tri(mat, diag = TRUE)]
+  rank(mat, ties.method = "average")
+}
+
+sa_axis_mode <- if (sa_axis_mode %in% c("addsquare", "x2+y2", "sum_sq")) "addsquare" else if (sa_axis_mode %in% c("multiply", "x*y", "mult")) "multiply" else sa_axis_mode
+if (!sa_axis_mode %in% c("addsquare", "multiply")) stop("Invalid --sa_axis_mode: ", sa_axis_mode, " (use addsquare|multiply)")
+
+SCrankcorr_custom <- function(gamresult, computevar, sa_rank_map, ds.resolution, dsdata = FALSE) {
+  if (!"parcel" %in% names(gamresult)) stop("gamresult missing 'parcel' column.")
+  if (!computevar %in% names(gamresult)) stop("gamresult missing computevar: ", computevar)
+  scr <- unname(sa_rank_map[as.character(gamresult$parcel)])
+  df <- data.frame(SCrank = scr, computevar = as.numeric(gamresult[[computevar]]))
+
+  ct <- suppressWarnings(corr.test(df, method = "spearman"))
+  correstimate <- ct$r[2, 1]
+  p.spearman <- ct$p[2, 1]
+  SCrankdf <- data.frame(
+    ds.resolution = ds.resolution,
+    sa_axis_mode = sa_axis_mode,
+    Interest.var = computevar,
+    r.spearman = correstimate,
+    p.spearman = p.spearman
+  )
+  if (dsdata) {
+    names(df) <- c("SCrank", computevar)
+    return(df)
+  }
+  SCrankdf
+}
 
 n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = NA))
 if (is.na(n_cores) || n_cores < 1) n_cores <- parallel::detectCores()
@@ -85,16 +134,23 @@ SCdata <- readRDS(input_rds)
 euclid_csv <- if (!is.null(args$euclid_csv)) {
   args$euclid_csv
 } else {
-  file.path(project_root, "wd", "interdataFolder_HCPD", "average_EuclideanDistance_12.csv")
+  file.path(project_root, "wd", "interdataFolder_HCPD", paste0("average_EuclideanDistance_", ds.resolution, ".csv"))
 }
-if (!file.exists(euclid_csv)) stop("Missing euclid_csv: ", euclid_csv)
-EuricDistance <- read.csv(euclid_csv)
+do_euclid <- is.character(euclid_csv) && nzchar(euclid_csv) && file.exists(euclid_csv)
+EuricDistance <- if (do_euclid) read.csv(euclid_csv) else NULL
 
 message(sum(gamresult$sig), " edges have significant developmental effects.")
 
-out_summary <- file.path(resultFolder, "SCrank_correlation_summary.csv")
+out_summary <- file.path(resultFolder, paste0("SCrank_correlation_summary", tag_suffix, ".csv"))
 if (!force && file.exists(out_summary)) {
-  message("[INFO] S4 summary exists, skipping: ", out_summary, " (set --force=1 to re-run)")
+  message("[INFO] S4 summary exists, skipping recompute: ", out_summary, " (set --force=1 to re-run)")
+  sum_df <- read.csv(out_summary)
+  if (all(c("Interest.var", "r.spearman", "p.spearman") %in% names(sum_df))) {
+    message(sprintf("[INFO] SCrank Spearman summary (ds.resolution=%d sa_axis_mode=%s tag=%s)", ds.resolution, sa_axis_mode, ifelse(nzchar(out_tag), out_tag, "<none>")))
+    for (i in seq_len(nrow(sum_df))) {
+      message(sprintf("[INFO]  %s: r=%.5f, p=%.3g", as.character(sum_df$Interest.var[[i]]), as.numeric(sum_df$r.spearman[[i]]), as.numeric(sum_df$p.spearman[[i]])))
+    }
+  }
   quit(save = "no", status = 0)
 }
 
@@ -106,21 +162,32 @@ meanSC <- colMeans(SCdata[, sc_cols, drop = FALSE])
 parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
 meanSC_map <- setNames(meanSC, parcel_all)
 
-if (!"Edistance" %in% names(EuricDistance)) stop("Euclidean distance CSV missing column 'Edistance': ", euclid_csv)
-if (nrow(EuricDistance) == elementnum) {
-  Edist_map <- setNames(EuricDistance$Edistance, parcel_all)
-} else if ("parcel" %in% names(EuricDistance)) {
-  Edist_map <- setNames(EuricDistance$Edistance, as.character(EuricDistance$parcel))
-} else {
-  stop("Euclidean distance rows do not match elementnum and no 'parcel' column to align: ", euclid_csv)
+Edist_map <- NULL
+if (do_euclid) {
+  if (!"Edistance" %in% names(EuricDistance)) stop("Euclidean distance CSV missing column 'Edistance': ", euclid_csv)
+  if ("SC_label" %in% names(EuricDistance)) {
+    Edist_map <- setNames(as.numeric(EuricDistance$Edistance), as.character(EuricDistance$SC_label))
+  } else if ("parcel" %in% names(EuricDistance)) {
+    Edist_map <- setNames(as.numeric(EuricDistance$Edistance), as.character(EuricDistance$parcel))
+  } else if (nrow(EuricDistance) == elementnum) {
+    Edist_map <- setNames(as.numeric(EuricDistance$Edistance), parcel_all)
+  } else {
+    stop("Euclidean distance CSV cannot be aligned (need SC_label/parcel or rows==elementnum): ", euclid_csv)
+  }
 }
 
 meanSC_aligned <- meanSC_map[gamresult$parcel]
 corr.test(meanSC_aligned, gamresult$partialRsq)
-corr.test(meanSC, Edist_map[parcel_all])
+if (do_euclid) {
+  corr.test(meanSC, Edist_map[parcel_all])
+}
 
 ## convert critical ages of insignificantly developmental edges to NA
-gamresult$EuricDistance <- unname(Edist_map[gamresult$parcel])
+if (do_euclid) {
+  gamresult$EuricDistance <- unname(Edist_map[gamresult$parcel])
+} else {
+  gamresult$EuricDistance <- NA_real_
+}
 gamresult$increase.onset[gamresult$sig == FALSE] <- NA
 gamresult$increase.onset2 <- gamresult$increase.onset
 gamresult$increase.onset2[round(gamresult$increase.onset2, 2) == 8.08] <- NA
@@ -133,23 +200,29 @@ gamresult$pfdr <- p.adjust(gamresult$anova.smooth.pvalue, method = "fdr")
 
 ## compute correlations to SC rank
 computevar.list <- c("partialRsq", "increase.onset2", "increase.offset2", "peak.increase.change", "meanderv2")
+sa_rank_all <- build_sa_rank(ds.resolution, mode = sa_axis_mode)
+sa_rank_map <- setNames(sa_rank_all, parcel_all)
 SCrank_correlation <- do.call(
   rbind,
-  lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
+  lapply(computevar.list, function(computevar) SCrankcorr_custom(gamresult, computevar, sa_rank_map, ds.resolution, dsdata = FALSE))
 )
 
 ## Validation: Control for Euclidean distance
-gamresult$meanderv2_control_distance <- residuals(lm(meanderv2 ~ EuricDistance, data = gamresult))
-gamresult$partialRsq_control_distance <- residuals(lm(partialRsq ~ EuricDistance, data = gamresult))
-SCrank_correlation <- rbind(
-  SCrank_correlation,
-  SCrankcorr(gamresult, "meanderv2_control_distance", ds.resolution, dsdata = FALSE),
-  SCrankcorr(gamresult, "partialRsq_control_distance", ds.resolution, dsdata = FALSE)
-)
+if (do_euclid) {
+  gamresult$meanderv2_control_distance <- residuals(lm(meanderv2 ~ EuricDistance, data = gamresult))
+  gamresult$partialRsq_control_distance <- residuals(lm(partialRsq ~ EuricDistance, data = gamresult))
+  SCrank_correlation <- rbind(
+    SCrank_correlation,
+    SCrankcorr_custom(gamresult, "meanderv2_control_distance", sa_rank_map, ds.resolution, dsdata = FALSE),
+    SCrankcorr_custom(gamresult, "partialRsq_control_distance", sa_rank_map, ds.resolution, dsdata = FALSE)
+  )
+} else {
+  message("[INFO] euclid_csv not provided or missing; skip control-distance correlations.")
+}
 write.csv(SCrank_correlation, out_summary, row.names = FALSE)
 
 ## scatter plots
-FigCorrFolder <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank")
+FigCorrFolder <- file.path(FigureRoot, paste0("correlation_sumSCinvnode_SCrank", tag_suffix))
 dir.create(FigCorrFolder, showWarnings = FALSE, recursive = TRUE)
 
 yeo_scatter_theme <- theme(
@@ -165,7 +238,7 @@ yeo_scatter_theme <- theme(
 )
 
 plot_one_scatter <- function(computevar, ylab) {
-  df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
+  df <- SCrankcorr_custom(gamresult, computevar, sa_rank_map, ds.resolution, dsdata = TRUE)
   names(df) <- c("SCrank", computevar)
   ct <- suppressWarnings(corr.test(df$SCrank, df[[computevar]], method = "spearman"))
   extract_corr <- function(ct_obj) {
@@ -193,7 +266,7 @@ plot_one_scatter <- function(computevar, ylab) {
         geom_point(aes(x = SCrank, y = .data[[computevar]], color = .data[[computevar]]), size = 3.5, alpha = 0.9) +
         geom_smooth(aes(x = SCrank, y = .data[[computevar]]), method = "lm", color = "black") +
         scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr), guide = "none") +
-        scale_x_continuous(breaks = c(0, 20, 40, 60, 80, 100, 120)) +
+        scale_x_continuous(breaks = pretty(df$SCrank, n = 6)) +
         labs(
           x = "S-A connectional axis rank",
           y = ylab,
@@ -207,7 +280,7 @@ plot_one_scatter <- function(computevar, ylab) {
     geom_point(aes(x = SCrank, y = .data[[computevar]], color = SCrank), size = 5.5, alpha = 0.9) +
     geom_smooth(aes(x = SCrank, y = .data[[computevar]]), linewidth = 2, method = "lm", color = "black") +
     scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
-    scale_x_continuous(breaks = c(0, 20, 40, 60, 80, 100, 120)) +
+    scale_x_continuous(breaks = pretty(df$SCrank, n = 6)) +
     labs(
       x = "S-A connectional axis rank",
       y = ylab,

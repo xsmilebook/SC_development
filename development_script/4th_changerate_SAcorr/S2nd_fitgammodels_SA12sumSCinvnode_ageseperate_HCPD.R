@@ -75,9 +75,16 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 
 dataset <- "hcpd"
 CVthr <- as_num(args$cvthr, 75)
-ds.resolution <- 12
+ds.resolution <- as_int(args$ds_res, 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
 force <- as_int(args$force, 0L) == 1L
+save_svg <- as_int(args$save_svg, 0L) == 1L
+sa_axis_mode <- tolower(if (!is.null(args$sa_axis_mode)) args$sa_axis_mode else "addsquare")
+out_tag <- if (!is.null(args$out_tag)) args$out_tag else ""
+tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
+
+sa_axis_mode <- if (sa_axis_mode %in% c("addsquare", "x2+y2", "sum_sq")) "addsquare" else if (sa_axis_mode %in% c("multiply", "x*y", "mult")) "multiply" else sa_axis_mode
+if (!sa_axis_mode %in% c("addsquare", "multiply")) stop("Invalid --sa_axis_mode: ", sa_axis_mode, " (use addsquare|multiply)")
 
 n_edges <- as_int(args$n_edges, elementnum)
 n_edges <- min(elementnum, max(1L, n_edges))
@@ -111,16 +118,16 @@ sepage <- if (!is.null(args$sepage)) {
 }
 if (!is.finite(sepage)) stop("Missing/invalid sepage. Provide --sepage=... or a valid --flip_age_csv=... (default: ", flip_csv, ")")
 
-inter_out <- file.path(project_root, "outputs", "intermediate", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr))
+inter_out <- file.path(project_root, "outputs", "intermediate", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix))
 dir.create(inter_out, showWarnings = FALSE, recursive = TRUE)
 
-FigureRoot <- file.path(project_root, "outputs", "figures", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr))
+FigureRoot <- file.path(project_root, "outputs", "figures", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix))
 dir.create(FigureRoot, showWarnings = FALSE, recursive = TRUE)
 
 FigCorrYoung <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank_younger")
 FigCorrOld <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank_older")
-FigMatYoung <- file.path(FigureRoot, "Matrix12_sumSCinvnode_gamstats_younger")
-FigMatOld <- file.path(FigureRoot, "Matrix12_sumSCinvnode_gamstats_older")
+FigMatYoung <- file.path(FigureRoot, paste0("Matrix", ds.resolution, "_sumSCinvnode_gamstats_younger"))
+FigMatOld <- file.path(FigureRoot, paste0("Matrix", ds.resolution, "_sumSCinvnode_gamstats_older"))
 dir.create(FigCorrYoung, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigCorrOld, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigMatYoung, showWarnings = FALSE, recursive = TRUE)
@@ -135,6 +142,7 @@ message("[INFO] dataset=", dataset, " CVthr=", CVthr, " sepage=", sprintf("%.5f"
 message("[INFO] scdata_diw_rds=", scdata_diw_rds)
 message("[INFO] flip_age_csv=", flip_csv, " (exists=", file.exists(flip_csv), ")")
 message("[INFO] n_edges=", n_edges, " n_cores=", n_cores, " force=", force)
+message("[INFO] ds.resolution=", ds.resolution, " sa_axis_mode=", sa_axis_mode, " out_tag=", ifelse(nzchar(out_tag), out_tag, "<none>"), " save_svg=", save_svg)
 
 SCdata.sum.merge <- readRDS(scdata_diw_rds)
 if (!is.data.frame(SCdata.sum.merge)) stop("SCdata.diw is not a data.frame: ", scdata_diw_rds)
@@ -156,7 +164,40 @@ message("[INFO] n_younger=", nrow(SCdata.sum.merge_younger), " n_older=", nrow(S
 
 functionFolder <- file.path(project_root, "gamfunction")
 source(file.path(functionFolder, "gamsmooth.R"))
-source(file.path(functionFolder, "SCrankcorr.R"))
+
+build_sa_rank <- function(ds, mode = c("addsquare", "multiply")) {
+  mode <- match.arg(mode)
+  mat <- matrix(NA_real_, nrow = ds, ncol = ds)
+  for (x in 1:ds) {
+    for (y in 1:ds) {
+      mat[x, y] <- if (mode == "multiply") x * y else x^2 + y^2
+    }
+  }
+  mat <- mat[lower.tri(mat, diag = TRUE)]
+  rank(mat, ties.method = "average")
+}
+
+sa_rank_all <- build_sa_rank(ds.resolution, mode = sa_axis_mode)
+parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
+sa_rank_map <- setNames(sa_rank_all, parcel_all)
+
+SCrankcorr_custom <- function(gamresult, computevar, dsdata = FALSE) {
+  if (!"parcel" %in% names(gamresult)) stop("gamresult missing 'parcel' column.")
+  if (!computevar %in% names(gamresult)) stop("gamresult missing computevar: ", computevar)
+  df <- data.frame(SCrank = unname(sa_rank_map[as.character(gamresult$parcel)]), computevar = as.numeric(gamresult[[computevar]]))
+  ct <- suppressWarnings(corr.test(df, method = "spearman"))
+  if (dsdata) {
+    names(df) <- c("SCrank", computevar)
+    return(df)
+  }
+  data.frame(
+    ds.resolution = ds.resolution,
+    sa_axis_mode = sa_axis_mode,
+    Interest.var = computevar,
+    r.spearman = ct$r[2, 1],
+    p.spearman = ct$p[2, 1]
+  )
+}
 
 should_run <- function(path) force || !file.exists(path)
 
@@ -218,10 +259,10 @@ sdv <- sd(gamresultsum.df_younger$partialRsq1, na.rm = TRUE)
 gamresultsum.df_younger$partialRsq1[gamresultsum.df_younger$partialRsq1 > mu + 3 * sdv | gamresultsum.df_younger$partialRsq1 < mu - 3 * sdv] <- NA
 
 computevar_y <- "partialRsq1"
-ct_y <- SCrankcorr(gamresultsum.df_younger, computevar_y, ds.resolution, dsdata = FALSE)
+ct_y <- SCrankcorr_custom(gamresultsum.df_younger, computevar_y, dsdata = FALSE)
 message(sprintf("[RESULT] younger %s: r=%.5f p=%.3g (n=%d)", computevar_y, ct_y$r.spearman[[1]], ct_y$p.spearman[[1]], nrow(gamresultsum.df_younger)))
 
-correlation.df <- SCrankcorr(gamresultsum.df_younger, computevar_y, ds.resolution, dsdata = TRUE)
+correlation.df <- SCrankcorr_custom(gamresultsum.df_younger, computevar_y, dsdata = TRUE)
 maxthr <- max(abs(gamresultsum.df_younger$partialRsq1), na.rm = TRUE)
 
 p_sc_y <- ggplot(correlation.df) +
@@ -242,7 +283,8 @@ p_sc_y <- ggplot(correlation.df) +
     legend.position = "none"
   )
 ggsave(file.path(FigCorrYoung, paste0(computevar_y, "_SCrankcorr_n", ds.resolution, ".tiff")), p_sc_y, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
-save_svg_if_available(file.path(FigCorrYoung, paste0(computevar_y, "_SCrankcorr_n", ds.resolution, ".svg")), p_sc_y, width_cm = 10, height_cm = 8)
+ggsave(file.path(FigCorrYoung, paste0(computevar_y, "_SCrankcorr_n", ds.resolution, ".pdf")), p_sc_y, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+if (save_svg) save_svg_if_available(file.path(FigCorrYoung, paste0(computevar_y, "_SCrankcorr_n", ds.resolution, ".svg")), p_sc_y, width_cm = 10, height_cm = 8)
 
 # Younger matrix (partialRsq1 placed into lower triangle, symmetric)
 mtrixplot <- matrix(NA_real_, ds.resolution, ds.resolution)
@@ -256,8 +298,8 @@ mat_m$variable <- as.numeric(mat_m$variable)
 mat_m$nodeid <- 0 - mat_m$nodeid
 mat_m$value <- as.numeric(mat_m$value)
 linerange_frame <- data.frame(
-  x = c(0.5, 12 + 0.5), ymin = rep(-12 - 0.5, times = 2), ymax = rep(-0.5, times = 2),
-  y = c(-0.5, -12 - 0.5), xmin = rep(0.5, times = 2), xmax = rep(12 + 0.5, times = 2)
+  x = c(0.5, ds.resolution + 0.5), ymin = rep(-ds.resolution - 0.5, times = 2), ymax = rep(-0.5, times = 2),
+  y = c(-0.5, -ds.resolution - 0.5), xmin = rep(0.5, times = 2), xmax = rep(ds.resolution + 0.5, times = 2)
 )
 RdBucol <- rev(brewer.pal(11, "RdBu"))
 p_mat_y <- ggplot(mat_m) +
@@ -266,7 +308,7 @@ p_mat_y <- ggplot(mat_m) +
   scale_color_distiller(type = "seq", palette = "RdBu", limits = c(-maxthr, maxthr), na.value = RdBucol[11]) +
   geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
   geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
-  geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+  geom_segment(aes(x = 0.5, y = -0.5, xend = ds.resolution + 0.5, yend = -ds.resolution - 0.5), color = "black", linewidth = 0.5) +
   ggtitle(label = "partialRsq") +
   labs(x = NULL, y = NULL) +
   scale_y_continuous(breaks = NULL, labels = NULL) +
@@ -283,15 +325,16 @@ p_mat_y <- ggplot(mat_m) +
     panel.grid.major = element_line(linewidth = 0),
     panel.grid.minor = element_line(linewidth = 1)
   )
-ggsave(file.path(FigMatYoung, paste0("partialRsq_12net_delLM_CV", CVthr, ".tiff")), p_mat_y, dpi = 600, height = 18, width = 20, units = "cm", bg = "transparent")
+ggsave(file.path(FigMatYoung, paste0("partialRsq_", ds.resolution, "net_delLM_CV", CVthr, ".tiff")), p_mat_y, dpi = 600, height = 18, width = 20, units = "cm", bg = "transparent")
+ggsave(file.path(FigMatYoung, paste0("partialRsq_", ds.resolution, "net_delLM_CV", CVthr, ".pdf")), p_mat_y, dpi = 600, height = 18, width = 20, units = "cm", bg = "transparent")
 
 # Older: partialRsq
 gamresultsum.df_older <- old$results
 computevar_o <- "partialRsq"
-ct_o <- SCrankcorr(gamresultsum.df_older, computevar_o, ds.resolution, dsdata = FALSE)
+ct_o <- SCrankcorr_custom(gamresultsum.df_older, computevar_o, dsdata = FALSE)
 message(sprintf("[RESULT] older %s: r=%.5f p=%.3g (n=%d)", computevar_o, ct_o$r.spearman[[1]], ct_o$p.spearman[[1]], nrow(gamresultsum.df_older)))
 
-correlation.df2 <- SCrankcorr(gamresultsum.df_older, computevar_o, ds.resolution, dsdata = TRUE)
+correlation.df2 <- SCrankcorr_custom(gamresultsum.df_older, computevar_o, dsdata = TRUE)
 maxthr2 <- max(abs(correlation.df2$partialRsq), na.rm = TRUE)
 p_sc_o <- ggplot(correlation.df2) +
   geom_point(aes(x = SCrank, y = partialRsq, color = partialRsq), size = 3) +
@@ -312,13 +355,14 @@ p_sc_o <- ggplot(correlation.df2) +
     legend.position = "none"
   )
 ggsave(file.path(FigCorrOld, paste0(computevar_o, "_SCrankcorr_n", ds.resolution, ".tiff")), p_sc_o, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
-save_svg_if_available(file.path(FigCorrOld, paste0(computevar_o, "_SCrankcorr_n", ds.resolution, ".svg")), p_sc_o, width_cm = 10, height_cm = 8)
+ggsave(file.path(FigCorrOld, paste0(computevar_o, "_SCrankcorr_n", ds.resolution, ".pdf")), p_sc_o, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+if (save_svg) save_svg_if_available(file.path(FigCorrOld, paste0(computevar_o, "_SCrankcorr_n", ds.resolution, ".svg")), p_sc_o, width_cm = 10, height_cm = 8)
 
-Matrix.tmp2 <- matrix(NA_real_, nrow = 12, ncol = 12)
+Matrix.tmp2 <- matrix(NA_real_, nrow = ds.resolution, ncol = ds.resolution)
 Matrix.tmp2[lower.tri(Matrix.tmp2, diag = TRUE)] <- correlation.df2[[2]]
 Matrix.tmp2[upper.tri(Matrix.tmp2)] <- t(Matrix.tmp2)[upper.tri(Matrix.tmp2)]
 mat_df2 <- as.data.frame(Matrix.tmp2)
-mat_df2$nodeid <- seq_len(12)
+mat_df2$nodeid <- seq_len(ds.resolution)
 mat_m2 <- melt_df(mat_df2, id.vars = c("nodeid"))
 mat_m2$variable <- as.numeric(mat_m2$variable)
 mat_m2$nodeid <- 0 - mat_m2$nodeid
@@ -329,7 +373,7 @@ p_mat_o <- ggplot(mat_m2) +
   scale_color_distiller(type = "seq", palette = "RdBu", limits = c(-maxthr2, maxthr2), na.value = "grey") +
   geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
   geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
-  geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+  geom_segment(aes(x = 0.5, y = -0.5, xend = ds.resolution + 0.5, yend = -ds.resolution - 0.5), color = "black", linewidth = 0.5) +
   ggtitle(label = "partialRsq") +
   labs(x = NULL, y = NULL) +
   scale_y_continuous(breaks = NULL, labels = NULL) +
@@ -346,5 +390,5 @@ p_mat_o <- ggplot(mat_m2) +
     panel.grid.major = element_line(linewidth = 0),
     panel.grid.minor = element_line(linewidth = 1)
   )
-ggsave(file.path(FigMatOld, paste0("partialRsq_12net_delLM_CV", CVthr, ".tiff")), p_mat_o, dpi = 600, height = 18, width = 20, units = "cm", bg = "transparent")
-
+ggsave(file.path(FigMatOld, paste0("partialRsq_", ds.resolution, "net_delLM_CV", CVthr, ".tiff")), p_mat_o, dpi = 600, height = 18, width = 20, units = "cm", bg = "transparent")
+ggsave(file.path(FigMatOld, paste0("partialRsq_", ds.resolution, "net_delLM_CV", CVthr, ".pdf")), p_mat_o, dpi = 600, height = 18, width = 20, units = "cm", bg = "transparent")

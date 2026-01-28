@@ -12,7 +12,7 @@
 ##
 ## Outputs (project-relative):
 ## - outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/plotdatasum_scale_TRUE_SA12.rds
-## - outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/** (tiff+svg)
+## - outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/** (tiff+pdf)
 
 rm(list = ls())
 
@@ -42,7 +42,7 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-ds.resolution <- 12
+ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
 
 interfileFolder <- file.path(
@@ -109,16 +109,21 @@ ensure_sig_derivative_fdr <- function(derivative_df) {
 derivative <- ensure_sig_derivative_fdr(derivative)
 
 FigureFolder <- file.path(FigureRoot, paste0("CV", CVthr))
-FigureFolder_SCfit <- file.path(FigureFolder, "SA12_sumSCinvnode_fit")
-FigureFolder_SCdecile <- file.path(FigureFolder, "SA12_decile_sumSCinvnode_fit")
+FigureFolder_SCfit <- file.path(FigureFolder, paste0("SA", ds.resolution, "_sumSCinvnode_fit"))
+FigureFolder_SCdecile <- file.path(FigureFolder, paste0("SA", ds.resolution, "_decile_sumSCinvnode_fit"))
 dir.create(FigureFolder_SCfit, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder_SCdecile, showWarnings = FALSE, recursive = TRUE)
 
-out_plotdatasum_list <- file.path(interfileFolder, "plotdatasum_scale_TRUE_SA12.rds")
-out_fig1 <- file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff")
-out_fig2 <- file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff")
+out_plotdatasum_list <- file.path(interfileFolder, paste0("plotdatasum_scale_TRUE_SA", ds.resolution, ".rds"))
+out_fig1_tiff <- file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff")
+out_fig1_pdf <- file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.pdf")
+out_fig2_tiff <- file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff")
+out_fig2_pdf <- file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.pdf")
 
-if (!force && file.exists(out_plotdatasum_list) && file.exists(out_fig1) && file.exists(out_fig2)) {
+if (!force &&
+  file.exists(out_plotdatasum_list) &&
+  file.exists(out_fig1_tiff) && file.exists(out_fig1_pdf) &&
+  file.exists(out_fig2_tiff) && file.exists(out_fig2_pdf)) {
   message("[INFO] S3 outputs exist; skipping S3. Set --force=1 to re-run.")
   quit(save = "no", status = 0)
 }
@@ -151,21 +156,21 @@ plot_one <- function(idx) {
 plotdatasum <- mclapply(seq_len(n_edges), plot_one, mc.cores = n_cores)
 saveRDS(plotdatasum, out_plotdatasum_list)
 
-## SA12 index & SC rank
-Matrix12 <- matrix(NA, nrow = 12, ncol = 12)
-indexup12 <- upper.tri(Matrix12)
-indexsave12 <- !indexup12
-Matrix12.SCrank <- Matrix12
-for (x in 1:12) {
-  for (y in 1:12) {
-    Matrix12.SCrank[x, y] <- x^2 + y^2
+## SA index & SC rank (x^2 + y^2, consistent with gamfunction/SCrankcorr.R)
+Matrixds <- matrix(NA, nrow = ds.resolution, ncol = ds.resolution)
+indexupds <- upper.tri(Matrixds)
+indexsaveds <- !indexupds
+Matrixds.SCrank <- Matrixds
+for (x in 1:ds.resolution) {
+  for (y in 1:ds.resolution) {
+    Matrixds.SCrank[x, y] <- x^2 + y^2
   }
 }
-Matrix12.SCrank[indexup12] <- NA
-Matrix12.SCrank[indexsave12] <- rank(Matrix12.SCrank[indexsave12], ties.method = "average")
+Matrixds.SCrank[indexupds] <- NA
+Matrixds.SCrank[indexsaveds] <- rank(Matrixds.SCrank[indexsaveds], ties.method = "average")
 
 parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
-SCrank_map <- setNames(Matrix12.SCrank[indexsave12], parcel_all)
+SCrank_map <- setNames(Matrixds.SCrank[indexsaveds], parcel_all)
 
 ok_plot_idx <- which(!vapply(plotdatasum, is.null, logical(1)))
 if (length(ok_plot_idx) == 0) stop("All plotdata_generate() calls failed; see warnings above.")
@@ -268,9 +273,9 @@ for (SClabel in c("SC.2_h", "SC.77_h")) {
       legend.position = "none"
     )
 
-  deriv.SA12.tmp <- derivative[derivative$label_ID == SClabel, ]
-  deriv.SA12.tmp$h <- 1
-  derivplot <- ggplot(data = deriv.SA12.tmp) +
+  deriv.tmp <- derivative[derivative$label_ID == SClabel, ]
+  deriv.tmp$h <- 1
+  derivplot <- ggplot(data = deriv.tmp) +
     geom_bar(aes(x = age, y = 1, fill = significant.derivative_fdr, color = significant.derivative_fdr), stat = "identity", position = "stack") +
     scale_fill_gradient2(high = colorID, low = "white", midpoint = 0, na.value = "white", labels = NULL, guide = "none") +
     scale_color_gradient2(high = colorID, low = "white", midpoint = 0, na.value = "white", labels = NULL, guide = "none") +
@@ -290,17 +295,17 @@ for (SClabel in c("SC.2_h", "SC.77_h")) {
     )
 
   combined_plot <- Scatter_Fig / derivplot + plot_layout(ncol = 1, nrow = 2)
-  ggsave(file.path(FigureFolder_SCfit, paste0("SA12_delLM_", SClabel, "_CV75.tiff")), combined_plot, width = 14, height = 14, units = "cm", bg = "transparent")
-  ggsave(file.path(FigureFolder_SCfit, paste0("SA12_delLM_", SClabel, "_CV75.pdf")), combined_plot, dpi = 600, width = 13, height = 13, units = "cm", bg = "transparent")
+  ggsave(file.path(FigureFolder_SCfit, paste0("SA", ds.resolution, "_delLM_", SClabel, "_CV", CVthr, ".tiff")), combined_plot, width = 14, height = 14, units = "cm", bg = "transparent")
+  ggsave(file.path(FigureFolder_SCfit, paste0("SA", ds.resolution, "_delLM_", SClabel, "_CV", CVthr, ".pdf")), combined_plot, dpi = 600, width = 13, height = 13, units = "cm", bg = "transparent")
 }
 
 ## Average fitted values for 10 deciles of connectional axis
-SA12_10 <- data.frame(SCrank = Matrix12.SCrank[indexsave12])
-SA12_10 <- SA12_10 %>% mutate(decile = ntile(SCrank, 10))
-SA12_10$SC_label <- gamresultsum.SAorder.delLM$parcel
-write.csv(SA12_10, file.path(interfileFolder, "SA12_10.csv"), row.names = FALSE)
+SA_10 <- data.frame(SCrank = Matrixds.SCrank[indexsaveds])
+SA_10 <- SA_10 %>% mutate(decile = ntile(SCrank, 10))
+SA_10$SC_label <- gamresultsum.SAorder.delLM$parcel
+write.csv(SA_10, file.path(interfileFolder, paste0("SA", ds.resolution, "_10.csv")), row.names = FALSE)
 
-plotdatasum.df.label <- merge(plotdatasum.df, SA12_10, by = "SC_label", all.x = TRUE)
+plotdatasum.df.label <- merge(plotdatasum.df, SA_10, by = "SC_label", all.x = TRUE)
 plotdatasum.df.decile <- plotdatasum.df.label %>%
   group_by(decile, age) %>%
   summarise(fit.avg = mean(fit), SCranktype_order = mean(decile), .groups = "drop")

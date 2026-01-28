@@ -37,6 +37,9 @@
 - 前置：需要 `development_script/2nd_fitdevelopmentalmodel` 生成的 `derivative.df*` 与 `derivative.posterior.df*`（sbatch 脚本会在缺失时自动补跑上游步骤；可用 `FORCE=1` 强制重算）。
 - 提交命令（用户在集群上执行）：
   - HCP-D：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_container.sbatch`（包含 4th 的 S1+S2 完整流程：对齐曲线 + flip-age 分组 GAM）
+  - HCP-D（SA7）：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_SA7_container.sbatch`（输出写入 `CV75_SA7/`；默认不做欧氏距离 control）
+  - HCP-D（SA17）：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_SA17_container.sbatch`（输出写入 `CV75_SA17/`；默认不做欧氏距离 control）
+  - HCP-D（SA axis multiply，SAmult）：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_SAmult_container.sbatch`（输出写入 `CV75_SAmult/`；S-A rank 采用 `x*y`）
   - HCP-D（SES/ICV 协变量敏感性分析，SA12）：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_covariates_ses_icv_container.sbatch`（输出 `tiff+pdf`，日志输出 `[RESULT]` 关键数值）
   - HCP-D（Yeo7/Yeo17/TractSeg major-bundle）：`sbatch sbatch/run_hcpd_changerate_sacorr_combatgam_CV75_yeo_tractseg_container.sbatch`（依次跑 Yeo7→Yeo17→TractSeg；同样会在 log 中输出 `[RESULT]` 数值）
   - Chinese Cohort：`sbatch sbatch/run_chinese_changerate_sacorr_combatgam_CV75_container.sbatch`（输出 `tiff+pdf`；日志输出 `[RESULT]` 的 flip-age、rho 以及分组相关 r/p）
@@ -135,6 +138,15 @@
    - HCP-D（基于 ComBat-GAM 输出）的可复现运行入口：
      - 输入默认：`outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
      - sbatch：`sbatch/run_hcpd_devmodel_combatgam_CV75.sbatch`
+     - SA7/SA17（使用项目内 SA7/SA17 的 ComBat-GAM 输出）：
+       - 先跑 ComBat-GAM：`sbatch combat_gam/sbatch/hcpd_combat_gam_sa7_sa17_CV75.sbatch`
+       - devmodel（容器版一键提交）：
+         - SA7：`sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_SA7_container.sbatch`
+         - SA17：`sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_SA17_container.sbatch`
+       - 说明：为避免覆盖 SA12 的 S4 输出，SA7/SA17 的 S4 会写出 `SCrank_correlation_summary_{SA7|SA17}.csv` 并在日志打印 r/p。
+     - SA axis multiply（SAmult，S-A rank 采用 `x*y`）：
+       - devmodel（容器版一键提交）：`sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_SAmult_container.sbatch`
+       - 输出：`SCrank_correlation_summary_SAmult.csv` 与 `correlation_sumSCinvnode_SCrank_SAmult/`（不覆盖默认 SA12 版本）
      - 产物目录：
        - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`

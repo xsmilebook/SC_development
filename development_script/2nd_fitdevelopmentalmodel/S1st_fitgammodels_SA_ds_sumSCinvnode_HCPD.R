@@ -35,14 +35,18 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
-# set resolution
-ds.resolution <- 12
-elementnum <- ds.resolution * (ds.resolution + 1) / 2
+infer_resolution_from_edges <- function(n_edges) {
+  n <- (sqrt(8 * n_edges + 1) - 1) / 2
+  n_int <- as.integer(round(n))
+  if (n_int < 1 || n_int * (n_int + 1) / 2 != n_edges) {
+    stop("Cannot infer resolution from n_edges=", n_edges, " (expected triangular number).")
+  }
+  n_int
+}
 
 # config
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-n_edges <- as.integer(if (!is.null(args$n_edges)) args$n_edges else elementnum)
-n_edges <- min(elementnum, max(1L, n_edges))
+ds.resolution_arg <- if (!is.null(args$ds_res)) as.integer(args$ds_res) else NA_integer_
 
 functionFolder <- file.path(project_root, "gamfunction")
 interfileFolder <- file.path(
@@ -69,9 +73,12 @@ n_cores <- max(1L, n_cores)
 SCdata.sum.merge <- readRDS(input_rds)
 SCdata.sum.merge$sex <- as.factor(SCdata.sum.merge$sex)
 sc_cols <- grep("^SC\\.", names(SCdata.sum.merge), value = TRUE)
-if (length(sc_cols) != elementnum) {
-  stop("Expected ", elementnum, " SC edge columns (SC.*), got ", length(sc_cols))
-}
+ds.resolution <- if (is.finite(ds.resolution_arg)) ds.resolution_arg else infer_resolution_from_edges(length(sc_cols))
+elementnum <- ds.resolution * (ds.resolution + 1) / 2
+if (length(sc_cols) != elementnum) stop("Expected ", elementnum, " SC edge columns (SC.*), got ", length(sc_cols))
+
+n_edges <- as.integer(if (!is.null(args$n_edges)) args$n_edges else elementnum)
+n_edges <- min(elementnum, max(1L, n_edges))
 
 # source function
 source(file.path(functionFolder, "gamsmooth.R"))

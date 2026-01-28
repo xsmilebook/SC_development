@@ -38,8 +38,8 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
-# set resolution
-ds.resolution <- 12
+# set resolution (default SA12; override for SA7/SA17 via --ds_res=7/17)
+ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)

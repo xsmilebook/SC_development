@@ -64,17 +64,20 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 
 dataset <- "hcpd"
 CVthr <- as_num(args$cvthr, 75)
-ds.resolution <- 12
+ds.resolution <- as_int(args$ds_res, 12L)
 save_svg <- as_int(args$save_svg, 0L) == 1L
+sa_axis_mode <- tolower(if (!is.null(args$sa_axis_mode)) args$sa_axis_mode else "addsquare")
+out_tag <- if (!is.null(args$out_tag)) args$out_tag else ""
+tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
 
 in_euclid <- if (!is.null(args$euclid_csv)) {
   args$euclid_csv
 } else {
-  file.path(project_root, "wd", "interdataFolder_HCPD", "average_EuclideanDistance_12.csv")
+  file.path(project_root, "wd", "interdataFolder_HCPD", paste0("average_EuclideanDistance_", ds.resolution, ".csv"))
 }
 
-result_dir <- file.path(project_root, "outputs", "results", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr))
-figure_dir <- file.path(project_root, "outputs", "figures", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr), "Alignment_development")
+result_dir <- file.path(project_root, "outputs", "results", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix))
+figure_dir <- file.path(project_root, "outputs", "figures", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix), "Alignment_development")
 dir.create(result_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(figure_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -100,6 +103,7 @@ n_cores <- max(1L, n_cores)
 
 n_draws_req <- as_int(args$n_draws, 1000L)
 force <- as_int(args$force, 0L) == 1L
+do_control_distance_arg <- if (!is.null(args$do_control_distance)) as_int(args$do_control_distance, 0L) else NA_integer_
 
 out_corr_gz <- file.path(result_dir, "alignment_posterior_corr_draw_age.csv.gz")
 out_curve <- file.path(result_dir, "alignment_summary_age_curve.csv")
@@ -109,15 +113,17 @@ out_corr_gz_cd <- file.path(result_dir, "alignment_posterior_corr_draw_age_contr
 out_curve_cd <- file.path(result_dir, "alignment_summary_age_curve_control_distance.csv")
 out_flip_cd <- file.path(result_dir, "alignment_summary_flip_age_control_distance.csv")
 
-if (!force &&
-    file.exists(out_corr_gz) && file.exists(out_curve) && file.exists(out_flip) &&
-    file.exists(out_corr_gz_cd) && file.exists(out_curve_cd) && file.exists(out_flip_cd)) {
-  message("[INFO] Outputs exist; skipping (set --force=1 to re-run): ", result_dir)
-  quit(save = "no", status = 0)
+should_skip <- function() {
+  if (!file.exists(out_corr_gz) || !file.exists(out_curve) || !file.exists(out_flip)) return(FALSE)
+  if (do_control_distance && (!file.exists(out_corr_gz_cd) || !file.exists(out_curve_cd) || !file.exists(out_flip_cd))) return(FALSE)
+  TRUE
 }
 
 message("[INFO] dataset=", dataset)
 message("[INFO] CVthr=", CVthr)
+message("[INFO] ds.resolution=", ds.resolution)
+message("[INFO] sa_axis_mode=", sa_axis_mode)
+message("[INFO] out_tag=", ifelse(nzchar(out_tag), out_tag, "<none>"))
 message("[INFO] in_derivative_posterior=", in_derivative_posterior)
 message("[INFO] in_derivative=", in_derivative)
 message("[INFO] in_euclid=", in_euclid)
@@ -125,34 +131,73 @@ message("[INFO] n_cores=", n_cores)
 message("[INFO] n_draws_req=", n_draws_req)
 message("[INFO] save_svg=", save_svg)
 
+infer_resolution_from_edges <- function(n_edges) {
+  n <- (sqrt(8 * n_edges + 1) - 1) / 2
+  n_int <- as.integer(round(n))
+  if (n_int < 1 || n_int * (n_int + 1) / 2 != n_edges) {
+    stop("Cannot infer resolution from n_edges=", n_edges, " (expected triangular number).")
+  }
+  n_int
+}
+
+build_sa_rank <- function(ds, mode = c("addsquare", "multiply")) {
+  mode <- match.arg(mode)
+  mat <- matrix(NA_real_, nrow = ds, ncol = ds)
+  for (x in 1:ds) {
+    for (y in 1:ds) {
+      mat[x, y] <- if (mode == "multiply") x * y else x^2 + y^2
+    }
+  }
+  mat <- mat[lower.tri(mat, diag = TRUE)]
+  rank(mat, ties.method = "average")
+}
+
+sa_axis_mode <- if (sa_axis_mode %in% c("addsquare", "x2+y2", "sum_sq")) "addsquare" else if (sa_axis_mode %in% c("multiply", "x*y", "mult")) "multiply" else sa_axis_mode
+if (!sa_axis_mode %in% c("addsquare", "multiply")) stop("Invalid --sa_axis_mode: ", sa_axis_mode, " (use addsquare|multiply)")
+
+do_control_distance <- if (is.na(do_control_distance_arg)) file.exists(in_euclid) else (do_control_distance_arg == 1L)
+if (do_control_distance && !file.exists(in_euclid)) stop("do_control_distance=1 but missing euclid_csv: ", in_euclid)
+message("[INFO] do_control_distance=", do_control_distance)
+
+if (!force && should_skip()) {
+  message("[INFO] Outputs exist; skipping (set --force=1 to re-run): ", result_dir)
+  quit(save = "no", status = 0)
+}
+
 posterior_list <- readRDS(in_derivative_posterior)
 if (!is.list(posterior_list) || length(posterior_list) == 0) stop("Invalid posterior derivative list: ", in_derivative_posterior)
 
-edge_sarank_value <- vapply(posterior_list, function(df) {
-  if (!is.data.frame(df)) return(NA_real_)
-  if (!"SCrank" %in% names(df)) return(NA_real_)
-  unique(as.numeric(df$SCrank))[1]
-}, numeric(1))
-if (any(is.na(edge_sarank_value))) {
-  stop("Some posterior derivative entries missing numeric 'SCrank'. Upstream derivative script should add it.")
+n_edges <- length(posterior_list)
+ds_infer <- infer_resolution_from_edges(n_edges)
+if (ds_infer != ds.resolution) {
+  message("[WARN] posterior_list edges imply ds.resolution=", ds_infer, " but ds_res=", ds.resolution, "; using ds_res.")
 }
-sa_rank <- rank(edge_sarank_value, ties.method = "average")
+elementnum <- ds.resolution * (ds.resolution + 1) / 2
+if (n_edges != elementnum) stop("posterior_list length (", n_edges, ") != elementnum (", elementnum, ") for ds_res=", ds.resolution)
 
-if (!file.exists(in_euclid)) stop("Missing euclidean distance CSV (--euclid_csv): ", in_euclid)
-euclid_df <- read.csv(in_euclid, stringsAsFactors = FALSE)
-if (!all(c("Edistance", "SC_label") %in% names(euclid_df))) {
-  stop("Euclidean distance CSV missing required columns Edistance/SC_label: ", in_euclid)
+sa_rank <- build_sa_rank(ds.resolution, mode = sa_axis_mode)
+
+dist_vec <- rep(NA_real_, n_edges)
+if (do_control_distance) {
+  euclid_df <- read.csv(in_euclid, stringsAsFactors = FALSE)
+  if (!"Edistance" %in% names(euclid_df)) stop("Euclidean distance CSV missing column Edistance: ", in_euclid)
+  if ("SC_label" %in% names(euclid_df)) {
+    edge_labels <- paste0("SC.", seq_len(n_edges), "_h")
+    dist_match <- match(edge_labels, as.character(euclid_df$SC_label))
+    if (any(is.na(dist_match))) {
+      missing_labs <- edge_labels[is.na(dist_match)]
+      stop("Euclidean distance CSV missing labels (first few): ",
+           paste(head(missing_labs, 10), collapse = ", "),
+           " ... file=", in_euclid)
+    }
+    dist_vec <- as.numeric(euclid_df$Edistance[dist_match])
+  } else if (nrow(euclid_df) == n_edges) {
+    dist_vec <- as.numeric(euclid_df$Edistance)
+  } else {
+    stop("Euclidean distance CSV cannot be aligned (need SC_label or rows==n_edges): ", in_euclid)
+  }
+  if (any(!is.finite(dist_vec))) stop("Non-finite Edistance found after aligning: ", in_euclid)
 }
-edge_labels <- paste0("SC.", seq_len(length(posterior_list)), "_h")
-dist_match <- match(edge_labels, as.character(euclid_df$SC_label))
-if (any(is.na(dist_match))) {
-  missing_labs <- edge_labels[is.na(dist_match)]
-  stop("Euclidean distance CSV missing labels (first few): ",
-       paste(head(missing_labs, 10), collapse = ", "),
-       " ... file=", in_euclid)
-}
-dist_vec <- as.numeric(euclid_df$Edistance[dist_match])
-if (any(!is.finite(dist_vec))) stop("Non-finite Edistance found after matching labels in: ", in_euclid)
 
 age_values <- sort(unique(as.numeric(posterior_list[[1]]$age)))
 if (length(age_values) < 10) stop("Too few unique age points in posterior derivatives: ", length(age_values))
@@ -181,11 +226,12 @@ compute_corr_one_draw <- function(draw_label) {
     v <- mat[, j]
     if (all(is.na(v))) next
     rho[[j]] <- suppressWarnings(cor(v, sa_rank, method = "spearman", use = "pairwise.complete.obs"))
-
-    ok <- is.finite(v) & is.finite(dist_vec) & is.finite(sa_rank)
-    if (sum(ok) < 3) next
-    resid <- suppressWarnings(residuals(stats::lm(v[ok] ~ dist_vec[ok])))
-    rho_cd[[j]] <- suppressWarnings(cor(resid, sa_rank[ok], method = "spearman", use = "pairwise.complete.obs"))
+    if (do_control_distance) {
+      ok <- is.finite(v) & is.finite(dist_vec) & is.finite(sa_rank)
+      if (sum(ok) < 3) next
+      resid <- suppressWarnings(residuals(stats::lm(v[ok] ~ dist_vec[ok])))
+      rho_cd[[j]] <- suppressWarnings(cor(resid, sa_rank[ok], method = "spearman", use = "pairwise.complete.obs"))
+    }
   }
   list(rho = rho, rho_control_distance = rho_cd)
 }
@@ -211,7 +257,7 @@ write_corr_gz <- function(path, mat) {
 
 # Save full draw x age correlations (compressed CSV)
 write_corr_gz(out_corr_gz, corr_mat)
-write_corr_gz(out_corr_gz_cd, corr_mat_cd)
+if (do_control_distance) write_corr_gz(out_corr_gz_cd, corr_mat_cd)
 
 summarize_corr <- function(mat_round) {
   median_rho <- apply(mat_round, 2, median, na.rm = TRUE)
@@ -261,7 +307,8 @@ write_summary <- function(curve_path, flip_path, sum_obj, n_edges, n_draws, n_ag
 }
 
 curve_df <- write_summary(out_curve, out_flip, sum_main, length(posterior_list), nrow(corr_mat), length(age_values))
-curve_df_cd <- write_summary(out_curve_cd, out_flip_cd, sum_cd, length(posterior_list), nrow(corr_mat_cd), length(age_values))
+curve_df_cd <- NULL
+if (do_control_distance) curve_df_cd <- write_summary(out_curve_cd, out_flip_cd, sum_cd, length(posterior_list), nrow(corr_mat_cd), length(age_values))
 
 # Print numeric results to stdout for SLURM logs
 min_idx <- which.min(sum_main$median_rho)
@@ -275,9 +322,11 @@ message(sprintf("[RESULT] rho_median_last=%.5f at age=%.5f", sum_main$median_rho
 
 min_idx_cd <- which.min(sum_cd$median_rho)
 max_idx_cd <- which.max(sum_cd$median_rho)
-message(sprintf("[RESULT] control_distance flip_age_median=%.5f CI95=[%.5f, %.5f]", sum_cd$flip_median, sum_cd$flip_ci[[1]], sum_cd$flip_ci[[2]]))
-message(sprintf("[RESULT] control_distance rho_median_min=%.5f at age=%.5f", sum_cd$median_rho[[min_idx_cd]], age_values[[min_idx_cd]]))
-message(sprintf("[RESULT] control_distance rho_median_max=%.5f at age=%.5f", sum_cd$median_rho[[max_idx_cd]], age_values[[max_idx_cd]]))
+if (do_control_distance) {
+  message(sprintf("[RESULT] control_distance flip_age_median=%.5f CI95=[%.5f, %.5f]", sum_cd$flip_median, sum_cd$flip_ci[[1]], sum_cd$flip_ci[[2]]))
+  message(sprintf("[RESULT] control_distance rho_median_min=%.5f at age=%.5f", sum_cd$median_rho[[min_idx_cd]], age_values[[min_idx_cd]]))
+  message(sprintf("[RESULT] control_distance rho_median_max=%.5f at age=%.5f", sum_cd$median_rho[[max_idx_cd]], age_values[[max_idx_cd]]))
+}
 
 # Figures: alignment curve + flip-age histogram
 prep_curve_for_plot <- function(curve_df, flip_ci) {
@@ -334,26 +383,28 @@ make_flip_hist_plot <- function(flip_age_each_draw, flip_median) {
 curve_df_plot <- prep_curve_for_plot(curve_df, sum_main$flip_ci)
 p_align <- make_alignment_plot(curve_df_plot)
 
-ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_alignment.tiff"), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_alignment.pdf"), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_SAaxis_alignment.tiff")), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_SAaxis_alignment.pdf")), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
 
-ggsave(file.path(figure_dir, "SA12_posDeriv_divweight_corr.tiff"), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, "SA12_posDeriv_divweight_corr.pdf"), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_divweight_corr.tiff")), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_divweight_corr.pdf")), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
 
 p_hist_rmd <- make_flip_hist_plot(sum_main$flip_age_each_draw, sum_main$flip_median)
-ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.tiff"), p_hist_rmd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.pdf"), p_hist_rmd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_SAaxis_flip_age_hist.tiff")), p_hist_rmd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_SAaxis_flip_age_hist.pdf")), p_hist_rmd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
 ggsave(file.path(figure_dir, "Agedistribution_0corr.tiff"), p_hist_rmd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
 ggsave(file.path(figure_dir, "Agedistribution_0corr.pdf"), p_hist_rmd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
 
-curve_df_plot_cd <- prep_curve_for_plot(curve_df_cd, sum_cd$flip_ci)
-p_align_cd <- make_alignment_plot(curve_df_plot_cd)
-ggsave(file.path(figure_dir, "SA12_posDeriv_divweight_corr_control_distance.tiff"), p_align_cd, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, "SA12_posDeriv_divweight_corr_control_distance.pdf"), p_align_cd, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+if (do_control_distance) {
+  curve_df_plot_cd <- prep_curve_for_plot(curve_df_cd, sum_cd$flip_ci)
+  p_align_cd <- make_alignment_plot(curve_df_plot_cd)
+  ggsave(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_divweight_corr_control_distance.tiff")), p_align_cd, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+  ggsave(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_divweight_corr_control_distance.pdf")), p_align_cd, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
 
-p_hist_cd <- make_flip_hist_plot(sum_cd$flip_age_each_draw, sum_cd$flip_median)
-ggsave(file.path(figure_dir, "Agedistribution_0corr_control_distance.tiff"), p_hist_cd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, "Agedistribution_0corr_control_distance.pdf"), p_hist_cd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+  p_hist_cd <- make_flip_hist_plot(sum_cd$flip_age_each_draw, sum_cd$flip_median)
+  ggsave(file.path(figure_dir, "Agedistribution_0corr_control_distance.tiff"), p_hist_cd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+  ggsave(file.path(figure_dir, "Agedistribution_0corr_control_distance.pdf"), p_hist_cd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+}
 
 save_svg_if_available <- function(filename, plot, width_cm, height_cm, dpi = 600) {
   if (!requireNamespace("svglite", quietly = TRUE)) {
@@ -365,10 +416,12 @@ save_svg_if_available <- function(filename, plot, width_cm, height_cm, dpi = 600
 }
 
 if (save_svg) {
-  save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_divweight_corr.svg"), p_align, width_cm = 13.5, height_cm = 13.5)
+  save_svg_if_available(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_divweight_corr.svg")), p_align, width_cm = 13.5, height_cm = 13.5)
   save_svg_if_available(file.path(figure_dir, "Agedistribution_0corr.svg"), p_hist_rmd, width_cm = 6, height_cm = 6)
-  save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_divweight_corr_control_distance.svg"), p_align_cd, width_cm = 13.5, height_cm = 13.5)
-  save_svg_if_available(file.path(figure_dir, "Agedistribution_0corr_control_distance.svg"), p_hist_cd, width_cm = 6, height_cm = 6)
+  if (do_control_distance) {
+    save_svg_if_available(file.path(figure_dir, paste0("SA", ds.resolution, "_posDeriv_divweight_corr_control_distance.svg")), p_align_cd, width_cm = 13.5, height_cm = 13.5)
+    save_svg_if_available(file.path(figure_dir, "Agedistribution_0corr_control_distance.svg"), p_hist_cd, width_cm = 6, height_cm = 6)
+  }
 }
 
 # Additional figures from the original Rmd: age-specific derivative scatter/matrix and derivative line plot.
@@ -479,12 +532,12 @@ make_matrix_plot <- function(values_vec, title, out_tiff) {
 
 maxderiv <- max(abs(c(df_age_min$derivative, df_age_mid$derivative, df_age_max$derivative)), na.rm = TRUE)
 
-p_mat_min <- make_matrix_plot(df_age_min$derivative, sprintf("Age = %.2f", age_min), "Deri_SA12_diw_age8.tiff")
-ggsave(file.path(figure_dir, "Deri_SA12_diw_age8.tiff"), p_mat_min, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
-p_mat_mid <- make_matrix_plot(df_age_mid$derivative, sprintf("Age = %.2f", age_mid), "Deri_SA12_diw_age15.tiff")
-ggsave(file.path(figure_dir, "Deri_SA12_diw_age15.tiff"), p_mat_mid, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
-p_mat_max <- make_matrix_plot(df_age_max$derivative, sprintf("Age = %.2f", age_max), "Deri_SA12_diw_age21.tiff")
-ggsave(file.path(figure_dir, "Deri_SA12_diw_age21.tiff"), p_mat_max, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
+p_mat_min <- make_matrix_plot(df_age_min$derivative, sprintf("Age = %.2f", age_min), paste0("Deri_SA", ds.resolution, "_diw_age8.tiff"))
+ggsave(file.path(figure_dir, paste0("Deri_SA", ds.resolution, "_diw_age8.tiff")), p_mat_min, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
+p_mat_mid <- make_matrix_plot(df_age_mid$derivative, sprintf("Age = %.2f", age_mid), paste0("Deri_SA", ds.resolution, "_diw_age15.tiff"))
+ggsave(file.path(figure_dir, paste0("Deri_SA", ds.resolution, "_diw_age15.tiff")), p_mat_mid, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
+p_mat_max <- make_matrix_plot(df_age_max$derivative, sprintf("Age = %.2f", age_max), paste0("Deri_SA", ds.resolution, "_diw_age21.tiff"))
+ggsave(file.path(figure_dir, paste0("Deri_SA", ds.resolution, "_diw_age21.tiff")), p_mat_max, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
 
 # Derivative line plot across age
 sc_rank_first <- rank(edge_sarank_value, ties.method = "first")
@@ -506,6 +559,6 @@ p_line <- ggplot(derivative_merge) +
     panel.background = element_rect(fill = "transparent", color = NA),
     legend.position = "none"
   )
-ggsave(file.path(figure_dir, "derivative_diw_SA12_changerate.tiff"), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")
-if (save_svg) save_svg_if_available(file.path(figure_dir, "derivative_diw_SA12_changerate.svg"), p_line, width_cm = 20, height_cm = 16)
-ggsave(file.path(figure_dir, "derivative_diw_SA12_changerate.pdf"), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("derivative_diw_SA", ds.resolution, "_changerate.tiff")), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")
+if (save_svg) save_svg_if_available(file.path(figure_dir, paste0("derivative_diw_SA", ds.resolution, "_changerate.svg")), p_line, width_cm = 20, height_cm = 16)
+ggsave(file.path(figure_dir, paste0("derivative_diw_SA", ds.resolution, "_changerate.pdf")), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")
