@@ -17,6 +17,12 @@ N_EDGES="${N_EDGES:-}"
 SKIP_POSTERIOR="${SKIP_POSTERIOR:-0}"
 MAKE_MATRIX_GRAPHS="${MAKE_MATRIX_GRAPHS:-0}"
 
+DEFAULT_EUCLID_CSV="${project_root}/data/external/SC_development/interdataFolder_HCPD/average_EuclideanDistance_12.csv"
+if [ ! -f "${DEFAULT_EUCLID_CSV}" ]; then
+  DEFAULT_EUCLID_CSV="${project_root}/wd/interdataFolder_HCPD/average_EuclideanDistance_12.csv"
+fi
+EUCLID_CSV="${EUCLID_CSV:-${DEFAULT_EUCLID_CSV}}"
+
 mkdir -p "${project_root}/outputs/logs"
 cd "${project_root}"
 
@@ -38,6 +44,7 @@ echo "[INFO] INPUT_RDS=${INPUT_RDS}"
 echo "[INFO] N_EDGES=${N_EDGES:-<unset>}"
 echo "[INFO] SKIP_POSTERIOR=${SKIP_POSTERIOR}"
 echo "[INFO] MAKE_MATRIX_GRAPHS=${MAKE_MATRIX_GRAPHS}"
+echo "[INFO] EUCLID_CSV=${EUCLID_CSV:-<unset>}"
 echo "[INFO] NOTE: S3/S4 always run with --force=1 to re-draw figures."
 
 exec_sif() {
@@ -68,10 +75,12 @@ exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S3
   --ds_res="${DS_RES}" \
   --force=1
 
-# No Euclidean-distance control for SA17 by default (pass EUCLID_CSV to enable).
+# Euclidean-distance control (can override by setting EUCLID_CSV="").
 # NOTE: avoid expanding an empty bash array under `set -u` (some environments treat it as unbound).
-EUCLID_CSV="${EUCLID_CSV:-}"
-if [ -n "${EUCLID_CSV}" ]; then
+if [ -n "${EUCLID_CSV:-}" ]; then
+  if [ ! -f "${EUCLID_CSV}" ]; then
+    echo "[WARN] EUCLID_CSV not found; S4 will skip control-distance correlations: ${EUCLID_CSV}"
+  fi
   if [[ "${EUCLID_CSV}" == "${project_root}/"* ]]; then
     EUCLID_CSV_ARG="/work/${EUCLID_CSV#${project_root}/}"
   else

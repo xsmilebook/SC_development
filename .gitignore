@@ -1,5 +1,6 @@
 demopath/
 outputs/
+data/
 wd/
 containers/*.sif
 containers/**/*.sif

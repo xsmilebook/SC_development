@@ -22,8 +22,15 @@ MEAN_FD_COL="${MEAN_FD_COL:-mean_fd}"
 out_dir="${OUT_DIR:-${project_root}/outputs/results/combat_gam/hcpd}"
 log_dir="${project_root}/outputs/logs/combat_gam"
 
+# Prefer project-local snapshots of external inputs (kept under `data/`, not version-controlled).
+external_interdata_hcpd="/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD"
+local_interdata_hcpd="${project_root}/data/external/SC_development/interdataFolder_HCPD"
+
 # Fallback: if the SA7/SA17 merge tables miss `site`, merge it from SA12 by `subID`.
-DEFAULT_BATCH_SOURCE_RDS="/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
+DEFAULT_BATCH_SOURCE_RDS="${local_interdata_hcpd}/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
+if [ ! -f "${DEFAULT_BATCH_SOURCE_RDS}" ]; then
+  DEFAULT_BATCH_SOURCE_RDS="${external_interdata_hcpd}/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
+fi
 BATCH_SOURCE_RDS="${BATCH_SOURCE_RDS:-${DEFAULT_BATCH_SOURCE_RDS}}"
 
 mkdir -p "${out_dir}" "${log_dir}"
@@ -77,9 +84,15 @@ run_one() {
   echo "[INFO] done: ${tag}"
 }
 
-# Inputs (absolute paths as provided)
-in_sa7="/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD/SCdata_SA7_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
-in_sa17="/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD/SCdata_SA17_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
+# Inputs (prefer project-local snapshot; fall back to external path)
+in_sa7="${IN_SA7:-${local_interdata_hcpd}/SCdata_SA7_CV75_sumSCinvnode.sum.msmtcsd.merge.rds}"
+if [ ! -f "${in_sa7}" ]; then
+  in_sa7="${external_interdata_hcpd}/SCdata_SA7_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
+fi
+in_sa17="${IN_SA17:-${local_interdata_hcpd}/SCdata_SA17_CV75_sumSCinvnode.sum.msmtcsd.merge.rds}"
+if [ ! -f "${in_sa17}" ]; then
+  in_sa17="${external_interdata_hcpd}/SCdata_SA17_CV75_sumSCinvnode.sum.msmtcsd.merge.rds"
+fi
 
 # Outputs (project-local)
 out_sa7="${out_dir}/SCdata_SA7_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds"
@@ -89,4 +102,3 @@ run_one "${in_sa7}" "${out_sa7}" "HCPD_SA7"
 run_one "${in_sa17}" "${out_sa17}" "HCPD_SA17"
 
 echo "[INFO] All done."
-
