@@ -153,86 +153,128 @@ write.csv(SCrank_correlation, out_summary, row.names = FALSE)
 FigCorrFolder <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank")
 dir.create(FigCorrFolder, showWarnings = FALSE, recursive = TRUE)
 
-yeo_scatter_theme <- theme(
-  axis.text = element_text(size = 23, color = "black"),
-  axis.title = element_text(size = 23),
-  aspect.ratio = 0.9,
-  axis.line = element_line(linewidth = 0.6),
-  axis.ticks = element_line(linewidth = 0.6),
-  plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
-  plot.background = element_rect(fill = "transparent", color = NA),
-  panel.background = element_rect(fill = "transparent", color = NA),
-  legend.position = "none"
-)
+get_scatter_style <- function(computevar, cvthr) {
+  if (computevar %in% c("partialRsq2", "partialRsq_control_distance")) {
+    if (cvthr == 75) {
+      return(list(
+        theme = theme(
+          axis.text = element_text(size = 24.3, color = "black"),
+          axis.title = element_text(size = 24.3),
+          aspect.ratio = 0.8,
+          axis.line = element_line(linewidth = 0.6),
+          axis.ticks = element_line(linewidth = 0.6),
+          plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+          plot.background = element_rect(fill = "transparent", color = NA),
+          panel.background = element_rect(fill = "transparent", color = NA),
+          legend.position = "none"
+        ),
+        svg_width = 17.5,
+        svg_height = 15
+      ))
+    }
+    return(list(
+      theme = theme(
+        axis.text = element_text(size = 24, color = "black"),
+        axis.title = element_text(size = 24),
+        aspect.ratio = 1.05,
+        axis.line = element_line(linewidth = 0.6),
+        axis.ticks = element_line(linewidth = 0.6),
+        plot.title = element_text(size = 15, hjust = 0.5, vjust = 0),
+        plot.subtitle = element_text(size = 21, hjust = 0.9, vjust = -6),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA),
+        legend.position = "none"
+      ),
+      svg_width = 17,
+      svg_height = 14
+    ))
+  }
+
+  if (cvthr == 25) {
+    return(list(
+      theme = theme(
+        axis.text = element_text(size = 23.2, color = "black"),
+        axis.title = element_text(size = 23.2),
+        aspect.ratio = 1,
+        axis.line = element_line(linewidth = 0.6),
+        axis.ticks = element_line(linewidth = 0.6),
+        plot.title = element_text(size = 15, hjust = 0.5, vjust = 0),
+        plot.subtitle = element_text(size = 15, hjust = 0.1, vjust = -6),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA),
+        legend.position = "none"
+      ),
+      svg_width = 13,
+      svg_height = 13
+    ))
+  }
+
+  list(
+    theme = theme(
+      axis.text = element_text(size = 26.4, color = "black"),
+      axis.title = element_text(size = 26.4),
+      aspect.ratio = 0.74,
+      axis.line = element_line(linewidth = 0.6),
+      axis.ticks = element_line(linewidth = 0.6),
+      plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+      plot.background = element_rect(fill = "transparent", color = NA),
+      panel.background = element_rect(fill = "transparent", color = NA),
+      legend.position = "none"
+    ),
+    svg_width = 17.5,
+    svg_height = 15
+  )
+}
+
+get_colorbar_prob <- function(computevar) {
+  if (computevar == "partialRsq2") return(0.4)
+  if (computevar == "meanderv2") return(0.46)
+  if (computevar == "partialRsq_control_distance") return(0.4)
+  if (computevar == "meanderv2_control_distance") return(0.53)
+  0.4
+}
 
 plot_one_scatter <- function(computevar, ylab) {
   df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
   names(df) <- c("SCrank", computevar)
-  ct <- suppressWarnings(corr.test(df$SCrank, df[[computevar]], method = "spearman"))
-  extract_corr <- function(ct_obj) {
-    r_obj <- ct_obj$r
-    p_obj <- ct_obj$p
-    if (is.matrix(r_obj) || is.data.frame(r_obj)) {
-      r_val <- if (ncol(r_obj) >= 2) r_obj[1, 2] else r_obj[1, 1]
-      p_val <- if (is.matrix(p_obj) || is.data.frame(p_obj)) {
-        if (ncol(p_obj) >= 2) p_obj[1, 2] else p_obj[1, 1]
-      } else {
-        as.numeric(p_obj)[1]
-      }
-      return(list(r = as.numeric(r_val), p = as.numeric(p_val)))
-    }
-    list(r = as.numeric(r_obj)[1], p = as.numeric(p_obj)[1])
-  }
-  rp <- extract_corr(ct)
-  r <- rp$r
-  p <- rp$p
+  style <- get_scatter_style(computevar, CVthr)
+  colorbar_prob <- get_colorbar_prob(computevar)
+  colorbar_vals <- colorbarvalues(df[[computevar]], colorbar_prob)
 
-  if (computevar == "partialRsq2") {
-    lmthr <- max(abs(gamresult$partialRsq2), na.rm = TRUE)
-    return(
-      ggplot(df) +
-        geom_point(aes(x = SCrank, y = .data[[computevar]], color = .data[[computevar]]), size = 3.5, alpha = 0.9) +
-        geom_smooth(aes(x = SCrank, y = .data[[computevar]]), method = "lm", color = "black") +
-        scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr), guide = "none") +
-        scale_x_continuous(breaks = c(0, 20, 40, 60, 80, 100, 120)) +
-        labs(
-          x = "S-A connectional axis rank",
-          y = ylab,
-          title = sprintf("%s (Spearman r=%.3f, p=%.3g)", computevar, r, p)
-        ) +
-        theme_classic() + yeo_scatter_theme
-    )
+  p <- ggplot(df) +
+    geom_point(aes(x = SCrank, y = .data[[computevar]], color = .data[[computevar]]), size = 5) +
+    geom_smooth(aes(x = SCrank, y = .data[[computevar]]), method = "lm", color = "black", linewidth = 1.2) +
+    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, values = colorbar_vals) +
+    labs(x = "S-A connectional axis rank", y = ylab) +
+    theme_classic() + style$theme
+
+  if (computevar == "meanderv2") {
+    p <- p + scale_y_continuous(breaks = c(-0.005, 0, 0.005, 0.010), labels = c(-5, 0, 5, 10))
   }
 
-  ggplot(df) +
-    geom_point(aes(x = SCrank, y = .data[[computevar]], color = SCrank), size = 5.5, alpha = 0.9) +
-    geom_smooth(aes(x = SCrank, y = .data[[computevar]]), linewidth = 2, method = "lm", color = "black") +
-    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
-    scale_x_continuous(breaks = c(0, 20, 40, 60, 80, 100, 120)) +
-    labs(
-      x = "S-A connectional axis rank",
-      y = ylab,
-      title = sprintf("%s (Spearman r=%.3f, p=%.3g)", computevar, r, p)
-    ) +
-    theme_classic() + yeo_scatter_theme
+  attr(p, "svg_width") <- style$svg_width
+  attr(p, "svg_height") <- style$svg_height
+  p
 }
 
 scatter_targets <- list(
-  partialRsq2 = "Age effect (partial R^2)",
-  meanderv2 = "Mean 2nd derivative",
-  partialRsq_control_distance = "Partial R^2 (residualized by Euclidean distance)",
-  meanderv2_control_distance = "Mean 2nd derivative (residualized by Euclidean distance)"
+  partialRsq2 = expression("Age effect (partial "*italic("R")^"2"*")"),
+  meanderv2 = "Second derivative",
+  partialRsq_control_distance = expression("Age effect (partial "*italic("R")^"2"*")"),
+  meanderv2_control_distance = "Second derivative"
 )
 
 for (nm in names(scatter_targets)) {
   if (!nm %in% names(gamresult)) next
   p <- plot_one_scatter(nm, scatter_targets[[nm]])
-  if (nm == "partialRsq2") {
-    ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")), p, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
-    ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf")), p, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
-  } else {
-    ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")), p, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
-    ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf")), p, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
+  pdf_path <- file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf"))
+  ggsave(pdf_path, p, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+
+  if (.Platform$OS.type == "windows") {
+    svg_width <- attr(p, "svg_width")
+    svg_height <- attr(p, "svg_height")
+    svg_path <- file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".svg"))
+    ggsave(svg_path, p, dpi = 600, width = svg_width, height = svg_height, units = "cm", bg = "transparent")
   }
 }
 
