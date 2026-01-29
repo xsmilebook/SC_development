@@ -5,6 +5,7 @@ library(gratia)
 library(tidyverse)
 library(dplyr)
 library(ecostats)
+set.seed(925)
 
 # NOTE: We keep the historical ecostats::anovaPB() parametric bootstrap test to
 # compare full vs reduced models. However, in this cluster environment,

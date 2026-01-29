@@ -1,0 +1,399 @@
+---
+title: "S1st_SAcorr_alongAge_ChineseCohort"
+output: html_document
+date: "2024-11-04"
+---
+
+This script conducted age-resolved developmental analysis. Spearman correlation coefficients between derivatives / posterior derivatives and S-A connectional axis rank will be calculated at 1,000 age points within age spans.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(R.matlab)
+library(psych)
+library(gratia)
+library(mgcv)
+library(parallel)
+library(ggplot2)
+library(RColorBrewer)
+library(reshape)
+
+rm(list = ls())
+CVthr = 75
+wdpath <- getwd()
+# set path
+if (str_detect(wdpath, "ibmgpfs")){
+  interfileFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/interdataFolder_ChineseCohort'
+  FigureFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/Figure_ChineseCohort_final'
+  resultFolder<-'/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/results_ChineseCohort'
+  functionFolder <- '/ibmgpfs/cuizaixu_lab/xuxiaoyu/SCdevelopment/Rcode_SCdevelopment/gamfunction'
+}else{
+  # in PC
+  interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ChineseCohort'
+  FigureFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_ChineseCohort_final/SA12'
+  resultFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/results_ChineseCohort'
+  functionFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+}
+derivative.posterior.df <- readRDS(paste0(resultFolder, '/derivative.posterior.df.SA12_CV', CVthr,'.rds'))
+derivative.df <- readRDS(paste0(resultFolder, '/derivative.df78_CV', CVthr,'.rds'))
+#### source function
+source(paste0(functionFolder, '/SCrankcorr.R'))
+source(paste0(functionFolder, '/gamderivatives.R'))
+source(paste0(functionFolder, '/colorbarvalue.R'))
+#### calculate S-A connectional axis in 12*12
+########################
+Matrix12<-matrix(NA, nrow=12, ncol=12)
+indexup12 <- upper.tri(Matrix12)
+indexsave12 <- !indexup12
+Matrix12.index<-Matrix12
+#13*12/2=78
+Matrix12.index[indexsave12]<-c(1:78)
+Matrix12.SCrank<-Matrix12
+for (x in 1:12){
+  for (y in 1:12){
+    Matrix12.SCrank[x,y]<-x^2+y^2
+  }
+}
+Matrix12.SCrank[indexup12]<-NA
+SCrank12<-rank(Matrix12.SCrank[indexsave12], ties.method = "average")
+```
+
+## 1. calculate correlation between posterior derivatives and S-A connectional axis
+```{r compute_corr}
+deri.SCrank.posterior.diw.corr <- data.frame(matrix(NA, 1000, 1000))
+rownames(deri.SCrank.posterior.diw.corr) <- paste0("draw.", c(1:1000))
+colnames(deri.SCrank.posterior.diw.corr) <- paste0("Age.", c(1:1000))
+# 1. define function
+compute.SC.corr <- function(drawtime){
+  deriv.SA12.drawtmp <- data.frame(Age=rep(NA, 78*1000), deri.pos=rep(NA, 78*1000),
+                                   SClabel=rep(NA, 78*1000))
+  for (i in 1:78){
+    df.tmp <- derivative.posterior.df[[i]]
+    df.tmp <- df.tmp[df.tmp$draw==paste0("draw", drawtime),]
+    lwth <- (i-1)*1000 +1
+    upth <- i*1000
+    deriv.SA12.drawtmp$Age[lwth:upth]<-df.tmp$Age
+    deriv.SA12.drawtmp$deri.pos[lwth:upth]<-df.tmp$posterior.derivative
+    deriv.SA12.drawtmp$SClabel[lwth:upth]<-paste0("SC.", i, "_h")
+  }
+  Agerange <- deriv.SA12.drawtmp$Age[1:1000]
+  corr.df <- data.frame(corr.pos.tmp=rep(NA,1000))
+  for (j in 1:1000){
+    deri.pos.tmp <- deriv.SA12.drawtmp$deri.pos[deriv.SA12.drawtmp$Age==Agerange[j]]
+    corr.pos.tmp <- corr.test(deri.pos.tmp, SCrank12, method = "spearman")$r
+    corr.df$corr.pos.tmp[j]<-corr.pos.tmp
+  }
+  rownames(corr.df) <- paste0("Age.", Agerange)
+  return(corr.df)
+}
+
+# 2. compute correlation coefficients between S-A connectional axis and 1,000 posterior derivatives at 1,000 age points.
+# set cluster
+num_cores <- detectCores() - 8
+cl <- makeCluster(num_cores)
+clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
+invisible(clusterEvalQ(cl, {
+  library(tidyverse)
+  library(R.matlab)
+  library(psych)
+  library(gratia)
+  library(mgcv)
+  library(parallel)
+  library(ggplot2)
+  library(RColorBrewer)
+  library(reshape)
+  source(paste0(functionFolder, '/gamderivatives.R'))
+}))
+
+rerunnum<-F
+if (rerunnum==T){
+  deri.SCrank.posterior.corr.sum<-parLapply(cl, 1:1000, function(x){
+  corr.df.tmp <- compute.SC.corr(x)
+  return(corr.df.tmp)
+})
+deri.SCrank.posterior.corr<-do.call(rbind, lapply(deri.SCrank.posterior.corr.sum, function(x) t(x$corr.pos.tmp)))
+deri.SCrank.posterior.corr<-as.data.frame(deri.SCrank.posterior.corr)
+write.csv(deri.SCrank.posterior.corr, paste0(resultFolder, '/deri.SCrank12_CV', CVthr,'.posterior.diw.corr.csv'), row.names = F)
+}else{
+  deri.SCrank.posterior.corr <- read.csv(paste0(resultFolder, '/deri.SCrank12_CV', CVthr,'.posterior.diw.corr.csv'))
+}
+
+
+###### extract age of zero S-A connectional axis: posterior median value + 95% CI
+Agerange <- unique(derivative.posterior.df[[1]]$Age)
+
+# 1. age window when alignment is equal to zero
+Age.0.corr.diw <- lapply(c(1:1000), function(x) Agerange[median(which.min(abs(round(deri.SCrank.posterior.corr[x,], 4)-0)))])
+Age.0.corr.diw <- as.numeric(unlist(Age.0.corr.diw))
+Age.0.corr.diw.median <- median(Age.0.corr.diw) #median age #bayes
+Age.0.corr.diw.CI <- quantile(Age.0.corr.diw, probs = c(0.025, 0.975)) #compute the credible interval based on all draws
+Age.0.corr.diw.lower <- Age.0.corr.diw.CI[[1]]
+Age.0.corr.diw.upper <- Age.0.corr.diw.CI[[2]]
+Age.0.corr.diw.median # 14.78763
+Age.0.corr.diw.CI # 14.35723 15.36149 
+#### median corr and 95% CI
+# diw
+posterior.corr.diw.median <- lapply(c(1:1000), function(x) median(round(deri.SCrank.posterior.corr[,x],4)))
+posterior.corr.diw.median <- as.numeric(unlist(posterior.corr.diw.median))
+# diw 95%CI
+posterior.corr.diw.CI <- lapply(c(1:1000), function(x) quantile(round(deri.SCrank.posterior.corr[,x],4), probs=c(0.025, 0.975)))
+posterior.corr.diw.CI <- do.call(rbind, lapply(posterior.corr.diw.CI, function(x) data.frame(t(x))))
+
+##### plot alignment with S-A connectional axis correlation
+#############################################
+df.poscorr.diw <- data.frame(Age=Agerange, median=posterior.corr.diw.median, up.95CI=posterior.corr.diw.CI$X97.5.,
+                             lw.95CI=posterior.corr.diw.CI$X2.5.)
+df.poscorr.diw$zero.corr.CI <- (df.poscorr.diw$Age > Age.0.corr.diw.lower & df.poscorr.diw$Age < Age.0.corr.diw.upper)
+df.poscorr.diw$zero.corr.window <-df.poscorr.diw$Age * df.poscorr.diw$zero.corr.CI
+df.poscorr.diw$zero.corr.window[df.poscorr.diw$zero.corr.window==0] <-NA
+loess.median <- loess(median~Age, data=df.poscorr.diw, span=0.2)
+loess.lw <- loess(lw.95CI~Age, data=df.poscorr.diw, span=0.2)
+loess.up <- loess(up.95CI~Age, data=df.poscorr.diw, span=0.2)
+df.poscorr.diw$median.loess <- loess.median$fitted
+df.poscorr.diw$lw.95CI.loess <- loess.lw$fitted
+df.poscorr.diw$up.95CI.loess <- loess.up$fitted
+
+
+mytheme <- theme(axis.text=element_text(size=23, color="black"), 
+        axis.title =element_text(size=23),aspect.ratio = 1,
+        axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
+        plot.title = element_text(size=20, hjust = 0.5, vjust=2),
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        legend.position = "none")
+
+width =13.5; height = 13.5
+
+ggplot(data=df.poscorr.diw)+
+  geom_ribbon(aes(x=Age, ymin=lw.95CI.loess, ymax=up.95CI.loess), alpha=0.3)+
+  geom_line(aes(x=Age, y=median.loess), linewidth=1.5)+
+  #geom_ribbon(aes(x=max.corr.window, ymin=lw.95CI.loess, ymax=up.95CI.loess), fill="#595959")+
+  geom_ribbon(aes(x=zero.corr.window, ymin=lw.95CI.loess, ymax=up.95CI.loess), fill="#F8B01B", alpha=1)+
+  geom_ribbon(aes(x=zero.corr.window, ymin=median.loess-0.035, ymax=median.loess+0.035), fill="#B2182B", alpha=1)+
+  #geom_vline(aes(xintercept=Age.0.corr.diw.median), color="black",linetype="dashed")+
+  theme_classic()+
+  labs(x="Age (years)", y="rho")+
+  mytheme
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/Alignment_development/SA12_posDeriv_divweight_corr.tiff'), width=width, height=height, units="cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/SA12_posDeriv_divweight_corr.svg'), dpi=600, width=width, height =height, units="cm")
+### plot age distribution with 0 corr
+ggplot() +
+  geom_histogram(aes(Age.0.corr.diw, y = ..count..),binwidth = 0.5, linewidth=1,
+                 color = "black", fill = "white") +
+  geom_vline(aes(xintercept = Age.0.corr.diw.median), colour = "red", linetype="solid", linewidth=1)+
+  labs(x = NULL, y = NULL) +theme_classic()+
+  scale_y_discrete(breaks=NULL)+scale_x_continuous(breaks=NULL)+
+  theme(axis.line = element_blank(),
+        aspect.ratio = 0.5,
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        axis.title = element_text(color = "black", size = 15),
+        axis.text.x = element_text(color = "black", size = 20))
+ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/Agedistribution_0corr.tiff'), width=6, height = 6, units="cm")
+ggsave(paste0(FigureFolder, '/CV', CVthr, '/Alignment_development/Agedistribution_0corr.svg'), width=6, height =6, units="cm")
+
+```
+
+
+## 2. correlation plot at different age
+```{r age-specific_plot}
+Agerange <- unique(derivative.df$Age)
+df.poscorr.diw$median[df.poscorr.diw$Age==min(Agerange)] #-0.6477
+min(Agerange)
+df.Age6 <-as.data.frame(matrix(NA, nrow=1, ncol=ncol(derivative.df)))
+names(df.Age6)<-names(derivative.df)
+for (i in 1:78){
+  df.tmp <- derivative.df[derivative.df$label_ID==paste0("SC.", i, "_h"),]
+  df.tmp <- df.tmp[df.tmp$Age==min(Agerange), ]
+  df.Age6 <- rbind(df.Age6, df.tmp)
+}
+df.Age6 <- df.Age6[-1,]
+
+SCrankcorr(df.Age6, "derivative", 12)
+df.poscorr.diw$Age[which.min(abs(df.poscorr.diw$median-0))]
+ntmp<-which.min(abs(Agerange-Age.0.corr.diw.median))
+Agerange[ntmp]
+df.poscorr.diw$median[round(df.poscorr.diw$Age,2)==round(Age.0.corr.diw.median,2)]
+df.Age15 <-as.data.frame(matrix(NA, nrow=1, ncol=ncol(derivative.df)))
+names(df.Age15)<-names(derivative.df)
+for (i in 1:78){
+  df.tmp <- derivative.df[derivative.df$label_ID==paste0("SC.", i, "_h"),]
+  df.tmp <- df.tmp[df.tmp$Age==Agerange[ntmp], ]
+  df.Age15 <- rbind(df.Age15, df.tmp)
+}
+df.Age15 <- df.Age15[-1,]
+SCrankcorr(df.Age15, "derivative", 12)
+ntmp<-which.min(abs(Agerange-max(Agerange)))
+Agerange[ntmp]
+df.Age22 <-as.data.frame(matrix(NA, nrow=1, ncol=ncol(derivative.df)))
+names(df.Age22)<-names(derivative.df)
+for (i in 1:78){
+  df.tmp <- derivative.df[derivative.df$label_ID==paste0("SC.", i, "_h"),]
+  df.tmp <- df.tmp[df.tmp$Age==Agerange[ntmp], ]
+  df.Age22 <- rbind(df.Age22, df.tmp)
+}
+df.Age22 <- df.Age22[-1,]
+SCrankcorr(df.Age22, "derivative", 12)
+
+## display 3 lines in one plot
+df.Agemerge <- rbind(df.Age6, df.Age15, df.Age22)
+df.Agemerge$Age <- as.factor(df.Agemerge$Age)
+ggplot(data=df.Agemerge)+
+  geom_smooth(aes(x=rep(SCrank12, 3), y=derivative, group=Age),color="black", method ="lm", 
+              se=T)+
+  labs(x="S-A connectional axis rank", y="SC change rate")+
+  theme_classic()+
+  theme(axis.text=element_text(size=15.4, color="black"), 
+        axis.title =element_text(size=15.4),aspect.ratio = 0.65,
+        plot.title = element_text(size=15, hjust = 0.1, vjust=-5),axis.line = element_line(linewidth = 0.35),
+        axis.ticks  = element_line(linewidth = 0.35),
+        legend.position = "none", plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"))
+ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/deri.diw_corr_SCrank12AgeAll.tiff'), width = 14, height = 12, units="cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/deri.diw_corr_SCrank12AgeAll.svg'), width = 12, height = 10, units="cm")
+minderiv <- min(c(df.Age6$derivative, df.Age15$derivative, df.Age22$derivative))
+maxderiv <- max(c(df.Age6$derivative, df.Age15$derivative, df.Age22$derivative))
+probratio <- abs(minderiv) / (maxderiv-minderiv)
+valuesderiv <- colorbarvalues(seq(minderiv, maxderiv, length.out=100), probratio)
+linerange_frame<-data.frame(x=c(0.5,12+0.5), ymin =rep(-12-0.5, times=2), ymax =rep(-0.5, times=2),
+                            y=c(-0.5, -12-0.5), xmin=rep(0.5, times=2), xmax=rep(12+0.5, times=2))
+
+# Age 8
+Matsize <- 12
+matrix_Deriv.Age6 <- Matrix12
+matrix_Deriv.Age6[indexsave12] <- df.Age6$derivative
+matrix_Deriv.Age6[indexup12] <- t(matrix_Deriv.Age6)[indexup12]
+colnames(matrix_Deriv.Age6) <-seq(1, Matsize)
+rownames(matrix_Deriv.Age6) <-seq(1, Matsize)
+matrix_Deriv.Age6.df <- as.data.frame(matrix_Deriv.Age6)
+matrix_Deriv.Age6.df$nodeid <- seq(1, Matsize)
+matrix_Deriv.Age6.df.melt <- melt(matrix_Deriv.Age6.df,id.vars=c("nodeid"))
+matrix_Deriv.Age6.df.melt$variable<-as.numeric(matrix_Deriv.Age6.df.melt$variable)
+matrix_Deriv.Age6.df.melt$nodeid<-0-matrix_Deriv.Age6.df.melt$nodeid
+ggplot(data =matrix_Deriv.Age6.df.melt)+
+  geom_tile(aes(x=variable, y=nodeid, fill = value, color=value))+
+  scale_fill_distiller(type="seq", palette = "RdBu",limit=c(-maxderiv, maxderiv))+
+  scale_color_distiller(type="seq", palette = "RdBu",limit=c(-maxderiv, maxderiv))+
+  geom_segment(aes(x = 0.5 , y = -0.5 , xend = Matsize+0.5 ,yend = -0.5-Matsize), color="black", linewidth=0.5)+
+  geom_linerange(data=linerange_frame, aes(y=y, xmin =xmin, xmax =xmax), color="black", linewidth=0.5)+
+  geom_linerange(data=linerange_frame, aes(x=x, ymin =ymin, ymax =ymax), color="black", linewidth=0.5)+
+  ggtitle(label = paste0("Age = ", round(min(Agerange), 1)))+
+  labs(x="", y="")+
+  scale_y_continuous(breaks=NULL, labels = NULL)+
+  scale_x_continuous(breaks=NULL, labels = NULL)+
+  theme(axis.line = element_line(linewidth = 0), 
+        #axis.ticks=element_line(linewidth = 0),
+        axis.text.x=element_text(size=20), 
+        axis.text.y=element_text(size=20),
+        axis.title =element_text(size=20),
+        plot.title = element_text(size=20, hjust = 0.5),
+        legend.title=element_text(size=20),
+        legend.text=element_text(size=20), 
+        panel.background=element_rect(fill=NA),
+        panel.grid.major=element_line(linewidth = 0), 
+        panel.grid.minor=element_line(linewidth = 1))
+ggsave(paste0(FigureFolder,'/CV', CVthr,   '/Alignment_development/Deri_SA12_diw_Age6.tiff'),  height = 13, width = 15, units = "cm")
+
+# Age 15
+Matsize <- 12
+matrix_Deriv.Age15 <- Matrix12
+matrix_Deriv.Age15[indexsave12] <- df.Age15$derivative
+matrix_Deriv.Age15[indexup12] <- t(matrix_Deriv.Age15)[indexup12]
+colnames(matrix_Deriv.Age15) <-seq(1, Matsize)
+rownames(matrix_Deriv.Age15) <-seq(1, Matsize)
+matrix_Deriv.Age15.df <- as.data.frame(matrix_Deriv.Age15)
+matrix_Deriv.Age15.df$nodeid <- seq(1, Matsize)
+matrix_Deriv.Age15.df.melt <- melt(matrix_Deriv.Age15.df,id.vars=c("nodeid"))
+matrix_Deriv.Age15.df.melt$variable<-as.numeric(matrix_Deriv.Age15.df.melt$variable)
+matrix_Deriv.Age15.df.melt$nodeid<-0-matrix_Deriv.Age15.df.melt$nodeid
+ggplot(data =matrix_Deriv.Age15.df.melt)+
+  geom_tile(aes(x=variable, y=nodeid, fill = value, color=value))+
+  scale_fill_distiller(type="seq", palette = "RdBu",limit=c(-maxderiv, maxderiv))+
+  scale_color_distiller(type="seq", palette = "RdBu",limit=c(-maxderiv, maxderiv))+
+  geom_segment(aes(x = 0.5 , y = -0.5 , xend = Matsize+0.5 ,yend = -0.5-Matsize), color="black", linewidth=0.5)+
+  geom_linerange(data=linerange_frame, aes(y=y, xmin =xmin, xmax =xmax), color="black", linewidth=0.5)+
+  geom_linerange(data=linerange_frame, aes(x=x, ymin =ymin, ymax =ymax), color="black", linewidth=0.5)+
+  ggtitle(label = paste0("Age = ", round(Age.0.corr.diw.median, 1)))+
+  labs(x="", y="")+
+  scale_y_continuous(breaks=NULL, labels = NULL)+
+  scale_x_continuous(breaks=NULL, labels = NULL)+
+  theme(axis.line = element_line(linewidth = 0), 
+        #axis.ticks=element_line(linewidth = 0),
+        axis.text.x=element_text(size=20), 
+        axis.text.y=element_text(size=20),
+        axis.title =element_text(size=20),
+        plot.title = element_text(size=20, hjust = 0.5),
+        legend.title=element_text(size=20),
+        legend.text=element_text(size=20), 
+        panel.background=element_rect(fill=NA),
+        panel.grid.major=element_line(linewidth = 0), 
+        panel.grid.minor=element_line(linewidth = 1))
+ggsave(paste0(FigureFolder,'/CV', CVthr,   '/Alignment_development/Deri_SA12_diw_Age15.tiff'),  height = 13, width = 15, units = "cm")
+
+# Age 22
+Matsize <- 12
+matrix_Deriv.Age22 <- Matrix12
+matrix_Deriv.Age22[indexsave12] <- df.Age22$derivative
+matrix_Deriv.Age22[indexup12] <- t(matrix_Deriv.Age22)[indexup12]
+colnames(matrix_Deriv.Age22) <-seq(1, Matsize)
+rownames(matrix_Deriv.Age22) <-seq(1, Matsize)
+matrix_Deriv.Age22.df <- as.data.frame(matrix_Deriv.Age22)
+matrix_Deriv.Age22.df$nodeid <- seq(1, Matsize)
+matrix_Deriv.Age22.df.melt <- melt(matrix_Deriv.Age22.df,id.vars=c("nodeid"))
+matrix_Deriv.Age22.df.melt$variable<-as.numeric(matrix_Deriv.Age22.df.melt$variable)
+matrix_Deriv.Age22.df.melt$nodeid<-0-matrix_Deriv.Age22.df.melt$nodeid
+ggplot(data =matrix_Deriv.Age22.df.melt)+
+  geom_tile(aes(x=variable, y=nodeid, fill = value, color=value))+
+  scale_fill_distiller(type="seq", palette = "RdBu",limit=c(-maxderiv, maxderiv))+
+  scale_color_distiller(type="seq", palette = "RdBu",limit=c(-maxderiv, maxderiv))+
+  geom_segment(aes(x = 0.5 , y = -0.5 , xend = Matsize+0.5 ,yend = -0.5-Matsize), color="black", linewidth=0.5)+
+  geom_linerange(data=linerange_frame, aes(y=y, xmin =xmin, xmax =xmax), color="black", linewidth=0.5)+
+  geom_linerange(data=linerange_frame, aes(x=x, ymin =ymin, ymax =ymax), color="black", linewidth=0.5)+
+  ggtitle(label = paste0("Age = ", round(max(Agerange), 1)))+
+  labs(x="", y="")+
+  scale_y_continuous(breaks=NULL, labels = NULL)+
+  scale_x_continuous(breaks=NULL, labels = NULL)+
+  theme(axis.line = element_line(linewidth = 0), 
+        #axis.ticks=element_line(linewidth = 0),
+        axis.text.x=element_text(size=20), 
+        axis.text.y=element_text(size=20),
+        axis.title =element_text(size=20),
+        plot.title = element_text(size=20, hjust = 0.5),
+        legend.title=element_text(size=20),
+        legend.text=element_text(size=20), 
+        panel.background=element_rect(fill=NA),
+        panel.grid.major=element_line(linewidth = 0), 
+        panel.grid.minor=element_line(linewidth = 1))
+ggsave(paste0(FigureFolder,'/CV', CVthr,   '/Alignment_development/Deri_SA12_diw_Age22.tiff'),  height = 13, width = 15, units = "cm")
+
+```
+
+## 3. derivative plots
+```{r derivative_plot}
+SCrank <- data.frame(label_ID=paste0("SC.",c(1:78), "_h"), SCrank12=SCrank12)
+SCrank$SCrank12 <- rank(SCrank$SCrank12, ties.method = "first")
+derivative.df.merge <- merge(derivative.df, SCrank, by="label_ID", all.x=T)
+
+## line plot to present change rate
+ggplot(data=derivative.df.merge)+
+  geom_line(aes(x=Age, y=derivative, group=label_ID, color=SCrank12),size=1.4, alpha=1)+
+  scale_color_distiller(type="seq", palette = "RdBu")+
+  scale_fill_distiller(type="seq", palette = "RdBu")+
+  #geom_vline(xintercept = c(8.09, round(Age.0.corr.diw.median,1), 21.2), linetype=2, size=0.5)+
+  #scale_y_continuous(breaks=c(-0.02, 0, 0.02), labels = c("-2", "0", "2"))+
+  labs(x="Age (years)", y="SC change rate", color="Axis rank")+
+  theme_classic()+
+  theme(axis.text=element_text(size=22, color="black"), 
+        axis.title =element_text(size=22),aspect.ratio = 0.8,
+        axis.line = element_line(linewidth=0.5),axis.ticks= element_line(linewidth=0.5),
+        plot.title = element_text(size=20, hjust = 0.5, vjust=2),
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        legend.position = "none")
+ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/derivative_diw_SA12_changerate.tiff'), width = 20, height = 14, units="cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/derivative_diw_SA12_changerate.svg'), dpi=600, width=20, height =14, units="cm")
+write.csv(derivative.df.merge, paste0(interfileFolder, '/derivative_df_12_merge_CV', CVthr,'.csv'), row.names = F)
+
+
+```
+

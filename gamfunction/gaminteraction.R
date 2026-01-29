@@ -3,6 +3,7 @@ library(mgcv)
 library(gratia)
 library(tidyverse)
 library(ecostats)
+set.seed(925)
 
 #### PREDICT GAM SMOOTH FITTED VALUES FOR A SPECIFIED VALUE OF AN INTERACTING COVARIATE ####
 ## continuous interaction covariate

@@ -1,0 +1,194 @@
+---
+title: "S3rd_visualizationfitSCcurves_SA12sumSCinvnode_CuiBP"
+output: html_document
+date: "2024-11-03"
+---
+
+This script is to generate fitted values from gam models. The predicted SC strength will be generated as the age was sampled from 6 to 22, with a total of 1000 data points, covariables will be set as median or mode.The data will be used to draw developmental trajectories. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(R.matlab)
+library(mgcv)
+library(psych)
+library(tidyverse)
+library(parallel)
+library(scales)
+library(openxlsx)
+library(gratia)
+library(ggplot2)
+library(RColorBrewer)
+library(paletteer)
+library(patchwork)
+rm(list = ls())
+
+interfileFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ChineseCohort'
+FigureFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_ChineseCohort_final/SA12'
+functionFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
+resultFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/results_ChineseCohort'
+
+```
+
+## 1. load data & function
+
+```{r load_data}
+#### load data
+CVthr = 75
+gamresultsum.SAorder.delLM<-readRDS(paste0(interfileFolder, '/gamresults78_sumSCinvnode_CV', CVthr,'_scale_TRUE.rds'))
+gammodelsum<-readRDS(paste0(interfileFolder, '/gammodel78_sumSCinvnode_CV', CVthr,'_scale_TRUE.rds'))
+SCdata <- readRDS(paste0(interfileFolder, '/SCdata_SA12_CV', CVthr,'_sumSCinvnode.sum.msmtcsd.combatAge.rds'))
+derivative <- readRDS(paste0(resultFolder, '/derivative.df78_CV', CVthr,'.rds'))
+#### source function
+source(paste0(functionFolder, '/plotdata_generate.R'))
+source(paste0(functionFolder, '/colorbarvalue.R'))
+#### generate fitted values for developmental trajectories
+agevector <- SCdata$Age
+# set cluster
+num_cores <- detectCores() - 8
+cl <- makeCluster(num_cores)
+clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
+invisible(clusterEvalQ(cl, {
+  library(tidyverse)
+  library(R.matlab)
+  library(psych)
+  library(gratia)
+  library(mgcv)
+  library(parallel)
+  library(ggplot2)
+  library(RColorBrewer)
+  library(reshape)
+  source(paste0(functionFolder, '/plotdata_generate.R'))
+  source(paste0(functionFolder, '/colorbarvalue.R'))
+}))
+
+plotdatasum<-parLapply(cl, 1:78, function(x){
+  modobj<-gammodelsum[[x]]
+  plotdata<- plotdata_generate(modobj, "Age", agevector)
+  return(plotdata)
+})
+saveRDS(plotdatasum, paste0(interfileFolder, "/plotdatasum_scale_TRUE_SA12.rds"))
+plotdatasum.df<-as.data.frame(matrix(NA, nrow = 1, ncol=17))
+names(plotdatasum.df)<-c(names(plotdatasum[[2]])[1:13],"SC_label",  "SCrank", 
+                         "PartialRsq", "meanderiv2")
+#### SA12 index & SC rank
+Matrix12<-matrix(NA, nrow=12, ncol=12)
+indexup12 <- upper.tri(Matrix12)
+indexsave12 <- !indexup12
+Matrix12.index<-Matrix12
+#13*12/2=78
+Matrix12.index[indexsave12]<-c(1:78)
+#S-A connectional axis rank
+Matrix12.SCrank<-Matrix12
+for (x in 1:12){
+  for (y in 1:12){
+    Matrix12.SCrank[x,y]<-x^2+y^2
+  }
+}
+Matrix12.SCrank[indexup12]<-NA
+Matrix12.SCrank[indexsave12]<-rank(Matrix12.SCrank[indexsave12], ties.method = "average")
+# rbind plotdata
+for (i in 1:78){
+  tmp<-plotdatasum[[i]][,-14]
+  tmp$SC_label<-names(plotdatasum[[i]])[14]
+  tmp$SCrank<-Matrix12.SCrank[indexsave12][i]
+  tmp$PartialRsq<-gamresultsum.SAorder.delLM$partialRsq[i]
+  tmp$meanderiv2<-gamresultsum.SAorder.delLM$meanderv2[i]
+  plotdatasum.df<-rbind(plotdatasum.df, tmp)
+}
+plotdatasum.df<-plotdatasum.df[-1, ]
+
+```
+
+## Plots
+
+### 2 Developmental trajectories.
+
+```{r plot_trajectory1}
+lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq))
+ggplot()+
+  geom_line(data=plotdatasum.df, aes(x=Age, y=fit.ratio, group=SC_label, color=PartialRsq), size=0.8, alpha=0.8)+
+  scale_color_distiller(type="seq", palette = "RdBu",direction = -1, limit=c(-lmthr,lmthr))+
+  labs(x="Age (years)", y="SC strength (ratio)")+
+  theme_classic()+
+  theme(axis.text=element_text(size=22, color="black"), 
+        axis.title =element_text(size=22, color="black"),aspect.ratio = 0.9,
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        plot.title = element_text(size=15, hjust = 0.5), legend.position = "none")
+
+ggsave(paste0(FigureFolder, '/CV',CVthr, '/SA12_sumSCinvnode_fit/devcurve_Rsq_fit.ratio.tiff'), width=20, height =14, units = "cm")
+ggsave(paste0(FigureFolder, '/CV',CVthr, '/SA12_sumSCinvnode_fit/devcurve_Rsq_fit.ratio.svg'), dpi=600, width=15, height =15, units = "cm")
+```
+
+
+```{r plot_trajectory2}
+gamresultsum.SAorder.delLM <- gamresultsum.SAorder.delLM %>% mutate(
+  meanderv2_c = case_when(
+    meanderv2 > mean(meanderv2)+3*sd(meanderv2) ~ NA,
+    meanderv2 < mean(meanderv2)-3*sd(meanderv2) ~ NA,
+    .default = meanderv2
+  )
+)
+lmthr <- max(abs(gamresultsum.SAorder.delLM$meanderv2_c), na.rm = T)
+SC_label_derv2_order <- gamresultsum.SAorder.delLM$parcel[order(gamresultsum.SAorder.delLM$meanderv2)]
+plotdatasum.df$SC_label2 <- factor(plotdatasum.df$SC_label, levels=SC_label_derv2_order)
+plotdatasum.df <- plotdatasum.df %>% left_join(select(gamresultsum.SAorder.delLM, meanderv2_c, parcel), join_by(SC_label==parcel))
+ggplot()+
+  geom_line(data=plotdatasum.df, aes(x=Age, y=fit.Z, group=SC_label2, color=meanderv2_c), size=0.8, alpha=0.8)+
+  #paletteer::scale_color_paletteer_c("pals::ocean.matter", direction = -1, values=colorbarvalues.meanderiv2, oob = squish) +
+  scale_color_distiller(type="seq", palette = "RdBu",limit=c(-lmthr,lmthr), na.value = "#053061", direction = -1)+
+  labs(x="Age (years)", y="SC strength (z-score)")+
+  #scale_color_manual(values = rev(brewer.pal(10, "RdBu")))+
+  scale_y_continuous(breaks = c(-1.5, 0.0, 1.5))+
+  theme_classic()+
+  theme(axis.text=element_text(size=22, color="black"), 
+        axis.title =element_text(size=22, color="black"),aspect.ratio = 0.9,
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        plot.title = element_text(size=15, hjust = 0.5), legend.position = "none")
+
+ggsave(paste0(FigureFolder, '/CV',CVthr, '/SA12_sumSCinvnode_fit/devcurve_meanderv2_fit.Z.tiff'), width=20, height =14, units = "cm")
+ggsave(paste0(FigureFolder, '/CV',CVthr, '/SA12_sumSCinvnode_fit/devcurve_meanderv2_fit.Z.svg'), dpi=600, width=15, height =15, units = "cm")
+
+```
+
+
+## 3. Average fitted values for 10 deciles of connectional axis
+
+```{r average_trajectory}
+SA12_10 <- data.frame(SCrank=Matrix12.SCrank[indexsave12])
+SA12_10 <- SA12_10 %>%
+  mutate(decile = ntile(SCrank, 10))
+#table(SA12_10$decile)
+SA12_10$SC_label <- paste0("SC.", c(1:78), "_h")
+write.csv(SA12_10, paste0(interfileFolder, '/SA12_10.csv'), row.names = F)
+plotdatasum.df.label <- merge(plotdatasum.df, SA12_10, by="SC_label", all.x=T)
+#names(plotdatasum.df.label)
+plotdatasum.df.decile <- plotdatasum.df.label %>%
+  group_by(decile, Age) %>%
+  summarise(fit.avg = mean(fit), SCranktype_order=mean(decile))
+
+#names(plotdatasum.df.decile)
+plotdatasum.df.decile <- plotdatasum.df.decile %>%
+  group_by(decile) %>%
+  mutate(fit.Z = scale(fit.avg), fit.ratio=fit.avg/fit.avg[1])
+
+ggplot(data=plotdatasum.df.decile, aes(x=Age, y=fit.Z, group=decile, color=decile))+
+  geom_line(size=1.5, alpha=0.8)+
+  #paletteer::scale_color_paletteer_c("pals::ocean.matter", direction = -1, values=colorbarvalues.meanderiv2, oob = squish) +
+  scale_color_distiller(type="seq", palette = "RdBu", direction = -1)+
+  labs(x="Age (years)", y="SC strength (z-score)")+
+  #scale_color_manual(values = rev(brewer.pal(6, "RdBu")))+
+  theme_classic()+
+  theme(axis.text=element_text(size=17.2, color="black"), 
+        axis.title =element_text(size=17.2, color="black"),aspect.ratio = 0.8,
+        plot.background=element_rect(fill="transparent"),legend.position = "none",
+        panel.background=element_rect(fill="transparent"),
+        plot.title = element_text(size=15, hjust = 0.5))
+ggsave(paste0(FigureFolder,'/CV',CVthr,  '/SA12_decile_sumSCinvnode_fit/devcurve_SCrank_fit.Z_SCtype10.tiff'), dpi=600, width=20, height =14, units = "cm")
+ggsave(paste0(FigureFolder,'/CV',CVthr,  '/SA12_decile_sumSCinvnode_fit/devcurve_SCrank_fit.Z_SCtype10.svg'), dpi=600, width=15, height =13, units = "cm")
+
+
+```
+
+
