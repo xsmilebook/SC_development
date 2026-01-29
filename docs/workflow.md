@@ -152,7 +152,7 @@
        - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
      - figures：`outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
-     - S4 散点图输出：默认生成 `tiff+pdf`，Windows 环境下额外输出 `svg`（需要 `svglite`）；Windows 默认仅绘图（不写 summary），可用 `--skip_compute_on_windows=0` 关闭。
+     - S4 散点图输出：默认生成 `tiff+pdf`，Windows 环境下额外输出 `svg`（需要 `svglite`）；Windows 默认仅绘图（不写 summary），且在交互环境（RStudio/source）默认不跑 matrix graphs；可用 `--skip_compute_on_windows=0`/`--make_matrix_graphs=1` 覆盖。
      - HCP-D（Yeo7/Yeo17/TractSeg major-bundle，使用各自 ComBat-GAM 输出）的容器版一键提交：
        - sbatch：`sbatch/run_hcpd_devmodel_combatgam_CV75_yeo_tractseg_container.sbatch`
        - 输入（默认）：

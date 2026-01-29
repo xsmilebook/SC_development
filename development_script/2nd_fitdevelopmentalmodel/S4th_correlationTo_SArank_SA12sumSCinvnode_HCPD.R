@@ -40,6 +40,7 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 is_windows <- .Platform$OS.type == "windows"
+is_interactive <- interactive()
 skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)) args$skip_compute_on_windows else 1L) == 1L
 skip_compute <- is_windows && skip_compute_on_windows
 
@@ -47,6 +48,9 @@ CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
 make_matrix_graphs <- as.integer(if (!is.null(args$make_matrix_graphs)) args$make_matrix_graphs else 0L) == 1L
+if (is_windows && is_interactive && is.null(args$make_matrix_graphs)) {
+  make_matrix_graphs <- FALSE
+}
 sa_axis_mode <- tolower(if (!is.null(args$sa_axis_mode)) args$sa_axis_mode else "addsquare")
 out_tag <- if (!is.null(args$out_tag)) args$out_tag else ""
 tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
@@ -117,6 +121,9 @@ SCrankcorr_custom <- function(gamresult, computevar, sa_rank_map, ds.resolution,
 n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = NA))
 if (is.na(n_cores) || n_cores < 1) n_cores <- parallel::detectCores()
 n_cores <- max(1L, n_cores)
+if (is_windows) {
+  n_cores <- 1L
+}
 
 ## load data
 gamresult <- readRDS(file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds")))
@@ -285,7 +292,7 @@ plots_complete <- function() {
 require_svg <- is_windows && requireNamespace("svglite", quietly = TRUE)
 if (!force && !should_recompute_summary && plots_complete()) {
   message("[INFO] S4 plots already exist; skipping plotting (set --force=1 to re-draw).")
-  quit(save = "no", status = 0)
+  if (!is_interactive) quit(save = "no", status = 0)
 }
 
 mytheme <- theme(
@@ -376,10 +383,17 @@ if (make_matrix_graphs) {
     y = c(-0.5, -12 - 0.5), xmin = rep(0.5, times = 2), xmax = rep(12 + 0.5, times = 2)
   )
 
-  SCrank_correlation.df <- mclapply(seq_along(computevar.list2), function(i) {
-    computevar <- computevar.list2[[i]]
-    SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
-  }, mc.cores = min(6L, n_cores))
+  if (is_windows) {
+    SCrank_correlation.df <- lapply(seq_along(computevar.list2), function(i) {
+      computevar <- computevar.list2[[i]]
+      SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
+    })
+  } else {
+    SCrank_correlation.df <- mclapply(seq_along(computevar.list2), function(i) {
+      computevar <- computevar.list2[[i]]
+      SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
+    }, mc.cores = min(6L, n_cores))
+  }
 
   colorbar.prob <- c(
     0.5, 0.4, 0.6, 0.5,

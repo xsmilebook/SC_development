@@ -210,3 +210,4 @@
 - 2026-01-29: HCP-D S4 相关脚本（SA12/Yeo/TractSeg/Covariates/SAmult）散点图统一按 `SCrank` 着色并使用指定主题，输出补齐 `pdf` 且 Windows 下可输出 `svg`，支持 Windows 下跳过 summary 计算。
 - 2026-01-29: HCP-D S4 相关图移除标题，并将 meanderv2 相关图纵轴统一为 `Second derivative`。
 - 2026-01-29: 为避免 Windows 本地运行触发 RStudio Reconnect，HCP-D S4 脚本在 Windows 下默认仅绘图（不写 summary）。
+- 2026-01-29: HCP-D S4 在 Windows 交互环境默认跳过 matrix graphs，并强制单核与非并行路径以提升稳定性。
