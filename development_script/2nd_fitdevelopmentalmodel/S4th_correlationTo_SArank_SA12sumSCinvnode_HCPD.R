@@ -171,7 +171,7 @@ if (length(sc_cols) == 0) stop("No SC.* columns found in input_rds: ", input_rds
 meanSC <- colMeans(SCdata[, sc_cols, drop = FALSE])
 
 parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
-meanSC_map <- setNames(meanSC, parcel_all)
+meanSC_map <- setNames(meanSC, sc_cols)
 
 Edist_map <- NULL
 if (do_euclid) {
@@ -202,9 +202,16 @@ if (do_euclid) {
 
 meanSC_aligned <- meanSC_map[gamresult$parcel]
 if (!skip_compute) {
-  corr.test(meanSC_aligned, gamresult$partialRsq)
-  if (do_euclid) {
-    corr.test(meanSC, Edist_map[parcel_all])
+  if (sum(!is.na(meanSC_aligned)) == elementnum) {
+    corr.test(meanSC_aligned, gamresult$partialRsq)
+    if (do_euclid) {
+      corr.test(meanSC_aligned, Edist_map[gamresult$parcel])
+    }
+  } else {
+    message(sprintf(
+      "[WARN] meanSC columns (%d) do not cover ds.resolution=%d (edges=%d); skip meanSC correlation checks.",
+      length(sc_cols), ds.resolution, elementnum
+    ))
   }
 }
 
