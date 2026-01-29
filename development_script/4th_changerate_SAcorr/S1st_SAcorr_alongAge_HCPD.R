@@ -238,16 +238,21 @@ compute_corr_one_draw <- function(draw_label) {
 
 corr_rows <- mclapply(draw_keep, compute_corr_one_draw, mc.cores = n_cores)
 corr_mat <- do.call(rbind, lapply(corr_rows, `[[`, "rho"))
-corr_mat_cd <- do.call(rbind, lapply(corr_rows, `[[`, "rho_control_distance"))
 colnames(corr_mat) <- paste0("age_", format(age_values, trim = TRUE, scientific = FALSE))
 rownames(corr_mat) <- draw_keep
-colnames(corr_mat_cd) <- colnames(corr_mat)
-rownames(corr_mat_cd) <- draw_keep
+
+corr_mat_cd <- NULL
+if (do_control_distance) {
+  corr_mat_cd <- do.call(rbind, lapply(corr_rows, `[[`, "rho_control_distance"))
+  colnames(corr_mat_cd) <- colnames(corr_mat)
+  rownames(corr_mat_cd) <- draw_keep
+}
 
 # Match the historical Rmd behavior: round correlations to 4 decimals before
 # computing medians/CI and flip-age (rho≈0) window.
 corr_mat_round <- round(corr_mat, 4)
-corr_mat_round_cd <- round(corr_mat_cd, 4)
+corr_mat_round_cd <- NULL
+if (do_control_distance) corr_mat_round_cd <- round(corr_mat_cd, 4)
 
 write_corr_gz <- function(path, mat) {
   con <- gzfile(path, open = "wt")
@@ -266,7 +271,8 @@ summarize_corr <- function(mat_round) {
 
   flip_age_each_draw <- vapply(seq_len(nrow(mat_round)), function(i) {
     row <- mat_round[i, ]
-    idx <- which.min(abs(row - 0))
+    if (all(is.na(row))) return(NA_real_)
+    idx <- which.min(ifelse(is.na(row), Inf, abs(row - 0)))
     age_values[[idx]]
   }, numeric(1))
   flip_median <- median(flip_age_each_draw, na.rm = TRUE)
@@ -283,7 +289,8 @@ summarize_corr <- function(mat_round) {
 }
 
 sum_main <- summarize_corr(corr_mat_round)
-sum_cd <- summarize_corr(corr_mat_round_cd)
+sum_cd <- NULL
+if (do_control_distance) sum_cd <- summarize_corr(corr_mat_round_cd)
 
 write_summary <- function(curve_path, flip_path, sum_obj, n_edges, n_draws, n_age_points) {
   curve_df <- data.frame(

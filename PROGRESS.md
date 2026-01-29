@@ -201,4 +201,5 @@
 - 2026-01-29: 修复 HCP-D SA7/SA17 devmodel 容器 sbatch 在 `EUCLID_CSV` 为空时因 `set -u` + 空数组展开导致的 `euclid_arg[@]: unbound variable` 报错，确保 S4 可正常生成 `correlation_sumSCinvnode_SCrank_*` 散点图。
 - 2026-01-29: 将 HCP-D SA7/SA17/SA12 merge 输入与 Euclidean-distance 输入复制到 `data/external/SC_development/interdataFolder_HCPD/`（不纳入版本控制），并让 SA7/SA17 ComBat-GAM/devmodel sbatch 优先使用项目内副本以减少外部路径依赖。
 - 2026-01-29: SA7/SA17 devmodel 不启用 control-distance（无需计算）；同时在 S4 增加健壮性：若 Euclidean-distance 覆盖不全则自动跳过，避免 SA17 中断导致缺图。
+- 2026-01-29: 修复 HCP-D changerate S1 在 `do_control_distance=FALSE` 时仍汇总全 NA 的 control-distance 矩阵导致的报错，确保 SA7/SA17 changerate 可正常出图与输出数值。
 - 2026-01-29: HCP-D devmodel S4：当 summary 已存在且 `--force=0` 时，若检测到 S4 的散点图缺失则仍继续生成 `correlation_sumSCinvnode_SCrank_*` 图像（SA7/SA17 等 tag 版本同样适用）。
