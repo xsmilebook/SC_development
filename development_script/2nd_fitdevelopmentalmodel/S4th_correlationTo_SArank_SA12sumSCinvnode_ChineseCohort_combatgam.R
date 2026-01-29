@@ -268,7 +268,7 @@ if ("meanderv2_c" %in% names(gamresult)) {
       geom_smooth(aes(x = SCrank, y = meanderv2_c), linewidth = 2, method = "lm", color = "black") +
       scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
       labs(x = "S-A connectional axis rank", y = "Second derivative") +
-      scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) +
+      scale_y_continuous(breaks = c(-0.002, -0.001, 0, 0.001), labels = c(-2, -1, 0, 1)) +
       theme_classic() + mytheme
   }
   ggsave(out_fig_meanderv2, p_meanderv2, width = 13, height = 12, units = "cm", bg = "transparent")
@@ -295,7 +295,7 @@ if ("meanderv2_c_control_distance" %in% names(gamresult)) {
       geom_smooth(aes(x = SCrank, y = meanderv2_c_control_distance), linewidth = 1.2, method = "lm", color = "black") +
       scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
       labs(x = "S-A connectional axis rank", y = "Second derivative") +
-      scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) +
+      scale_y_continuous(breaks = c(-0.002, -0.001, 0, 0.001), labels = c(-2, -1, 0, 1)) +
       theme_classic() + mytheme
   }
   ggsave(out_fig_meanderv2_ctrl_tiff, p_meanderv2_ctrl, width = 16, height = 14, units = "cm", bg = "transparent")
