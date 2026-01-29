@@ -206,3 +206,4 @@
 - 2026-01-29: ABCD ComBat-GAM S4 散点图风格对齐参考脚本，并将输出调整为 `pdf`（必需）+ Windows 下 `svg`。
 - 2026-01-29: ABCD ComBat-GAM S4 在 Windows 下默认跳过 summary 计算，仅生成散点图，并在缺少 `svglite` 时跳过 svg 输出。
 - 2026-01-29: ABCD ComBat-GAM S4 散点图改为按 `SCrank` 着色，颜色随 S-A 轴单调变化。
+- 2026-01-29: Chinese Cohort ComBat-GAM S4 散点图改为按 `SCrank` 着色，输出补齐 `pdf` 并在 Windows 下输出 `svg`，同时支持 Windows 下跳过 summary 计算。

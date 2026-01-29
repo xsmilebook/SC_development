@@ -65,6 +65,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
+is_windows <- .Platform$OS.type == "windows"
+skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)) args$skip_compute_on_windows else 1L) == 1L
+skip_compute <- is_windows && skip_compute_on_windows
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 ds.resolution <- 12
@@ -128,10 +131,16 @@ FigCorrFolder <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank")
 dir.create(FigCorrFolder, showWarnings = FALSE, recursive = TRUE)
 
 out_fig_meanderv2 <- file.path(FigCorrFolder, paste0("meanmeanderv2_c_SCrankcorr_n", ds.resolution, ".tiff"))
+out_fig_meanderv2_pdf <- file.path(FigCorrFolder, paste0("meanmeanderv2_c_SCrankcorr_n", ds.resolution, ".pdf"))
 out_fig_meanderv2_ctrl_tiff <- file.path(FigCorrFolder, paste0("meanmeanderv2_c_control_distance_SCrankcorr_n", ds.resolution, ".tiff"))
 out_fig_meanderv2_ctrl_pdf <- file.path(FigCorrFolder, paste0("meanmeanderv2_c_control_distance_SCrankcorr_n", ds.resolution, ".pdf"))
 
-if (!force && file.exists(out_summary) && file.exists(out_fig_meanderv2) && file.exists(out_fig_meanderv2_ctrl_tiff) && file.exists(out_fig_meanderv2_ctrl_pdf)) {
+if (!force && !skip_compute &&
+  file.exists(out_summary) &&
+  file.exists(out_fig_meanderv2) &&
+  file.exists(out_fig_meanderv2_pdf) &&
+  file.exists(out_fig_meanderv2_ctrl_tiff) &&
+  file.exists(out_fig_meanderv2_ctrl_pdf)) {
   message("[INFO] S4 outputs exist; skipping S4. Set --force=1 to re-run.")
   tryCatch({
     SCrank_correlation <- read.csv(out_summary, stringsAsFactors = FALSE)
@@ -191,34 +200,48 @@ if ("meanderv2" %in% names(gamresult)) {
   gamresult$meanderv2_c <- NA_real_
 }
 
-## correlations to SC rank (summary table)
-computevar.list <- c("partialRsq", "increase.onset", "increase.offset", "peak.increase.change", "meanderv2_c")
-SCrank_correlation <- do.call(
-  rbind,
-  lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
-)
-
 ## Validation: Control for Euclidean distance
 if ("partialRsq" %in% names(gamresult)) {
   fit_pr <- lm(partialRsq ~ EucDistance, data = gamresult, na.action = na.exclude)
   gamresult$partialRsq_control_distance <- as.numeric(residuals(fit_pr))
-  SCrank_correlation <- rbind(
-    SCrank_correlation,
-    SCrankcorr(gamresult, "partialRsq_control_distance", ds.resolution, dsdata = FALSE)
-  )
 }
 
 if ("meanderv2_c" %in% names(gamresult)) {
   fit_md <- lm(meanderv2_c ~ EucDistance, data = gamresult, na.action = na.exclude)
   gamresult$meanderv2_c_control_distance <- as.numeric(residuals(fit_md))
-  SCrank_correlation <- rbind(
-    SCrank_correlation,
-    SCrankcorr(gamresult, "meanderv2_c_control_distance", ds.resolution, dsdata = FALSE)
-  )
 }
 
-write.csv(SCrank_correlation, out_summary, row.names = FALSE)
-print_spearman_summary(SCrank_correlation)
+if (!skip_compute) {
+  ## correlations to SC rank (summary table)
+  computevar.list <- c("partialRsq", "increase.onset", "increase.offset", "peak.increase.change", "meanderv2_c")
+  SCrank_correlation <- do.call(
+    rbind,
+    lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
+  )
+
+  if ("partialRsq_control_distance" %in% names(gamresult)) {
+    SCrank_correlation <- rbind(
+      SCrank_correlation,
+      SCrankcorr(gamresult, "partialRsq_control_distance", ds.resolution, dsdata = FALSE)
+    )
+  }
+
+  if ("meanderv2_c_control_distance" %in% names(gamresult)) {
+    SCrank_correlation <- rbind(
+      SCrank_correlation,
+      SCrankcorr(gamresult, "meanderv2_c_control_distance", ds.resolution, dsdata = FALSE)
+    )
+  }
+
+  write.csv(SCrank_correlation, out_summary, row.names = FALSE)
+  print_spearman_summary(SCrank_correlation)
+} else {
+  if (!file.exists(out_summary)) {
+    message("[WARN] Skip summary computation on Windows; correlation summary not written: ", out_summary)
+  } else {
+    message("[INFO] Skip summary computation on Windows; using existing summary: ", out_summary)
+  }
+}
 
 ## scatter plots (match historical Chinese Rmd output count/names)
 mytheme <- theme(
@@ -233,7 +256,7 @@ mytheme <- theme(
   legend.position = "none"
 )
 
-## 1) meanderv2_c: tiff only
+## 1) meanderv2_c: tiff + pdf (+ svg on Windows)
 if ("meanderv2_c" %in% names(gamresult)) {
   computevar <- "meanderv2_c"
   correlation.df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
@@ -243,26 +266,34 @@ if ("meanderv2_c" %in% names(gamresult)) {
     p_meanderv2 <- ggplot(data = correlation.df) +
       geom_point(aes(x = SCrank, y = meanderv2_c, color = SCrank), size = 5) +
       geom_smooth(aes(x = SCrank, y = meanderv2_c), linewidth = 2, method = "lm", color = "black") +
-      scale_color_distiller(type = "seq", palette = "RdBu", direction = -1) +
+      scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
       labs(x = "S-A connectional axis rank", y = "Second derivative") +
       scale_y_continuous(breaks = c(-0.003, 0, 0.003), labels = c(-3, 0, 3)) +
       theme_classic() + mytheme
   }
   ggsave(out_fig_meanderv2, p_meanderv2, width = 13, height = 12, units = "cm", bg = "transparent")
+  ggsave(out_fig_meanderv2_pdf, p_meanderv2, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
+  if (is_windows) {
+    if (!requireNamespace("svglite", quietly = TRUE)) {
+      message("[WARN] svglite not available; skip svg output on Windows.")
+    } else {
+      out_fig_meanderv2_svg <- file.path(FigCorrFolder, paste0("meanmeanderv2_c_SCrankcorr_n", ds.resolution, ".svg"))
+      ggsave(out_fig_meanderv2_svg, p_meanderv2, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
+    }
+  }
 }
 
-## 2) meanderv2_c_control_distance: tiff + svg
+## 2) meanderv2_c_control_distance: tiff + pdf (+ svg on Windows)
 if ("meanderv2_c_control_distance" %in% names(gamresult)) {
   computevar <- "meanderv2_c_control_distance"
   correlation.df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
   if (!any(is.finite(correlation.df$meanderv2_c_control_distance))) {
     p_meanderv2_ctrl <- placeholder_plot("meanderv2_c_control_distance", "No finite values available.")
   } else {
-    lmthr <- max(abs(correlation.df$meanderv2_c_control_distance), na.rm = TRUE)
     p_meanderv2_ctrl <- ggplot(data = correlation.df) +
-      geom_point(aes(x = SCrank, y = meanderv2_c_control_distance, color = meanderv2_c_control_distance), size = 5.5) +
+      geom_point(aes(x = SCrank, y = meanderv2_c_control_distance, color = SCrank), size = 5.5) +
       geom_smooth(aes(x = SCrank, y = meanderv2_c_control_distance), linewidth = 1.2, method = "lm", color = "black") +
-      scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr)) +
+      scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
       labs(x = "S-A connectional axis rank", y = "Second derivative") +
       scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) +
       theme_classic() +
@@ -280,6 +311,14 @@ if ("meanderv2_c_control_distance" %in% names(gamresult)) {
   }
   ggsave(out_fig_meanderv2_ctrl_tiff, p_meanderv2_ctrl, width = 16, height = 14, units = "cm", bg = "transparent")
   ggsave(out_fig_meanderv2_ctrl_pdf, p_meanderv2_ctrl, dpi = 600, width = 16, height = 14, units = "cm", bg = "transparent")
+  if (is_windows) {
+    if (!requireNamespace("svglite", quietly = TRUE)) {
+      message("[WARN] svglite not available; skip svg output on Windows.")
+    } else {
+      out_fig_meanderv2_ctrl_svg <- file.path(FigCorrFolder, paste0("meanmeanderv2_c_control_distance_SCrankcorr_n", ds.resolution, ".svg"))
+      ggsave(out_fig_meanderv2_ctrl_svg, p_meanderv2_ctrl, dpi = 600, width = 16, height = 14, units = "cm", bg = "transparent")
+    }
+  }
 }
 
 ## matrix graphs (optional)

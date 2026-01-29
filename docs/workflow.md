@@ -170,7 +170,8 @@
 	       - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
 	       - results：`outputs/results/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
 	       - figures：`outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
-	     - 图像数量与格式：S3 默认生成 3 张图（tiff+pdf），S4 默认生成 2 张散点（tiff）+ 1 张散点（pdf），与原始 Chinese Rmd 的输出数量保持一致；如需 matrix graphs，提交时设置 `MAKE_MATRIX_GRAPHS=1`。
+	     - 图像数量与格式：S3 默认生成 3 张图（tiff+pdf）；S4 生成 2 张散点（tiff+pdf），若在 Windows 环境运行则额外输出 svg（需要 `svglite`）；如需 matrix graphs，提交时设置 `MAKE_MATRIX_GRAPHS=1`。
+	     - Windows 便捷模式：S4 默认在 Windows 跳过 summary 计算，仅生成散点图；可用 `--skip_compute_on_windows=0` 关闭（或 `--force=1` 强制完整重算）。
    - ABCD（基于 ComBat-GAM 输出）的可复现运行入口：
      - 输入默认：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
      - sbatch（容器版，50 核）：`sbatch sbatch/run_abcd_devmodel_combatgam_CV75_container.sbatch`
