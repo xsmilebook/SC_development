@@ -57,7 +57,8 @@
   - 图片：
     - SA12：`outputs/figures/4th_changerate_SAcorr/{hcpd,abcd}/combat_gam/CV75/Alignment_development/`
     - HCP-D Yeo/TractSeg：`outputs/figures/4th_changerate_SAcorr/hcpd/{yeo/Yeo7,yeo/Yeo17,tractseg}/combat_gam/CV75/Alignment_development/`
-    - 以上默认输出 `.tiff + .pdf`
+    - 以上默认输出 `.tiff + .pdf`；Windows 环境额外输出 `.svg`（需 `svglite`）
+  - Windows 本地绘图：S1 脚本默认只读取已有 `alignment_*` 结果绘图，不在 Windows 端重算相关矩阵；如缺少结果文件会直接报错。
   - HCP-D（SA12，ComBat-GAM）S1 额外输出（control-distance 版本）：
     - 思路：在每个年龄点上先对 change rate 按边的欧氏距离做线性残差化（`derivative ~ Edistance`），再与 S-A rank 做 Spearman 相关。
     - 结果表：`alignment_*_control_distance.csv*`（与主版本同目录）

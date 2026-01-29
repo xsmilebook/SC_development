@@ -58,6 +58,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
 
+is_windows <- .Platform$OS.type == "windows"
+plot_only <- is_windows
+
 dataset <- "abcd"
 CVthr <- as_num(args$cvthr, 75)
 ds.resolution <- 12
@@ -94,7 +97,12 @@ out_corr_gz <- file.path(result_dir, "alignment_posterior_corr_draw_age.csv.gz")
 out_curve <- file.path(result_dir, "alignment_summary_age_curve.csv")
 out_flip <- file.path(result_dir, "alignment_summary_flip_age.csv")
 
-if (!force && file.exists(out_corr_gz) && file.exists(out_curve) && file.exists(out_flip)) {
+if (plot_only) {
+  message("[INFO] Windows detected: plot-only mode (use existing results).")
+  if (!file.exists(out_corr_gz) || !file.exists(out_curve) || !file.exists(out_flip)) {
+    stop("Plot-only mode requires existing outputs: ", result_dir)
+  }
+} else if (!force && file.exists(out_corr_gz) && file.exists(out_curve) && file.exists(out_flip)) {
   message("[INFO] Outputs exist; skipping (set --force=1 to re-run): ", result_dir)
   quit(save = "no", status = 0)
 }
@@ -119,74 +127,93 @@ if (any(is.na(edge_sarank_value))) {
 }
 sa_rank <- rank(edge_sarank_value, ties.method = "average")
 
-age_values <- sort(unique(as.numeric(posterior_list[[1]]$age)))
-if (length(age_values) < 10) stop("Too few unique age points in posterior derivatives: ", length(age_values))
+if (plot_only) {
+  curve_df <- read.csv(out_curve)
+  flip_df <- read.csv(out_flip)
+  corr_df <- read.csv(gzfile(out_corr_gz))
+  age_values <- as.numeric(sub("^age_", "", names(corr_df)[-1]))
+  corr_mat <- as.matrix(corr_df[, -1, drop = FALSE])
+  corr_mat_round <- round(corr_mat, 4)
+  median_rho <- as.numeric(curve_df$rho_median)
+  ci_low <- as.numeric(curve_df$rho_ci_low)
+  ci_high <- as.numeric(curve_df$rho_ci_high)
+  flip_age_each_draw <- vapply(seq_len(nrow(corr_mat_round)), function(i) {
+    row <- corr_mat_round[i, ]
+    idx <- which.min(abs(row - 0))
+    age_values[[idx]]
+  }, numeric(1))
+  flip_median <- as.numeric(flip_df$flip_age_median[[1]])
+  flip_ci <- c(as.numeric(flip_df$flip_age_ci_low[[1]]), as.numeric(flip_df$flip_age_ci_high[[1]]))
+} else {
+  age_values <- sort(unique(as.numeric(posterior_list[[1]]$age)))
+  if (length(age_values) < 10) stop("Too few unique age points in posterior derivatives: ", length(age_values))
 
-all_draws <- sort(unique(as.character(posterior_list[[1]]$draw)))
-if (length(all_draws) == 0) stop("No 'draw' labels found in posterior derivatives.")
-draw_keep <- all_draws[seq_len(min(length(all_draws), n_draws_req))]
-message("[INFO] age_points=", length(age_values), " draw_count=", length(draw_keep), " edges=", length(posterior_list))
+  all_draws <- sort(unique(as.character(posterior_list[[1]]$draw)))
+  if (length(all_draws) == 0) stop("No 'draw' labels found in posterior derivatives.")
+  draw_keep <- all_draws[seq_len(min(length(all_draws), n_draws_req))]
+  message("[INFO] age_points=", length(age_values), " draw_count=", length(draw_keep), " edges=", length(posterior_list))
 
-compute_corr_one_draw <- function(draw_label) {
-  mat <- matrix(NA_real_, nrow = length(posterior_list), ncol = length(age_values))
-  for (i in seq_along(posterior_list)) {
-    df <- posterior_list[[i]]
-    df <- df[df$draw == draw_label, , drop = FALSE]
-    if (nrow(df) == 0) next
-    idx <- match(age_values, as.numeric(df$age))
-    mat[i, ] <- as.numeric(df$posterior.derivative)[idx]
+  compute_corr_one_draw <- function(draw_label) {
+    mat <- matrix(NA_real_, nrow = length(posterior_list), ncol = length(age_values))
+    for (i in seq_along(posterior_list)) {
+      df <- posterior_list[[i]]
+      df <- df[df$draw == draw_label, , drop = FALSE]
+      if (nrow(df) == 0) next
+      idx <- match(age_values, as.numeric(df$age))
+      mat[i, ] <- as.numeric(df$posterior.derivative)[idx]
+    }
+    rho <- rep(NA_real_, ncol(mat))
+    for (j in seq_len(ncol(mat))) {
+      v <- mat[, j]
+      if (all(is.na(v))) next
+      rho[[j]] <- suppressWarnings(cor(v, sa_rank, method = "spearman", use = "pairwise.complete.obs"))
+    }
+    rho
   }
-  rho <- rep(NA_real_, ncol(mat))
-  for (j in seq_len(ncol(mat))) {
-    v <- mat[, j]
-    if (all(is.na(v))) next
-    rho[[j]] <- suppressWarnings(cor(v, sa_rank, method = "spearman", use = "pairwise.complete.obs"))
-  }
-  rho
+
+  corr_rows <- mclapply(draw_keep, compute_corr_one_draw, mc.cores = n_cores)
+  corr_mat <- do.call(rbind, corr_rows)
+  colnames(corr_mat) <- paste0("age_", format(age_values, trim = TRUE, scientific = FALSE))
+  rownames(corr_mat) <- draw_keep
+
+  ## Match the historical Rmd behavior: round correlations to 4 decimals before
+  ## computing medians/CI and flip-age (rho≈0) window.
+  corr_mat_round <- round(corr_mat, 4)
+
+  con <- gzfile(out_corr_gz, open = "wt")
+  on.exit(close(con), add = TRUE)
+  write.csv(cbind(draw = rownames(corr_mat), as.data.frame(corr_mat)), con, row.names = FALSE)
+
+  median_rho <- apply(corr_mat_round, 2, median, na.rm = TRUE)
+  ci_low <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.025, na.rm = TRUE)))
+  ci_high <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.975, na.rm = TRUE)))
+
+  flip_age_each_draw <- vapply(seq_len(nrow(corr_mat)), function(i) {
+    row <- corr_mat_round[i, ]
+    idx <- which.min(abs(row - 0))
+    age_values[[idx]]
+  }, numeric(1))
+  flip_median <- median(flip_age_each_draw, na.rm = TRUE)
+  flip_ci <- as.numeric(quantile(flip_age_each_draw, probs = c(0.025, 0.975), na.rm = TRUE))
+
+  curve_df <- data.frame(
+    age = age_values,
+    rho_median = median_rho,
+    rho_ci_low = ci_low,
+    rho_ci_high = ci_high
+  )
+  write.csv(curve_df, out_curve, row.names = FALSE)
+
+  flip_df <- data.frame(
+    n_edges = length(posterior_list),
+    n_draws = nrow(corr_mat),
+    n_age_points = length(age_values),
+    flip_age_median = flip_median,
+    flip_age_ci_low = flip_ci[[1]],
+    flip_age_ci_high = flip_ci[[2]]
+  )
+  write.csv(flip_df, out_flip, row.names = FALSE)
 }
-
-corr_rows <- mclapply(draw_keep, compute_corr_one_draw, mc.cores = n_cores)
-corr_mat <- do.call(rbind, corr_rows)
-colnames(corr_mat) <- paste0("age_", format(age_values, trim = TRUE, scientific = FALSE))
-rownames(corr_mat) <- draw_keep
-
-## Match the historical Rmd behavior: round correlations to 4 decimals before
-## computing medians/CI and flip-age (rho≈0) window.
-corr_mat_round <- round(corr_mat, 4)
-
-con <- gzfile(out_corr_gz, open = "wt")
-on.exit(close(con), add = TRUE)
-write.csv(cbind(draw = rownames(corr_mat), as.data.frame(corr_mat)), con, row.names = FALSE)
-
-median_rho <- apply(corr_mat_round, 2, median, na.rm = TRUE)
-ci_low <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.025, na.rm = TRUE)))
-ci_high <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.975, na.rm = TRUE)))
-
-flip_age_each_draw <- vapply(seq_len(nrow(corr_mat)), function(i) {
-  row <- corr_mat_round[i, ]
-  idx <- which.min(abs(row - 0))
-  age_values[[idx]]
-}, numeric(1))
-flip_median <- median(flip_age_each_draw, na.rm = TRUE)
-flip_ci <- as.numeric(quantile(flip_age_each_draw, probs = c(0.025, 0.975), na.rm = TRUE))
-
-curve_df <- data.frame(
-  age = age_values,
-  rho_median = median_rho,
-  rho_ci_low = ci_low,
-  rho_ci_high = ci_high
-)
-write.csv(curve_df, out_curve, row.names = FALSE)
-
-flip_df <- data.frame(
-  n_edges = length(posterior_list),
-  n_draws = nrow(corr_mat),
-  n_age_points = length(age_values),
-  flip_age_median = flip_median,
-  flip_age_ci_low = flip_ci[[1]],
-  flip_age_ci_high = flip_ci[[2]]
-)
-write.csv(flip_df, out_flip, row.names = FALSE)
 
 min_idx <- which.min(median_rho)
 max_idx <- which.max(median_rho)
@@ -207,36 +234,47 @@ curve_df$rho_median_loess <- loess_m$fitted
 curve_df$rho_ci_low_loess <- loess_l$fitted
 curve_df$rho_ci_high_loess <- loess_u$fitted
 
+mytheme <- theme(
+  axis.text = element_text(size = 27, color = "black"),
+  axis.title = element_text(size = 27),
+  axis.line = element_line(linewidth = 0.6),
+  axis.ticks = element_line(linewidth = 0.6),
+  aspect.ratio = 1,
+  plot.background = element_rect(fill = "transparent", color = NA),
+  panel.background = element_rect(fill = "transparent", color = NA),
+  legend.title = element_text(size = 15),
+  legend.text = element_text(size = 15)
+)
+
 p_align <- ggplot(curve_df) +
   geom_ribbon(aes(x = age, ymin = rho_ci_low_loess, ymax = rho_ci_high_loess), alpha = 0.25) +
   geom_line(aes(x = age, y = rho_median_loess), linewidth = 1.2) +
-  geom_ribbon(aes(x = flip_window_x, ymin = rho_ci_low_loess, ymax = rho_ci_high_loess), fill = "#F8B01B", alpha = 0.9) +
   theme_classic() +
-  labs(x = "Age (years)", y = "Alignment with S-A axis (Spearman rho)",
-       title = sprintf("ABCD (ComBat-GAM) CV%.0f | flip age median=%.2f", CVthr, flip_median)) +
-  theme(
-    axis.text = element_text(size = 12, color = "black"),
-    axis.title = element_text(size = 12, color = "black"),
-    plot.title = element_text(size = 11, hjust = 0.5),
-    plot.background = element_rect(fill = "transparent", color = NA),
-    panel.background = element_rect(fill = "transparent", color = NA)
-  )
+  labs(x = "Age (years)", y = "rho") +
+  mytheme
 
 ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_alignment.tiff"), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
 ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_alignment.pdf"), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
 
-p_hist <- ggplot(data.frame(flip_age = flip_age_each_draw), aes(x = flip_age)) +
-  geom_histogram(binwidth = 0.10, color = "black", fill = "white", linewidth = 0.6) +
-  geom_vline(xintercept = flip_median, color = "red", linewidth = 0.9) +
-  theme_classic() +
-  labs(x = "Flip age (years)", y = "Count", title = "Flip age distribution across posterior draws") +
-  theme(
-    axis.text = element_text(size = 12, color = "black"),
-    axis.title = element_text(size = 12, color = "black"),
-    plot.title = element_text(size = 11, hjust = 0.5),
-    plot.background = element_rect(fill = "transparent", color = NA),
-    panel.background = element_rect(fill = "transparent", color = NA)
-  )
+make_flip_hist_plot <- function(flip_age_each_draw, flip_median) {
+  ggplot() +
+    geom_histogram(aes(flip_age_each_draw, y = ..count..), binwidth = 0.5, linewidth = 1, color = "black", fill = "white") +
+    geom_vline(aes(xintercept = flip_median), colour = "red", linetype = "solid", linewidth = 1) +
+    labs(x = NULL, y = NULL) +
+    theme_classic() +
+    scale_y_discrete(breaks = NULL) +
+    scale_x_continuous(breaks = NULL) +
+    theme(
+      axis.line = element_blank(),
+      aspect.ratio = 0.5,
+      plot.background = element_rect(fill = "transparent", color = NA),
+      panel.background = element_rect(fill = "transparent", color = NA),
+      axis.title = element_text(color = "black", size = 15),
+      axis.text.x = element_text(color = "black", size = 20)
+    )
+}
+
+p_hist <- make_flip_hist_plot(flip_age_each_draw, flip_median)
 ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.tiff"), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
 ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.pdf"), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
 
@@ -251,7 +289,12 @@ save_svg_if_available <- function(filename, plot, width_cm, height_cm, dpi = 600
 
 # Also save figures using the original Rmd filenames (tiff+svg), when possible.
 ggsave(file.path(figure_dir, "SA12_posDeriv_divweight_corr.tiff"), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
-save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_divweight_corr.svg"), p_align, width_cm = 16, height_cm = 14)
+ggsave(file.path(figure_dir, "SA12_posDeriv_divweight_corr.pdf"), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
+if (is_windows) {
+  save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_divweight_corr.svg"), p_align, width_cm = 16, height_cm = 14)
+  save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_SAaxis_alignment.svg"), p_align, width_cm = 18, height_cm = 12)
+  save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.svg"), p_hist, width_cm = 18, height_cm = 12)
+}
 
 # Additional figures from the original Rmd: age-specific derivative scatter/matrix and derivative line plot.
 derivative_df <- readRDS(in_derivative)

@@ -57,6 +57,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
 
+is_windows <- .Platform$OS.type == "windows"
+plot_only <- is_windows
+
 dataset <- "hcpd"
 CVthr <- as_num(args$cvthr, 75)
 n_draws_req <- as_int(args$n_draws, 1000L)
@@ -83,7 +86,12 @@ out_corr_gz <- file.path(result_dir, "alignment_posterior_corr_draw_age.csv.gz")
 out_curve <- file.path(result_dir, "alignment_summary_age_curve.csv")
 out_flip <- file.path(result_dir, "alignment_summary_flip_age.csv")
 
-if (!force && file.exists(out_corr_gz) && file.exists(out_curve) && file.exists(out_flip)) {
+if (plot_only) {
+  message("[INFO] Windows detected: plot-only mode (use existing results).")
+  if (!file.exists(out_corr_gz) || !file.exists(out_curve) || !file.exists(out_flip)) {
+    stop("Plot-only mode requires existing outputs: ", result_dir)
+  }
+} else if (!force && file.exists(out_corr_gz) && file.exists(out_curve) && file.exists(out_flip)) {
   message("[INFO] Outputs exist; skipping. Set --force=1 to re-run.")
   quit(save = "no", status = 0)
 }
@@ -113,65 +121,84 @@ sa_rank <- rank(edge_sa_value, ties.method = "average")
 message("[INFO] dataset=", dataset, " tractseg matsize=", matsize, " edges=", n_edges)
 message("[INFO] age_points=", length(age_values), " draw_count=", length(draw_keep), " n_cores=", n_cores)
 
-compute_corr_one_draw <- function(draw_label) {
-  mat <- matrix(NA_real_, nrow = n_edges, ncol = length(age_values))
-  for (i in seq_along(posterior_list)) {
-    df <- posterior_list[[i]]
-    df <- df[df$draw == draw_label, , drop = FALSE]
-    if (nrow(df) == 0) next
-    idx <- match(age_values, as.numeric(df$age))
-    mat[i, ] <- as.numeric(df$posterior.derivative)[idx]
+if (plot_only) {
+  curve_df <- read.csv(out_curve)
+  flip_df <- read.csv(out_flip)
+  corr_df <- read.csv(gzfile(out_corr_gz))
+  age_values <- as.numeric(sub("^age_", "", names(corr_df)[-1]))
+  corr_mat <- as.matrix(corr_df[, -1, drop = FALSE])
+  corr_mat_round <- round(corr_mat, 4)
+  median_rho <- as.numeric(curve_df$rho_median)
+  ci_low <- as.numeric(curve_df$rho_ci_low)
+  ci_high <- as.numeric(curve_df$rho_ci_high)
+  flip_age_each_draw <- vapply(seq_len(nrow(corr_mat_round)), function(i) {
+    row <- corr_mat_round[i, ]
+    idx <- which.min(abs(row - 0))
+    age_values[[idx]]
+  }, numeric(1))
+  flip_median <- as.numeric(flip_df$flip_age_median[[1]])
+  flip_ci <- c(as.numeric(flip_df$flip_age_ci_low[[1]]), as.numeric(flip_df$flip_age_ci_high[[1]]))
+} else {
+  compute_corr_one_draw <- function(draw_label) {
+    mat <- matrix(NA_real_, nrow = n_edges, ncol = length(age_values))
+    for (i in seq_along(posterior_list)) {
+      df <- posterior_list[[i]]
+      df <- df[df$draw == draw_label, , drop = FALSE]
+      if (nrow(df) == 0) next
+      idx <- match(age_values, as.numeric(df$age))
+      mat[i, ] <- as.numeric(df$posterior.derivative)[idx]
+    }
+
+    rho <- rep(NA_real_, ncol(mat))
+    for (j in seq_len(ncol(mat))) {
+      v <- mat[, j]
+      if (all(is.na(v))) next
+      rho[[j]] <- suppressWarnings(cor(v, sa_rank, method = "spearman", use = "pairwise.complete.obs"))
+    }
+    rho
   }
 
-  rho <- rep(NA_real_, ncol(mat))
-  for (j in seq_len(ncol(mat))) {
-    v <- mat[, j]
-    if (all(is.na(v))) next
-    rho[[j]] <- suppressWarnings(cor(v, sa_rank, method = "spearman", use = "pairwise.complete.obs"))
-  }
-  rho
+  corr_rows <- mclapply(draw_keep, compute_corr_one_draw, mc.cores = n_cores)
+  corr_mat <- do.call(rbind, corr_rows)
+  colnames(corr_mat) <- paste0("age_", format(age_values, trim = TRUE, scientific = FALSE))
+  rownames(corr_mat) <- draw_keep
+
+  corr_mat_round <- round(corr_mat, 4)
+
+  con <- gzfile(out_corr_gz, open = "wt")
+  on.exit(close(con), add = TRUE)
+  write.csv(cbind(draw = rownames(corr_mat), as.data.frame(corr_mat)), con, row.names = FALSE)
+
+  median_rho <- apply(corr_mat_round, 2, median, na.rm = TRUE)
+  ci_low <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.025, na.rm = TRUE)))
+  ci_high <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.975, na.rm = TRUE)))
+
+  flip_age_each_draw <- vapply(seq_len(nrow(corr_mat_round)), function(i) {
+    row <- corr_mat_round[i, ]
+    idx <- which.min(abs(row - 0))
+    age_values[[idx]]
+  }, numeric(1))
+  flip_median <- median(flip_age_each_draw, na.rm = TRUE)
+  flip_ci <- as.numeric(quantile(flip_age_each_draw, probs = c(0.025, 0.975), na.rm = TRUE))
+
+  curve_df <- data.frame(
+    age = age_values,
+    rho_median = median_rho,
+    rho_ci_low = ci_low,
+    rho_ci_high = ci_high
+  )
+  write.csv(curve_df, out_curve, row.names = FALSE)
+
+  flip_df <- data.frame(
+    n_edges = n_edges,
+    n_draws = nrow(corr_mat),
+    n_age_points = length(age_values),
+    flip_age_median = flip_median,
+    flip_age_ci_low = flip_ci[[1]],
+    flip_age_ci_high = flip_ci[[2]]
+  )
+  write.csv(flip_df, out_flip, row.names = FALSE)
 }
-
-corr_rows <- mclapply(draw_keep, compute_corr_one_draw, mc.cores = n_cores)
-corr_mat <- do.call(rbind, corr_rows)
-colnames(corr_mat) <- paste0("age_", format(age_values, trim = TRUE, scientific = FALSE))
-rownames(corr_mat) <- draw_keep
-
-corr_mat_round <- round(corr_mat, 4)
-
-con <- gzfile(out_corr_gz, open = "wt")
-on.exit(close(con), add = TRUE)
-write.csv(cbind(draw = rownames(corr_mat), as.data.frame(corr_mat)), con, row.names = FALSE)
-
-median_rho <- apply(corr_mat_round, 2, median, na.rm = TRUE)
-ci_low <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.025, na.rm = TRUE)))
-ci_high <- apply(corr_mat_round, 2, function(x) as.numeric(quantile(x, probs = 0.975, na.rm = TRUE)))
-
-flip_age_each_draw <- vapply(seq_len(nrow(corr_mat_round)), function(i) {
-  row <- corr_mat_round[i, ]
-  idx <- which.min(abs(row - 0))
-  age_values[[idx]]
-}, numeric(1))
-flip_median <- median(flip_age_each_draw, na.rm = TRUE)
-flip_ci <- as.numeric(quantile(flip_age_each_draw, probs = c(0.025, 0.975), na.rm = TRUE))
-
-curve_df <- data.frame(
-  age = age_values,
-  rho_median = median_rho,
-  rho_ci_low = ci_low,
-  rho_ci_high = ci_high
-)
-write.csv(curve_df, out_curve, row.names = FALSE)
-
-flip_df <- data.frame(
-  n_edges = n_edges,
-  n_draws = nrow(corr_mat),
-  n_age_points = length(age_values),
-  flip_age_median = flip_median,
-  flip_age_ci_low = flip_ci[[1]],
-  flip_age_ci_high = flip_ci[[2]]
-)
-write.csv(flip_df, out_flip, row.names = FALSE)
 
 min_idx <- which.min(median_rho)
 max_idx <- which.max(median_rho)
@@ -190,6 +217,18 @@ curve_df$rho_median_loess <- loess_m$fitted
 curve_df$rho_ci_low_loess <- loess_l$fitted
 curve_df$rho_ci_high_loess <- loess_u$fitted
 
+mytheme <- theme(
+  axis.text = element_text(size = 27, color = "black"),
+  axis.title = element_text(size = 27),
+  axis.line = element_line(linewidth = 0.6),
+  axis.ticks = element_line(linewidth = 0.6),
+  aspect.ratio = 1,
+  plot.background = element_rect(fill = "transparent", color = NA),
+  panel.background = element_rect(fill = "transparent", color = NA),
+  legend.title = element_text(size = 15),
+  legend.text = element_text(size = 15)
+)
+
 p_align <- ggplot(curve_df) +
   geom_ribbon(aes(x = age, ymin = rho_ci_low_loess, ymax = rho_ci_high_loess), alpha = 0.3) +
   geom_line(aes(x = age, y = rho_median_loess), linewidth = 1.5) +
@@ -197,16 +236,7 @@ p_align <- ggplot(curve_df) +
   geom_ribbon(aes(x = flip_window_x, ymin = rho_median_loess - 0.01, ymax = rho_median_loess + 0.01), fill = "#B2182B", alpha = 1) +
   theme_classic() +
   labs(x = "Age (years)", y = "rho") +
-  theme(
-    axis.text = element_text(size = 23, color = "black"),
-    axis.title = element_text(size = 23),
-    aspect.ratio = 1,
-    axis.line = element_line(linewidth = 0.6),
-    axis.ticks = element_line(linewidth = 0.6),
-    plot.background = element_rect(fill = "transparent", color = NA),
-    panel.background = element_rect(fill = "transparent", color = NA),
-    legend.position = "none"
-  )
+  mytheme
 
 ggsave(file.path(figure_dir, "TractSeg_posDeriv_divweight_corr.tiff"), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
 ggsave(file.path(figure_dir, "TractSeg_posDeriv_divweight_corr.pdf"), p_align, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
@@ -229,4 +259,18 @@ p_hist <- ggplot() +
 
 ggsave(file.path(figure_dir, "Agedistribution_0corr_TractSeg.tiff"), p_hist, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
 ggsave(file.path(figure_dir, "Agedistribution_0corr_TractSeg.pdf"), p_hist, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+
+save_svg_if_available <- function(filename, plot, width_cm, height_cm, dpi = 600) {
+  if (!requireNamespace("svglite", quietly = TRUE)) {
+    message("[INFO] svglite not available; skip svg: ", filename)
+    return(invisible(FALSE))
+  }
+  ggsave(filename, plot, dpi = dpi, width = width_cm, height = height_cm, units = "cm", bg = "transparent")
+  invisible(TRUE)
+}
+
+if (is_windows) {
+  save_svg_if_available(file.path(figure_dir, "TractSeg_posDeriv_divweight_corr.svg"), p_align, width_cm = 13.5, height_cm = 13.5)
+  save_svg_if_available(file.path(figure_dir, "Agedistribution_0corr_TractSeg.svg"), p_hist, width_cm = 6, height_cm = 6)
+}
 

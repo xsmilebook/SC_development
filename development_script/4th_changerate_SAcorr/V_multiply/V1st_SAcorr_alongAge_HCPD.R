@@ -10,6 +10,8 @@ library(RColorBrewer)
 library(reshape)
 
 rm(list = ls())
+is_windows <- .Platform$OS.type == "windows"
+plot_only <- is_windows
 ds.resolution <- 12
 elementnum <- ds.resolution*(ds.resolution+1) /2
 # set path
@@ -53,63 +55,70 @@ Matrixds.resolution.SCrank[indexupds.resolution]<-NA
 SCrankds.resolution<-rank(Matrixds.resolution.SCrank[indexsaveds.resolution], ties.method = "average")
 
 #### calculate correlation between posterior derivatives and S-A connectional axis
-deri.SCrank.posterior.diw.corr <- data.frame(matrix(NA, 1000, 1000))
-rownames(deri.SCrank.posterior.diw.corr) <- paste0("draw.", c(1:1000))
-colnames(deri.SCrank.posterior.diw.corr) <- paste0("age.", c(1:1000))
-# drawtime is the time of draws
-compute.SC.corr <- function(drawtime){
-  deriv.SAds.resolution.drawtmp <- data.frame(age=rep(NA, elementnum*1000), deri.pos=rep(NA, elementnum*1000),
-                                              SClabel=rep(NA, elementnum*1000))
-  for (i in 1:elementnum){
-    df.tmp <- derivative.posterior.df[[i]]
-    df.tmp <- df.tmp[df.tmp$draw==paste0("draw", drawtime),]
-    lwth <- (i-1)*1000 +1
-    upth <- i*1000
-    deriv.SAds.resolution.drawtmp$age[lwth:upth]<-df.tmp$age
-    deriv.SAds.resolution.drawtmp$deri.pos[lwth:upth]<-df.tmp$posterior.derivative
-    deriv.SAds.resolution.drawtmp$SClabel[lwth:upth]<-paste0("SC.", i)
+if (!plot_only) {
+  deri.SCrank.posterior.diw.corr <- data.frame(matrix(NA, 1000, 1000))
+  rownames(deri.SCrank.posterior.diw.corr) <- paste0("draw.", c(1:1000))
+  colnames(deri.SCrank.posterior.diw.corr) <- paste0("age.", c(1:1000))
+  # drawtime is the time of draws
+  compute.SC.corr <- function(drawtime){
+    deriv.SAds.resolution.drawtmp <- data.frame(age=rep(NA, elementnum*1000), deri.pos=rep(NA, elementnum*1000),
+                                                SClabel=rep(NA, elementnum*1000))
+    for (i in 1:elementnum){
+      df.tmp <- derivative.posterior.df[[i]]
+      df.tmp <- df.tmp[df.tmp$draw==paste0("draw", drawtime),]
+      lwth <- (i-1)*1000 +1
+      upth <- i*1000
+      deriv.SAds.resolution.drawtmp$age[lwth:upth]<-df.tmp$age
+      deriv.SAds.resolution.drawtmp$deri.pos[lwth:upth]<-df.tmp$posterior.derivative
+      deriv.SAds.resolution.drawtmp$SClabel[lwth:upth]<-paste0("SC.", i)
+    }
+    agerange <- deriv.SAds.resolution.drawtmp$age[1:1000]
+    corr.df <- data.frame(corr.pos.tmp=rep(NA,1000))
+    for (j in 1:1000){
+      deri.pos.tmp <- deriv.SAds.resolution.drawtmp$deri.pos[deriv.SAds.resolution.drawtmp$age==agerange[j]]
+      corr.pos.tmp <- corr.test(deri.pos.tmp, SCrankds.resolution, method = "spearman")$r
+      corr.df$corr.pos.tmp[j]<-corr.pos.tmp
+    }
+    rownames(corr.df) <- paste0("age.", agerange)
+    return(corr.df)
   }
-  agerange <- deriv.SAds.resolution.drawtmp$age[1:1000]
-  corr.df <- data.frame(corr.pos.tmp=rep(NA,1000))
-  for (j in 1:1000){
-    deri.pos.tmp <- deriv.SAds.resolution.drawtmp$deri.pos[deriv.SAds.resolution.drawtmp$age==agerange[j]]
-    corr.pos.tmp <- corr.test(deri.pos.tmp, SCrankds.resolution, method = "spearman")$r
-    corr.df$corr.pos.tmp[j]<-corr.pos.tmp
-  }
-  rownames(corr.df) <- paste0("age.", agerange)
-  return(corr.df)
+
+  # compute correlation coefficients between S-A connectional axis and 1,000 posterior derivatives at 1,000 age points.
+  # set cluster
+  num_cores <- detectCores() - 8
+  cl <- makeCluster(num_cores)
+  clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
+  clusterEvalQ(cl, {
+    library(tidyverse)
+    library(R.matlab)
+    library(psych)
+    library(gratia)
+    library(mgcv)
+    library(parallel)
+    library(ggplot2)
+    library(RColorBrewer)
+    library(reshape)
+    source(paste0(functionFolder, '/gamderivatives.R'))
+  })
+
+  deri.SCrank.posterior.corr.sum<-parLapply(cl, 1:1000, function(x){
+    corr.df.tmp <- compute.SC.corr(x)
+    return(corr.df.tmp)
+  })
+
+  deri.SCrank.posterior.corr<-do.call(rbind, lapply(deri.SCrank.posterior.corr.sum, function(x) t(x$corr.pos.tmp)))
+  deri.SCrank.posterior.corr<-as.data.frame(deri.SCrank.posterior.corr)
+  write.csv(deri.SCrank.posterior.corr, paste0(resultFolder, '/deri.SCrank', ds.resolution, '_CV', CVthr,'.posterior.diw.corr_SAmult.csv'), row.names = F)
+} else {
+  message("[INFO] Windows detected: plot-only mode (use existing results).")
+  corr_path <- paste0(resultFolder, '/deri.SCrank', ds.resolution, '_CV', CVthr,'.posterior.diw.corr_SAmult.csv')
+  if (!file.exists(corr_path)) stop("Missing correlation CSV for plot-only: ", corr_path)
 }
-
-# compute correlation coefficients between S-A connectional axis and 1,000 posterior derivatives at 1,000 age points.
-# set cluster
-num_cores <- detectCores() - 8
-cl <- makeCluster(num_cores)
-clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
-clusterEvalQ(cl, {
-  library(tidyverse)
-  library(R.matlab)
-  library(psych)
-  library(gratia)
-  library(mgcv)
-  library(parallel)
-  library(ggplot2)
-  library(RColorBrewer)
-  library(reshape)
-  source(paste0(functionFolder, '/gamderivatives.R'))
-})
-
-deri.SCrank.posterior.corr.sum<-parLapply(cl, 1:1000, function(x){
-  corr.df.tmp <- compute.SC.corr(x)
-  return(corr.df.tmp)
-})
-
-deri.SCrank.posterior.corr<-do.call(rbind, lapply(deri.SCrank.posterior.corr.sum, function(x) t(x$corr.pos.tmp)))
-deri.SCrank.posterior.corr<-as.data.frame(deri.SCrank.posterior.corr)
-write.csv(deri.SCrank.posterior.corr, paste0(resultFolder, '/deri.SCrank', ds.resolution, '_CV', CVthr,'.posterior.diw.corr_SAmult.csv'), row.names = F)
 
 
 ###### extract age of maximal / zero S-A connectional axis correlation: posterior median value + 95% CI
-deri.SCrank.posterior.corr <- read.csv(paste0(resultFolder, '/deri.SCrank', ds.resolution, '_CV', CVthr,'.posterior.diw.corr_SAmult.csv'))
+corr_path <- paste0(resultFolder, '/deri.SCrank', ds.resolution, '_CV', CVthr,'.posterior.diw.corr_SAmult.csv')
+deri.SCrank.posterior.corr <- read.csv(corr_path)
 agerange <- unique(derivative.posterior.df[[1]]$age)
 
 age.0.corr.diw <- lapply(c(1:1000), function(x) agerange[median(which.min(abs(round(deri.SCrank.posterior.corr[x,], 4)-0)))])
@@ -140,6 +149,16 @@ df.poscorr.diw$median.loess <- loess.median$fitted
 df.poscorr.diw$lw.95CI.loess <- loess.lw$fitted
 df.poscorr.diw$up.95CI.loess <- loess.up$fitted
 
+mytheme <- theme(axis.text=element_text(size=27, color="black"), 
+        axis.title =element_text(size=27),
+        axis.line = element_line(linewidth = 0.6),
+        axis.ticks = element_line(linewidth = 0.6),
+        aspect.ratio =1,
+        plot.background=element_rect(fill="transparent"),
+        panel.background=element_rect(fill="transparent"),
+        legend.title=element_text(size=15),
+        legend.text=element_text(size=15))
+
 ggplot(data=df.poscorr.diw)+
   geom_ribbon(aes(x=age, ymin=lw.95CI.loess, ymax=up.95CI.loess), alpha=0.3)+
   geom_line(aes(x=age, y=median.loess), linewidth=1.5)+
@@ -148,18 +167,13 @@ ggplot(data=df.poscorr.diw)+
   geom_ribbon(aes(x=zero.corr.window, ymin=median.loess-0.045, ymax=median.loess+0.045), fill="#B2182B", alpha=1)+
   #geom_vline(aes(xintercept=age.0.corr.diw.median), color="black",linetype="dashed")+
   theme_classic()+
-  labs(x="Age (years)", y="Alignment with \nS-A connectional axis (rho)")+
-  theme(axis.text=element_text(size=23, color="black"), 
-        axis.title =element_text(size=23),
-        axis.line = element_line(linewidth = 0.6),
-        axis.ticks = element_line(linewidth = 0.6),
-        aspect.ratio =1,
-        plot.background=element_rect(fill="transparent"),
-        panel.background=element_rect(fill="transparent"),
-        legend.title=element_text(size=15),
-        legend.text=element_text(size=15))
+  labs(x="Age (years)", y="rho")+
+  mytheme
 ggsave(paste0(FigureFolder,'/CV', CVthr, '/Alignment_development/SA', ds.resolution, '_posDeriv_divweight_corr_SAmult.tiff'), width=14, height=14, units="cm")
-ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/SA', ds.resolution, '_posDeriv_divweight_corr_SAmult.svg'), dpi=600, width=17.5, height =15, units="cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/SA', ds.resolution, '_posDeriv_divweight_corr_SAmult.pdf'), width=14, height=14, units="cm")
+if (is_windows) {
+  ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/SA', ds.resolution, '_posDeriv_divweight_corr_SAmult.svg'), dpi=600, width=17.5, height =15, units="cm")
+}
 
 ### plot age distribution with 0 corr
 ggplot() +
@@ -175,7 +189,10 @@ ggplot() +
         axis.title = element_text(color = "black", size = 15),
         axis.text.x = element_text(color = "black", size = 20))
 ggsave(paste0(FigureFolder,'/CV', CVthr,  '/Alignment_development/Agedistribution_0corr_SAmult.tiff'), width=6, height = 6, units="cm")
-ggsave(paste0(FigureFolder, '/CV', CVthr, '/Alignment_development/Agedistribution_0corr_SAmult.svg'), width=6, height =6, units="cm")
+ggsave(paste0(FigureFolder, '/CV', CVthr, '/Alignment_development/Agedistribution_0corr_SAmult.pdf'), width=6, height =6, units="cm")
+if (is_windows) {
+  ggsave(paste0(FigureFolder, '/CV', CVthr, '/Alignment_development/Agedistribution_0corr_SAmult.svg'), width=6, height =6, units="cm")
+}
 
 
 

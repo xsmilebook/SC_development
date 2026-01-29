@@ -219,3 +219,4 @@
 - 2026-01-29: HCP-D Yeo7/Yeo17 S4 在 Windows 交互环境默认仅绘图并跳过 matrix graphs，散点坐标与色标范围按分辨率固定。
 - 2026-01-29: 修复 Yeo7/17 绘图中 `correlation.df` 未定义导致的报错。
 - 2026-01-29: 修复 Yeo7/17 绘图色标范围依赖未初始化 `correlation.df` 的问题。
+- 2026-01-29: 统一 4th_changerate_SAcorr 多数据集/验证分析脚本的绘图主题与输出格式，Windows 下默认仅绘图并追加 svg。
