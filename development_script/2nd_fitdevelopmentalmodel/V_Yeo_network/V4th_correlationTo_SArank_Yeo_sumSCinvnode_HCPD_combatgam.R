@@ -184,14 +184,14 @@ if (!force &&
   } else if (ds.resolution == 17) {
     seq(0, 120, by = 20)
   } else {
-    pretty(correlation.df$SCrank, n = 6)
+    pretty(c(0, elementnum), n = 6)
   }
   x_limits <- if (ds.resolution == 7) {
     c(0, 20)
   } else if (ds.resolution == 17) {
     c(0, 120)
   } else {
-    NULL
+    c(0, elementnum)
   }
   scr_min <- if (ds.resolution == 7) 0 else if (ds.resolution == 17) 0 else min(correlation.df$SCrank, na.rm = TRUE)
   scr_max <- if (ds.resolution == 7) 20 else if (ds.resolution == 17) 120 else max(correlation.df$SCrank, na.rm = TRUE)

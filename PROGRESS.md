@@ -217,3 +217,4 @@
 - 2026-01-29: SAmult 本地绘图脚本改为使用项目内输入/输出路径以对齐 sbatch。
 - 2026-01-29: HCP-D TractSeg 与 covariates 的 S4 在 Windows 交互环境默认仅绘图并跳过 matrix graphs。
 - 2026-01-29: HCP-D Yeo7/Yeo17 S4 在 Windows 交互环境默认仅绘图并跳过 matrix graphs，散点坐标与色标范围按分辨率固定。
+- 2026-01-29: 修复 Yeo7/17 绘图中 `correlation.df` 未定义导致的报错。
