@@ -17,9 +17,13 @@ N_EDGES="${N_EDGES:-}"
 SKIP_POSTERIOR="${SKIP_POSTERIOR:-0}"
 MAKE_MATRIX_GRAPHS="${MAKE_MATRIX_GRAPHS:-0}"
 
-DEFAULT_EUCLID_CSV="${project_root}/data/external/SC_development/interdataFolder_HCPD/average_EuclideanDistance_12.csv"
-if [ ! -f "${DEFAULT_EUCLID_CSV}" ]; then
-  DEFAULT_EUCLID_CSV="${project_root}/wd/interdataFolder_HCPD/average_EuclideanDistance_12.csv"
+DEFAULT_EUCLID_CSV=""
+candidate1="${project_root}/data/external/SC_development/interdataFolder_HCPD/average_EuclideanDistance_${DS_RES}.csv"
+candidate2="${project_root}/wd/interdataFolder_HCPD/average_EuclideanDistance_${DS_RES}.csv"
+if [ -f "${candidate1}" ]; then
+  DEFAULT_EUCLID_CSV="${candidate1}"
+elif [ -f "${candidate2}" ]; then
+  DEFAULT_EUCLID_CSV="${candidate2}"
 fi
 EUCLID_CSV="${EUCLID_CSV:-${DEFAULT_EUCLID_CSV}}"
 

@@ -200,4 +200,5 @@
 - 2026-01-28: 新增 HCP-D SA7/SA17 ComBat-GAM sbatch 与对应 devmodel/changerate 容器入口；同时扩展 HCP-D devmodel/changerate 脚本支持 `--ds_res`、`--out_tag` 与 `--sa_axis_mode={addsquare,multiply}`，并统一默认输出 `tiff+pdf`、日志打印关键数值（r/p、flip-age、rho）。
 - 2026-01-29: 修复 HCP-D SA7/SA17 devmodel 容器 sbatch 在 `EUCLID_CSV` 为空时因 `set -u` + 空数组展开导致的 `euclid_arg[@]: unbound variable` 报错，确保 S4 可正常生成 `correlation_sumSCinvnode_SCrank_*` 散点图。
 - 2026-01-29: 将 HCP-D SA7/SA17/SA12 merge 输入与 Euclidean-distance 输入复制到 `data/external/SC_development/interdataFolder_HCPD/`（不纳入版本控制），并让 SA7/SA17 ComBat-GAM/devmodel sbatch 优先使用项目内副本以减少外部路径依赖。
+- 2026-01-29: 修复 SA7/SA17 devmodel 的 Euclidean-distance 默认选择与 S4 健壮性：仅在存在对应 `ds_res` 的 distance 文件时才启用 control-distance；若 distance 覆盖不全则自动跳过，避免 SA17 中断导致缺图。
 - 2026-01-29: HCP-D devmodel S4：当 summary 已存在且 `--force=0` 时，若检测到 S4 的散点图缺失则仍继续生成 `correlation_sumSCinvnode_SCrank_*` 图像（SA7/SA17 等 tag 版本同样适用）。

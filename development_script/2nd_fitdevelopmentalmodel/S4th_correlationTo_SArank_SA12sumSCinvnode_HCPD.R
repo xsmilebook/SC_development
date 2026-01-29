@@ -175,6 +175,19 @@ if (do_euclid) {
   } else {
     stop("Euclidean distance CSV cannot be aligned (need SC_label/parcel or rows==elementnum): ", euclid_csv)
   }
+
+  # Sanity check: require full coverage for the current resolution; otherwise skip to avoid misleading results.
+  ed_mapped <- unname(Edist_map[as.character(gamresult$parcel)])
+  n_mapped <- sum(!is.na(ed_mapped))
+  if (n_mapped != elementnum) {
+    message(sprintf(
+      "[WARN] Euclidean distance map coverage %d/%d (ds.resolution=%d); skip control-distance correlations. (euclid_csv=%s)",
+      n_mapped, elementnum, ds.resolution, euclid_csv
+    ))
+    do_euclid <- FALSE
+    EuricDistance <- NULL
+    Edist_map <- NULL
+  }
 }
 
 meanSC_aligned <- meanSC_map[gamresult$parcel]
@@ -213,8 +226,8 @@ if (should_recompute_summary) {
 
 ## Validation: Control for Euclidean distance
 if (do_euclid) {
-  gamresult$meanderv2_control_distance <- residuals(lm(meanderv2 ~ EuricDistance, data = gamresult))
-  gamresult$partialRsq_control_distance <- residuals(lm(partialRsq ~ EuricDistance, data = gamresult))
+  gamresult$meanderv2_control_distance <- residuals(lm(meanderv2 ~ EuricDistance, data = gamresult, na.action = na.exclude))
+  gamresult$partialRsq_control_distance <- residuals(lm(partialRsq ~ EuricDistance, data = gamresult, na.action = na.exclude))
   if (should_recompute_summary) {
     SCrank_correlation <- rbind(
       SCrank_correlation,
