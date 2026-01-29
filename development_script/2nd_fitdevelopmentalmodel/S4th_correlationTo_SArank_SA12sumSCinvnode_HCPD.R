@@ -333,7 +333,8 @@ plot_one_scatter <- function(computevar, ylab) {
     geom_point(aes(x = SCrank, y = .data[[computevar]], color = SCrank), size = point_size, alpha = 0.9) +
     geom_smooth(aes(x = SCrank, y = .data[[computevar]]), linewidth = 2, method = "lm", color = "black") +
     scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
-    scale_x_continuous(breaks = pretty(df$SCrank, n = 6)) +
+    scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) + 
+    scale_x_continuous(breaks = seq(0, 80, by = 20), limits = c(0, 80)) +
     labs(
       x = "S-A connectional axis rank",
       y = ylab
