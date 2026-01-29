@@ -97,6 +97,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
+is_windows <- .Platform$OS.type == "windows"
+skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)) args$skip_compute_on_windows else 1L) == 1L
+skip_compute <- is_windows && skip_compute_on_windows
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 cov_tag <- if (!is.null(args$cov_tag)) args$cov_tag else "SES"
@@ -180,10 +183,17 @@ dir.create(FigCorrFolder, showWarnings = FALSE, recursive = TRUE)
 
 out_partial_tiff <- file.path(FigCorrFolder, paste0("meanpartialRsq_SCrankcorr_n", ds.resolution, ".tiff"))
 out_partial_pdf <- file.path(FigCorrFolder, paste0("meanpartialRsq_SCrankcorr_n", ds.resolution, ".pdf"))
+out_partial_svg <- file.path(FigCorrFolder, paste0("meanpartialRsq_SCrankcorr_n", ds.resolution, ".svg"))
 out_meanderv2_tiff <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".tiff"))
 out_meanderv2_pdf <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".pdf"))
+out_meanderv2_svg <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".svg"))
 
-if (!force && file.exists(out_summary) && file.exists(out_partial_tiff) && file.exists(out_partial_pdf) && file.exists(out_meanderv2_tiff) && file.exists(out_meanderv2_pdf)) {
+require_svg <- is_windows && requireNamespace("svglite", quietly = TRUE)
+if (!force && !skip_compute &&
+  file.exists(out_summary) &&
+  file.exists(out_partial_tiff) && file.exists(out_partial_pdf) &&
+  file.exists(out_meanderv2_tiff) && file.exists(out_meanderv2_pdf) &&
+  (!require_svg || (file.exists(out_partial_svg) && file.exists(out_meanderv2_svg)))) {
   message("[INFO] S4 outputs exist; skipping S4. Set --force=1 to re-run.")
   tryCatch({
     SCrank_correlation <- read.csv(out_summary, stringsAsFactors = FALSE)
@@ -194,15 +204,19 @@ if (!force && file.exists(out_summary) && file.exists(out_partial_tiff) && file.
   quit(save = "no", status = 0)
 }
 
-computevar.list <- c("partialRsq", "increase.onset2", "increase.offset2", "peak.increase.change", "meanderv2")
-SCrank_correlation <- do.call(
-  rbind,
-  lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
-)
-write.csv(SCrank_correlation, out_summary, row.names = FALSE)
-print_spearman_summary(SCrank_correlation)
+if (!skip_compute) {
+  computevar.list <- c("partialRsq", "increase.onset2", "increase.offset2", "peak.increase.change", "meanderv2")
+  SCrank_correlation <- do.call(
+    rbind,
+    lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
+  )
+  write.csv(SCrank_correlation, out_summary, row.names = FALSE)
+  print_spearman_summary(SCrank_correlation)
+} else if (!file.exists(out_summary)) {
+  message("[WARN] Skip summary computation on Windows; correlation summary not written: ", out_summary)
+}
 
-## scatter plots (Yeo7 style; fixed count; no svg)
+## scatter plots (Yeo7 style; fixed count; svg on Windows)
 yeo_scatter_theme <- theme(
   axis.text = element_text(size = 23, color = "black"),
   axis.title = element_text(size = 23),
@@ -215,17 +229,21 @@ yeo_scatter_theme <- theme(
   legend.position = "none"
 )
 
-lmthr <- max(abs(gamresult$partialRsq), na.rm = TRUE)
 cor_partial <- SCrankcorr(gamresult, "partialRsq", ds.resolution, dsdata = TRUE)
 p_partial <- ggplot(data = cor_partial) +
-  geom_point(aes(x = SCrank, y = partialRsq, color = partialRsq), size = 3.5, alpha = 0.9) +
+  geom_point(aes(x = SCrank, y = partialRsq, color = SCrank), size = 3.5, alpha = 0.9) +
   geom_smooth(aes(x = SCrank, y = partialRsq), method = "lm", color = "black") +
-  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr), guide = "none") +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
   scale_x_continuous(breaks = c(0, 20, 40, 60, 80, 100, 120)) +
   labs(x = "S-A connectional axis rank", y = "Partial R2") +
   theme_classic() + yeo_scatter_theme
 ggsave(out_partial_tiff, p_partial, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
 ggsave(out_partial_pdf, p_partial, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+if (require_svg) {
+  ggsave(out_partial_svg, p_partial, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+} else if (is_windows) {
+  message("[WARN] svglite not available; skip svg output on Windows.")
+}
 
 cor_md <- SCrankcorr(gamresult, "meanderv2", ds.resolution, dsdata = TRUE)
 p_md <- ggplot(data = cor_md) +
@@ -237,6 +255,11 @@ p_md <- ggplot(data = cor_md) +
   theme_classic() + yeo_scatter_theme
 ggsave(out_meanderv2_tiff, p_md, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
 ggsave(out_meanderv2_pdf, p_md, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
+if (require_svg) {
+  ggsave(out_meanderv2_svg, p_md, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
+} else if (is_windows) {
+  message("[WARN] svglite not available; skip svg output on Windows.")
+}
 
 ## matrix graphs (tiff only; no svg)
 if (make_matrix_graphs) {

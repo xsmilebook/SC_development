@@ -7,6 +7,7 @@ library(reshape)
 rm(list = ls())
 ds.resolution <- 12
 elementnum <- ds.resolution*(ds.resolution+1) /2
+is_windows <- .Platform$OS.type == "windows"
 
 demopath<-'D:/xuxiaoyu/DMRI_network_development/SC_development/demopath'
 functionFolder<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
@@ -64,7 +65,7 @@ mtrixplot[lower.tri(mtrixplot, diag = T)] <- correlation.df$meanderv2
 ggplot(data=correlation.df)+
   geom_point(aes(x=SCrank, y=meanderv2, color=SCrank), size=5)+
   geom_smooth(aes(x=SCrank, y=meanderv2),linewidth=2, method ="lm", color="black")+
-  scale_color_distiller(type="seq", palette = "RdBu", direction = -1)+
+  scale_color_distiller(type="seq", palette = "RdBu", direction = -1, guide = "none")+
   labs(x="S-A connectional axis rank", y="Second derivative")+
   scale_y_continuous(breaks = c(-0.003, 0, 0.003), labels = c(-3, 0, 3))+
   theme_classic()+
@@ -72,11 +73,18 @@ ggplot(data=correlation.df)+
         axis.title =element_text(size=23),aspect.ratio = 0.9,
         axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
         plot.title = element_text(size=20, hjust = 0.5, vjust=2),
-        plot.background=element_rect(fill="transparent"),
-        panel.background=element_rect(fill="transparent"),
+        plot.background=element_rect(fill="transparent", color = NA),
+        panel.background=element_rect(fill="transparent", color = NA),
         legend.position = "none")
-ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_n', ds.resolution, '_SAmult.tiff'), width=13, height =12, units = "cm")
-ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_n', ds.resolution, '_SAmult.svg'), dpi=600, width=20, height =14, units = "cm")
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_n', ds.resolution, '_SAmult.tiff'), width=13, height =12, units = "cm", bg = "transparent")
+ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_n', ds.resolution, '_SAmult.pdf'), dpi=600, width=13, height =12, units = "cm", bg = "transparent")
+if (is_windows) {
+  if (!requireNamespace("svglite", quietly = TRUE)) {
+    message("[WARN] svglite not available; skip svg output on Windows.")
+  } else {
+    ggsave(paste0(FigureFolder,'/CV', CVthr, '/correlation_sumSCinvnode_SCrank/mean', computevar, '_SCrankcorr_n', ds.resolution, '_SAmult.svg'), dpi=600, width=20, height =14, units = "cm", bg = "transparent")
+  }
+}
 
 
 

@@ -39,6 +39,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
+is_windows <- .Platform$OS.type == "windows"
+skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)) args$skip_compute_on_windows else 1L) == 1L
+skip_compute <- is_windows && skip_compute_on_windows
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
@@ -142,7 +145,7 @@ EuricDistance <- if (do_euclid) read.csv(euclid_csv) else NULL
 message(sum(gamresult$sig), " edges have significant developmental effects.")
 
 out_summary <- file.path(resultFolder, paste0("SCrank_correlation_summary", tag_suffix, ".csv"))
-should_recompute_summary <- force || !file.exists(out_summary)
+should_recompute_summary <- !skip_compute && (force || !file.exists(out_summary))
 sum_df_existing <- NULL
 if (!should_recompute_summary) {
   message("[INFO] S4 summary exists; will reuse unless --force=1: ", out_summary)
@@ -240,6 +243,8 @@ if (do_euclid) {
 }
 if (should_recompute_summary) {
   write.csv(SCrank_correlation, out_summary, row.names = FALSE)
+} else if (skip_compute && !file.exists(out_summary)) {
+  message("[WARN] Skip summary computation on Windows; correlation summary not written: ", out_summary)
 }
 
 ## scatter plots
@@ -265,16 +270,23 @@ plots_complete <- function() {
       file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")),
       file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf"))
     )
+    if (is_windows && requireNamespace("svglite", quietly = TRUE)) {
+      required <- c(
+        required,
+        file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".svg"))
+      )
+    }
   }
   all(file.exists(required))
 }
 
+require_svg <- is_windows && requireNamespace("svglite", quietly = TRUE)
 if (!force && !should_recompute_summary && plots_complete()) {
   message("[INFO] S4 plots already exist; skipping plotting (set --force=1 to re-draw).")
   quit(save = "no", status = 0)
 }
 
-yeo_scatter_theme <- theme(
+mytheme <- theme(
   axis.text = element_text(size = 23, color = "black"),
   axis.title = element_text(size = 23),
   aspect.ratio = 0.9,
@@ -308,25 +320,9 @@ plot_one_scatter <- function(computevar, ylab) {
   r <- rp$r
   p <- rp$p
 
-  if (computevar == "partialRsq") {
-    lmthr <- max(abs(gamresult$partialRsq), na.rm = TRUE)
-    return(
-      ggplot(df) +
-        geom_point(aes(x = SCrank, y = .data[[computevar]], color = .data[[computevar]]), size = 3.5, alpha = 0.9) +
-        geom_smooth(aes(x = SCrank, y = .data[[computevar]]), method = "lm", color = "black") +
-        scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-lmthr, lmthr), guide = "none") +
-        scale_x_continuous(breaks = pretty(df$SCrank, n = 6)) +
-        labs(
-          x = "S-A connectional axis rank",
-          y = ylab,
-          title = sprintf("%s (Spearman r=%.3f, p=%.3g)", computevar, r, p)
-        ) +
-        theme_classic() + yeo_scatter_theme
-    )
-  }
-
+  point_size <- if (computevar == "partialRsq") 3.5 else 5.5
   ggplot(df) +
-    geom_point(aes(x = SCrank, y = .data[[computevar]], color = SCrank), size = 5.5, alpha = 0.9) +
+    geom_point(aes(x = SCrank, y = .data[[computevar]], color = SCrank), size = point_size, alpha = 0.9) +
     geom_smooth(aes(x = SCrank, y = .data[[computevar]]), linewidth = 2, method = "lm", color = "black") +
     scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
     scale_x_continuous(breaks = pretty(df$SCrank, n = 6)) +
@@ -335,7 +331,7 @@ plot_one_scatter <- function(computevar, ylab) {
       y = ylab,
       title = sprintf("%s (Spearman r=%.3f, p=%.3g)", computevar, r, p)
     ) +
-    theme_classic() + yeo_scatter_theme
+    theme_classic() + mytheme
 }
 
 scatter_targets <- list(
@@ -354,9 +350,19 @@ for (nm in names(scatter_targets)) {
   if (nm == "partialRsq") {
     ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")), p, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
     ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf")), p, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+    if (require_svg) {
+      ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".svg")), p, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
+    } else if (is_windows) {
+      message("[WARN] svglite not available; skip svg output on Windows.")
+    }
   } else {
     ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")), p, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
     ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf")), p, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
+    if (require_svg) {
+      ggsave(file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".svg")), p, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
+    } else if (is_windows) {
+      message("[WARN] svglite not available; skip svg output on Windows.")
+    }
   }
 }
 

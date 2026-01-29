@@ -58,6 +58,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
+is_windows <- .Platform$OS.type == "windows"
+skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)) args$skip_compute_on_windows else 1L) == 1L
+skip_compute <- is_windows && skip_compute_on_windows
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 ds.resolution <- 12
@@ -101,13 +104,15 @@ gamresult$peak.change[gamresult$sig == FALSE] <- NA
 gamresult$peak.increase.change[gamresult$sig == FALSE] <- NA
 
 out_summary <- file.path(resultFolder, "SCrank_correlation_summary.csv")
-if (force || !file.exists(out_summary)) {
+if (!skip_compute && (force || !file.exists(out_summary))) {
   computevar.list <- c("partialRsq", "increase.onset2", "increase.offset2", "peak.increase.change", "meanderv2")
   SCrank_correlation <- do.call(
     rbind,
     lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
   )
   write.csv(SCrank_correlation, out_summary, row.names = FALSE)
+} else if (skip_compute && !file.exists(out_summary)) {
+  message("[WARN] Skip summary computation on Windows; correlation summary not written: ", out_summary)
 }
 tryCatch({
   SCrank_correlation <- read.csv(out_summary, stringsAsFactors = FALSE)
@@ -119,8 +124,10 @@ tryCatch({
 ## scatter plot: meanderv2 (match original)
 out_meanderv2_tiff <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".tiff"))
 out_meanderv2_pdf <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".pdf"))
+out_meanderv2_svg <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".svg"))
 
-if (force || !file.exists(out_meanderv2_tiff) || !file.exists(out_meanderv2_pdf)) {
+require_svg <- is_windows && requireNamespace("svglite", quietly = TRUE)
+if (force || !file.exists(out_meanderv2_tiff) || !file.exists(out_meanderv2_pdf) || (require_svg && !file.exists(out_meanderv2_svg))) {
   correlation.df <- SCrankcorr(gamresult, "meanderv2", ds.resolution, dsdata = TRUE)
   mytheme <- theme(
     axis.text = element_text(size = 23, color = "black"),
@@ -142,6 +149,11 @@ if (force || !file.exists(out_meanderv2_tiff) || !file.exists(out_meanderv2_pdf)
     theme_classic() + mytheme
   ggsave(out_meanderv2_tiff, p, width = 13, height = 12, units = "cm", bg = "transparent")
   ggsave(out_meanderv2_pdf, p, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
+  if (require_svg) {
+    ggsave(out_meanderv2_svg, p, dpi = 600, width = 13, height = 12, units = "cm", bg = "transparent")
+  } else if (is_windows) {
+    message("[WARN] svglite not available; skip svg output on Windows.")
+  }
 }
 
 ## matrix graphs (match original naming)
