@@ -193,8 +193,8 @@ if (!force &&
   } else {
     c(0, elementnum)
   }
-  scr_min <- if (ds.resolution == 7) 0 else if (ds.resolution == 17) 0 else min(correlation.df$SCrank, na.rm = TRUE)
-  scr_max <- if (ds.resolution == 7) 20 else if (ds.resolution == 17) 120 else max(correlation.df$SCrank, na.rm = TRUE)
+  scr_min <- if (ds.resolution == 7) 0 else if (ds.resolution == 17) 0 else 0
+  scr_max <- if (ds.resolution == 7) 20 else if (ds.resolution == 17) 120 else elementnum
 
   ## partial Rsq
   correlation.df <- SCrankcorr(gamresult, "partialRsq", ds.resolution, dsdata = TRUE)
