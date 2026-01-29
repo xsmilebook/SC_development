@@ -329,17 +329,37 @@ plot_one_scatter <- function(computevar, ylab) {
   p <- rp$p
 
   point_size <- if (computevar == "partialRsq") 3.5 else 5.5
-  ggplot(df) +
+  x_breaks <- if (ds.resolution == 7) {
+    seq(0, 20, by = 5)
+  } else if (ds.resolution == 17) {
+    seq(0, 120, by = 20)
+  } else {
+    seq(0, 80, by = 20)
+  }
+  x_limits <- if (ds.resolution == 7) {
+    c(0, 20)
+  } else if (ds.resolution == 17) {
+    c(0, 120)
+  } else {
+    c(0, 80)
+  }
+
+  p <- ggplot(df) +
     geom_point(aes(x = SCrank, y = .data[[computevar]], color = SCrank), size = point_size, alpha = 0.9) +
     geom_smooth(aes(x = SCrank, y = .data[[computevar]]), linewidth = 2, method = "lm", color = "black") +
     scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
-    scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) + 
-    scale_x_continuous(breaks = seq(0, 80, by = 20), limits = c(0, 80)) +
+    scale_x_continuous(breaks = x_breaks, limits = x_limits) +
     labs(
       x = "S-A connectional axis rank",
       y = ylab
     ) +
     theme_classic() + mytheme
+
+  if (computevar == "meanderv2" || computevar == "meanderv2_control_distance") {
+    p <- p + scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2))
+  }
+
+  p
 }
 
 scatter_targets <- list(
