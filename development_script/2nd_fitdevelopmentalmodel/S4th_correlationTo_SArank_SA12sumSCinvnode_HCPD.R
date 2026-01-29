@@ -292,7 +292,6 @@ mytheme <- theme(
   aspect.ratio = 0.9,
   axis.line = element_line(linewidth = 0.6),
   axis.ticks = element_line(linewidth = 0.6),
-  plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
   plot.background = element_rect(fill = "transparent", color = NA),
   panel.background = element_rect(fill = "transparent", color = NA),
   legend.position = "none"
@@ -328,16 +327,15 @@ plot_one_scatter <- function(computevar, ylab) {
     scale_x_continuous(breaks = pretty(df$SCrank, n = 6)) +
     labs(
       x = "S-A connectional axis rank",
-      y = ylab,
-      title = sprintf("%s (Spearman r=%.3f, p=%.3g)", computevar, r, p)
+      y = ylab
     ) +
     theme_classic() + mytheme
 }
 
 scatter_targets <- list(
   partialRsq = "Partial R^2 (signed)",
-  meanderv2 = "Mean 2nd derivative",
-  meanderv2_control_distance = "Mean 2nd derivative (residualized by Euclidean distance)",
+  meanderv2 = "Second derivative",
+  meanderv2_control_distance = "Second derivative",
   partialRsq_control_distance = "Partial R^2 (residualized by Euclidean distance)",
   increase.onset2 = "Increase onset age",
   increase.offset2 = "Increase offset age",
@@ -428,7 +426,7 @@ if (make_matrix_graphs) {
         geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
         geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
         geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
-        ggtitle(label = computevar) + labs(x = NULL, y = NULL) +
+        labs(x = NULL, y = NULL) +
         scale_y_continuous(breaks = NULL, labels = NULL) +
         scale_x_continuous(breaks = NULL, labels = NULL) +
         theme(
@@ -436,7 +434,6 @@ if (make_matrix_graphs) {
           axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
           axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
           axis.title = element_text(size = 18),
-          plot.title = element_text(size = 18, hjust = 0.5),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 18),
           panel.background = element_rect(fill = NA),
@@ -452,7 +449,7 @@ if (make_matrix_graphs) {
         geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
         geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
         geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
-        ggtitle(label = computevar) + labs(x = NULL, y = NULL) +
+        labs(x = NULL, y = NULL) +
         scale_y_continuous(breaks = NULL, labels = NULL) +
         scale_x_continuous(breaks = NULL, labels = NULL) +
         theme(
@@ -460,7 +457,6 @@ if (make_matrix_graphs) {
           axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
           axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
           axis.title = element_text(size = 18),
-          plot.title = element_text(size = 18, hjust = 0.5),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 18),
           panel.background = element_rect(fill = NA),

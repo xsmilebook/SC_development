@@ -72,7 +72,6 @@ ggplot(data=correlation.df)+
   theme(axis.text=element_text(size=23, color="black"), 
         axis.title =element_text(size=23),aspect.ratio = 0.9,
         axis.line = element_line(linewidth=0.6),axis.ticks= element_line(linewidth=0.6),
-        plot.title = element_text(size=20, hjust = 0.5, vjust=2),
         plot.background=element_rect(fill="transparent", color = NA),
         panel.background=element_rect(fill="transparent", color = NA),
         legend.position = "none")

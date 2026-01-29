@@ -135,7 +135,6 @@ if (force || !file.exists(out_meanderv2_tiff) || !file.exists(out_meanderv2_pdf)
     aspect.ratio = 0.9,
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
-    plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA),
     legend.position = "none"
@@ -220,7 +219,7 @@ if (make_matrix_graphs) {
         geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
         geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
         geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
-        ggtitle(label = computevar) + labs(x = NULL, y = NULL) +
+        labs(x = NULL, y = NULL) +
         scale_y_continuous(breaks = NULL, labels = NULL) +
         scale_x_continuous(breaks = NULL, labels = NULL) +
         theme(
@@ -228,7 +227,6 @@ if (make_matrix_graphs) {
           axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
           axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
           axis.title = element_text(size = 18),
-          plot.title = element_text(size = 18, hjust = 0.5),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 18),
           panel.background = element_rect(fill = NA),
@@ -244,7 +242,7 @@ if (make_matrix_graphs) {
         geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
         geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
         geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
-        ggtitle(label = computevar) + labs(x = NULL, y = NULL) +
+        labs(x = NULL, y = NULL) +
         scale_y_continuous(breaks = NULL, labels = NULL) +
         scale_x_continuous(breaks = NULL, labels = NULL) +
         theme(
@@ -252,7 +250,6 @@ if (make_matrix_graphs) {
           axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
           axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
           axis.title = element_text(size = 18),
-          plot.title = element_text(size = 18, hjust = 0.5),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 18),
           panel.background = element_rect(fill = NA),
