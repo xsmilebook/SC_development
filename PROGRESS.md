@@ -209,3 +209,4 @@
 - 2026-01-29: Chinese Cohort ComBat-GAM S4 散点图改为按 `SCrank` 着色，输出补齐 `pdf` 并在 Windows 下输出 `svg`，同时支持 Windows 下跳过 summary 计算。
 - 2026-01-29: HCP-D S4 相关脚本（SA12/Yeo/TractSeg/Covariates/SAmult）散点图统一按 `SCrank` 着色并使用指定主题，输出补齐 `pdf` 且 Windows 下可输出 `svg`，支持 Windows 下跳过 summary 计算。
 - 2026-01-29: HCP-D S4 相关图移除标题，并将 meanderv2 相关图纵轴统一为 `Second derivative`。
+- 2026-01-29: 为避免 Windows 本地运行触发 RStudio Reconnect，HCP-D S4 脚本在 Windows 下默认仅绘图（不写 summary）。

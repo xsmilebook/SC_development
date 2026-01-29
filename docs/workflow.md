@@ -25,7 +25,7 @@
 - HCP-D（SA12，ComBat-GAM）协变量敏感性分析（SES 与 ICV 两个版本）：
   - sbatch：`sbatch sbatch/run_hcpd_devmodel_combatgam_CV75_covariates_ses_icv_container.sbatch`
   - 输入：默认使用 `outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`；若缺少 `income.adj/ICV` 列，会从 `demopath/HCPD_demo_behav.csv` 按 `subID` 回填。
-- 输出：写入 `outputs/{intermediate,results,figures}/2nd_fitdevelopmentalmodel/hcpd/covariates/{SES,ICV}/combat_gam/CV75/`（S3 输出 `tiff+pdf`；S4 输出 `tiff+pdf`，Windows 下额外生成 `svg` 需 `svglite`；日志中打印 Spearman r 与 p）。
+- 输出：写入 `outputs/{intermediate,results,figures}/2nd_fitdevelopmentalmodel/hcpd/covariates/{SES,ICV}/combat_gam/CV75/`（S3 输出 `tiff+pdf`；S4 输出 `tiff+pdf`，Windows 下额外生成 `svg` 需 `svglite`；Windows 默认仅绘图不写 summary；日志中打印 Spearman r 与 p）。
 - 定义文件：`containers/scdevelopment_r41.def`（可按需扩展依赖，但应尽量保持版本稳定；为降低 HPC/容器环境的系统依赖，默认流程不依赖 `svglite`，图像输出推荐使用 `tiff + pdf`）。
   - 常见构建报错：`could not use fakeroot: no mapping entry found in /etc/subuid for <user>`：说明集群未为该用户配置 fakeroot/subuid。当前构建脚本不使用 `--fakeroot`；若仍失败需联系管理员开启 setuid build 或提供可用的 fakeroot 配置。
   - 常见构建报错：`You must be the root user ... use --remote or --fakeroot`：说明本地 build 需要 root/setuid；当前构建脚本使用 `singularity build --remote`。
@@ -152,7 +152,7 @@
        - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
        - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
      - figures：`outputs/figures/2nd_fitdevelopmentalmodel/hcpd/combat_gam/CV75/`
-     - S4 散点图输出：默认生成 `tiff+pdf`，Windows 环境下额外输出 `svg`（需要 `svglite`）；可用 `--skip_compute_on_windows=0` 关闭 Windows 下的“仅绘图”模式。
+     - S4 散点图输出：默认生成 `tiff+pdf`，Windows 环境下额外输出 `svg`（需要 `svglite`）；Windows 默认仅绘图（不写 summary），可用 `--skip_compute_on_windows=0` 关闭。
      - HCP-D（Yeo7/Yeo17/TractSeg major-bundle，使用各自 ComBat-GAM 输出）的容器版一键提交：
        - sbatch：`sbatch/run_hcpd_devmodel_combatgam_CV75_yeo_tractseg_container.sbatch`
        - 输入（默认）：
@@ -163,7 +163,7 @@
          - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/hcpd/{yeo,tractseg}/**/CV75/`
          - results：`outputs/results/2nd_fitdevelopmentalmodel/hcpd/{yeo,tractseg}/**/CV75/`
      - figures：`outputs/figures/2nd_fitdevelopmentalmodel/hcpd/{yeo,tractseg}/**/CV75/`
-     - Yeo/TractSeg S4 散点图：默认 `tiff+pdf`，Windows 下额外输出 `svg`（需要 `svglite`）；支持 `--skip_compute_on_windows=0` 关闭 Windows 下跳过 summary 的便捷模式。
+     - Yeo/TractSeg S4 散点图：默认 `tiff+pdf`，Windows 下额外输出 `svg`（需要 `svglite`）；Windows 默认仅绘图（不写 summary），可用 `--skip_compute_on_windows=0` 关闭。
    - 注意：若出现 `object '.lower_ci' not found`（gratia 输出列名变动），请使用已修复的 `gamfunction/gammsmooth.R` 并重新提交对应作业。
 	   - Chinese Cohort（基于 ComBat-GAM 输出）的可复现运行入口：
 	     - 输入默认：`outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`

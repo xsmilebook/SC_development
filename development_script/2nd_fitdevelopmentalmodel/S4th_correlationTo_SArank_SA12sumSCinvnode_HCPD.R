@@ -194,9 +194,11 @@ if (do_euclid) {
 }
 
 meanSC_aligned <- meanSC_map[gamresult$parcel]
-corr.test(meanSC_aligned, gamresult$partialRsq)
-if (do_euclid) {
-  corr.test(meanSC, Edist_map[parcel_all])
+if (!skip_compute) {
+  corr.test(meanSC_aligned, gamresult$partialRsq)
+  if (do_euclid) {
+    corr.test(meanSC, Edist_map[parcel_all])
+  }
 }
 
 ## convert critical ages of insignificantly developmental edges to NA
