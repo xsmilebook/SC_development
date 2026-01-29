@@ -40,6 +40,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
   stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
+is_windows <- .Platform$OS.type == "windows"
+skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)) args$skip_compute_on_windows else 1L) == 1L
+skip_compute <- is_windows && skip_compute_on_windows
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
 ds.resolution <- 12
@@ -99,7 +102,7 @@ EucDistance <- read.csv(euclid_csv)
 message(sum(gamresult$sig), " edges have significant developmental effects.")
 
 out_summary <- file.path(resultFolder, "SCrank_correlation_summary.csv")
-if (!force && file.exists(out_summary)) {
+if (!force && file.exists(out_summary) && !skip_compute) {
   message("[INFO] S4 summary exists, skipping: ", out_summary, " (set --force=1 to re-run)")
   quit(save = "no", status = 0)
 }
@@ -129,25 +132,34 @@ gamresult <- within(gamresult, {
     partialRsq2 < mean(partialRsq2, na.rm = TRUE) - 3 * sd(partialRsq2, na.rm = TRUE)] <- NA
 })
 
-## compute correlations to SC rank
-computevar.list <- c("partialRsq2", "meanderv2")
-SCrank_correlation <- do.call(
-  rbind,
-  lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
-)
-
-## Validation: Control for Euclidean distance
+## Validation: Control for Euclidean distance (needed for plots)
 gamresult$EucDistance <- unname(Edist_map[gamresult$parcel])
 fit_pr <- lm(partialRsq2 ~ EucDistance, data = gamresult, na.action = na.exclude)
 fit_md <- lm(meanderv2 ~ EucDistance, data = gamresult, na.action = na.exclude)
 gamresult$partialRsq_control_distance <- as.numeric(residuals(fit_pr))
 gamresult$meanderv2_control_distance <- as.numeric(residuals(fit_md))
-SCrank_correlation <- rbind(
-  SCrank_correlation,
-  SCrankcorr(gamresult, "partialRsq_control_distance", ds.resolution, dsdata = FALSE),
-  SCrankcorr(gamresult, "meanderv2_control_distance", ds.resolution, dsdata = FALSE)
-)
-write.csv(SCrank_correlation, out_summary, row.names = FALSE)
+
+if (!skip_compute) {
+  ## compute correlations to SC rank
+  computevar.list <- c("partialRsq2", "meanderv2")
+  SCrank_correlation <- do.call(
+    rbind,
+    lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
+  )
+
+  SCrank_correlation <- rbind(
+    SCrank_correlation,
+    SCrankcorr(gamresult, "partialRsq_control_distance", ds.resolution, dsdata = FALSE),
+    SCrankcorr(gamresult, "meanderv2_control_distance", ds.resolution, dsdata = FALSE)
+  )
+  write.csv(SCrank_correlation, out_summary, row.names = FALSE)
+} else {
+  if (!file.exists(out_summary)) {
+    message("[WARN] Skip summary computation on Windows; correlation summary not written: ", out_summary)
+  } else {
+    message("[INFO] Skip summary computation on Windows; using existing summary: ", out_summary)
+  }
+}
 
 ## scatter plots
 FigCorrFolder <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank")
@@ -270,7 +282,11 @@ for (nm in names(scatter_targets)) {
   pdf_path <- file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf"))
   ggsave(pdf_path, p, dpi = 600, width = 17, height = 14, units = "cm", bg = "transparent")
 
-  if (.Platform$OS.type == "windows") {
+  if (is_windows) {
+    if (!requireNamespace("svglite", quietly = TRUE)) {
+      message("[WARN] svglite not available; skip svg output on Windows.")
+      next
+    }
     svg_width <- attr(p, "svg_width")
     svg_height <- attr(p, "svg_height")
     svg_path <- file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".svg"))

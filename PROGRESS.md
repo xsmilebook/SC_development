@@ -204,3 +204,4 @@
 - 2026-01-29: 修复 HCP-D changerate S1 在 `do_control_distance=FALSE` 时仍汇总全 NA 的 control-distance 矩阵导致的报错，确保 SA7/SA17 changerate 可正常出图与输出数值。
 - 2026-01-29: HCP-D devmodel S4：当 summary 已存在且 `--force=0` 时，若检测到 S4 的散点图缺失则仍继续生成 `correlation_sumSCinvnode_SCrank_*` 图像（SA7/SA17 等 tag 版本同样适用）。
 - 2026-01-29: ABCD ComBat-GAM S4 散点图风格对齐参考脚本，并将输出调整为 `pdf`（必需）+ Windows 下 `svg`。
+- 2026-01-29: ABCD ComBat-GAM S4 在 Windows 下默认跳过 summary 计算，仅生成散点图，并在缺少 `svglite` 时跳过 svg 输出。

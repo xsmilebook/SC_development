@@ -179,6 +179,7 @@
      - results：`outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
      - figures：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
    - S4 散点图输出：`correlation_sumSCinvnode_SCrank/` 内默认生成 `pdf`；若在 Windows 环境运行则额外输出 `svg`（需要 `svglite`）。
+   - Windows 便捷模式：S4 默认在 Windows 跳过 summary 计算，仅生成散点图；可用 `--skip_compute_on_windows=0` 关闭（或 `--force=1` 强制完整重算）。
 3) S-A 轴可视化（`development_script/3rd_plotConnectionalAxis`）
 4) 年龄分段与变化率分析（`development_script/4th_changerate_SAcorr`）
 5) 认知与心理病理相关分析（`development_script/5th_cognition`、`development_script/6th_pfactor`）
