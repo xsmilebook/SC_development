@@ -344,10 +344,13 @@ plot_one_scatter <- function(computevar, ylab) {
     c(0, 80)
   }
 
+  scr_min <- if (ds.resolution == 7) 0 else if (ds.resolution == 17) 0 else min(df$SCrank, na.rm = TRUE)
+  scr_max <- if (ds.resolution == 7) 20 else if (ds.resolution == 17) 120 else max(df$SCrank, na.rm = TRUE)
+
   p <- ggplot(df) +
     geom_point(aes(x = SCrank, y = .data[[computevar]], color = SCrank), size = point_size, alpha = 0.9) +
     geom_smooth(aes(x = SCrank, y = .data[[computevar]]), linewidth = 2, method = "lm", color = "black") +
-    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
+    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(scr_min, scr_max), guide = "none") +
     scale_x_continuous(breaks = x_breaks, limits = x_limits) +
     labs(
       x = "S-A connectional axis rank",

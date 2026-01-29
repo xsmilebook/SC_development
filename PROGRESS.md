@@ -212,3 +212,4 @@
 - 2026-01-29: 为避免 Windows 本地运行触发 RStudio Reconnect，HCP-D S4 脚本在 Windows 下默认仅绘图（不写 summary）。
 - 2026-01-29: HCP-D S4 在 Windows 交互环境默认跳过 matrix graphs，并强制单核与非并行路径以提升稳定性。
 - 2026-01-29: HCP-D S4 SA7/SA17 散点图 x 轴刻度与范围按分辨率设置，meanderv2 相关图统一 y 轴刻度。
+- 2026-01-29: HCP-D S4 在 SA7/SA17 下固定散点颜色映射范围，确保色标两端一致。
