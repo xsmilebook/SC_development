@@ -366,7 +366,7 @@ plot_one_scatter <- function(computevar, ylab) {
     theme_classic() + mytheme
 
   if (computevar == "meanderv2" || computevar == "meanderv2_control_distance") {
-    p <- p + scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2))
+    p <- p + scale_y_continuous(breaks = c(-0.002, -0.001, 0, 0.001), labels = c(-2, -1, 0, 1))
   }
 
   p
