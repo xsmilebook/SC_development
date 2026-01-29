@@ -69,24 +69,32 @@ exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S3
   --force=1
 
 # No Euclidean-distance control for SA7 by default (pass EUCLID_CSV to enable).
+# NOTE: avoid expanding an empty bash array under `set -u` (some environments treat it as unbound).
 EUCLID_CSV="${EUCLID_CSV:-}"
-euclid_arg=()
 if [ -n "${EUCLID_CSV}" ]; then
   if [[ "${EUCLID_CSV}" == "${project_root}/"* ]]; then
-    euclid_arg=(--euclid_csv="/work/${EUCLID_CSV#${project_root}/}")
+    EUCLID_CSV_ARG="/work/${EUCLID_CSV#${project_root}/}"
   else
-    euclid_arg=(--euclid_csv="${EUCLID_CSV}")
+    EUCLID_CSV_ARG="${EUCLID_CSV}"
   fi
+  exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S4th_correlationTo_SArank_SA12sumSCinvnode_HCPD.R \
+    --project_root=/work \
+    --cvthr="${CVTHR}" \
+    --ds_res="${DS_RES}" \
+    --out_tag="${OUT_TAG}" \
+    --sa_axis_mode=addsquare \
+    --input_rds="/work/${INPUT_RDS#${project_root}/}" \
+    --euclid_csv="${EUCLID_CSV_ARG}" \
+    --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}" \
+    --force=1
+else
+  exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S4th_correlationTo_SArank_SA12sumSCinvnode_HCPD.R \
+    --project_root=/work \
+    --cvthr="${CVTHR}" \
+    --ds_res="${DS_RES}" \
+    --out_tag="${OUT_TAG}" \
+    --sa_axis_mode=addsquare \
+    --input_rds="/work/${INPUT_RDS#${project_root}/}" \
+    --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}" \
+    --force=1
 fi
-
-exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S4th_correlationTo_SArank_SA12sumSCinvnode_HCPD.R \
-  --project_root=/work \
-  --cvthr="${CVTHR}" \
-  --ds_res="${DS_RES}" \
-  --out_tag="${OUT_TAG}" \
-  --sa_axis_mode=addsquare \
-  --input_rds="/work/${INPUT_RDS#${project_root}/}" \
-  --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}" \
-  --force=1 \
-  "${euclid_arg[@]}"
-
