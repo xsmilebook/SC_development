@@ -155,6 +155,17 @@ build_sa_rank <- function(ds, mode = c("addsquare", "multiply")) {
   rank(mat, ties.method = "average")
 }
 
+build_sa_values <- function(ds, mode = c("addsquare", "multiply")) {
+  mode <- match.arg(mode)
+  mat <- matrix(NA_real_, nrow = ds, ncol = ds)
+  for (x in 1:ds) {
+    for (y in 1:ds) {
+      mat[x, y] <- if (mode == "multiply") x * y else x^2 + y^2
+    }
+  }
+  mat[lower.tri(mat, diag = TRUE)]
+}
+
 sa_axis_mode <- if (sa_axis_mode %in% c("addsquare", "x2+y2", "sum_sq")) "addsquare" else if (sa_axis_mode %in% c("multiply", "x*y", "mult")) "multiply" else sa_axis_mode
 if (!sa_axis_mode %in% c("addsquare", "multiply")) stop("Invalid --sa_axis_mode: ", sa_axis_mode, " (use addsquare|multiply)")
 
@@ -605,6 +616,7 @@ p_mat_max <- make_matrix_plot(df_age_max$derivative, sprintf("Age = %.2f", age_m
 ggsave(file.path(figure_dir, paste0("Deri_SA", ds.resolution, "_diw_age21.tiff")), p_mat_max, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
 
 # Derivative line plot across age
+edge_sarank_value <- build_sa_values(ds.resolution, mode = sa_axis_mode)
 sc_rank_first <- rank(edge_sarank_value, ties.method = "first")
 rank_df <- data.frame(label_ID = paste0("SC.", seq_len(length(posterior_list)), "_h"), SCrank12 = sc_rank_first)
 derivative_merge <- merge(derivative_df, rank_df, by = "label_ID", all.x = TRUE)

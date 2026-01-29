@@ -220,3 +220,4 @@
 - 2026-01-29: 修复 Yeo7/17 绘图中 `correlation.df` 未定义导致的报错。
 - 2026-01-29: 修复 Yeo7/17 绘图色标范围依赖未初始化 `correlation.df` 的问题。
 - 2026-01-29: 统一 4th_changerate_SAcorr 多数据集/验证分析脚本的绘图主题与输出格式，Windows 下默认仅绘图并追加 svg。
+- 2026-01-29: 修复 HCP-D 4th changerate S1 在绘制导数折线图时缺失 `edge_sarank_value` 的报错。
