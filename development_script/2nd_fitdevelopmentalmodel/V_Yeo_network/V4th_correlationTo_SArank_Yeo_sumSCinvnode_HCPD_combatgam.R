@@ -69,6 +69,7 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 is_windows <- .Platform$OS.type == "windows"
+is_interactive <- interactive()
 skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)) args$skip_compute_on_windows else 1L) == 1L
 skip_compute <- is_windows && skip_compute_on_windows
 
@@ -77,6 +78,9 @@ yeo <- as.integer(if (!is.null(args$yeo)) args$yeo else 17L)
 if (!yeo %in% c(7L, 17L)) stop("Unsupported yeo resolution: ", yeo, " (expected 7 or 17)")
 
 make_matrix_graphs <- as.integer(if (!is.null(args$make_matrix_graphs)) args$make_matrix_graphs else 1L) == 1L
+if (is_windows && is_interactive && is.null(args$make_matrix_graphs)) {
+  make_matrix_graphs <- FALSE
+}
 
 interfileFolder <- file.path(
   project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
@@ -107,6 +111,9 @@ ds.resolution <- infer_resolution_from_edges(elementnum)
 n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = NA))
 if (is.na(n_cores) || n_cores < 1) n_cores <- parallel::detectCores()
 n_cores <- max(1L, n_cores)
+if (is_windows) {
+  n_cores <- 1L
+}
 
 gamresult$pfdr <- p.adjust(gamresult$anova.smooth.pvalue, method = "fdr")
 gamresult$sig <- (gamresult$pfdr < 0.05)
@@ -172,12 +179,30 @@ if (!force &&
     legend.position = "none"
   )
 
+  x_breaks <- if (ds.resolution == 7) {
+    seq(0, 20, by = 5)
+  } else if (ds.resolution == 17) {
+    seq(0, 120, by = 20)
+  } else {
+    pretty(correlation.df$SCrank, n = 6)
+  }
+  x_limits <- if (ds.resolution == 7) {
+    c(0, 20)
+  } else if (ds.resolution == 17) {
+    c(0, 120)
+  } else {
+    NULL
+  }
+  scr_min <- if (ds.resolution == 7) 0 else if (ds.resolution == 17) 0 else min(correlation.df$SCrank, na.rm = TRUE)
+  scr_max <- if (ds.resolution == 7) 20 else if (ds.resolution == 17) 120 else max(correlation.df$SCrank, na.rm = TRUE)
+
   ## partial Rsq
   correlation.df <- SCrankcorr(gamresult, "partialRsq", ds.resolution, dsdata = TRUE)
   p1 <- ggplot(data = correlation.df) +
     geom_point(aes(x = SCrank, y = partialRsq, color = SCrank), size = 3.5, alpha = 0.9) +
     geom_smooth(aes(x = SCrank, y = partialRsq), method = "lm", color = "black") +
-    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
+    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(scr_min, scr_max), guide = "none") +
+    scale_x_continuous(breaks = x_breaks, limits = x_limits) +
     labs(x = "S-A connectional axis rank", y = "Partial R2") +
     theme_classic() + mytheme
   ggsave(out_partial_tiff, p1, width = 17, height = 14, units = "cm", bg = "transparent")
@@ -193,9 +218,9 @@ if (!force &&
   p2 <- ggplot(data = correlation.df) +
     geom_point(aes(x = SCrank, y = meanderv2_2, color = SCrank), size = 5.5, alpha = 0.9) +
     geom_smooth(aes(x = SCrank, y = meanderv2_2), linewidth = 2, method = "lm", color = "black") +
-    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
+    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(scr_min, scr_max), guide = "none") +
     labs(x = "S-A connectional axis rank", y = "Second derivative") +
-    scale_x_continuous(breaks = c(0, 20, 40, 60, 80, 100, 120)) +
+    scale_x_continuous(breaks = x_breaks, limits = x_limits) +
     scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) +
     theme_classic() + mytheme
   ggsave(out_meanderv2_tiff, p2, width = 13, height = 12, units = "cm", bg = "transparent")
@@ -218,10 +243,17 @@ if (make_matrix_graphs) {
     y = c(-0.5, -ds.resolution - 0.5), xmin = rep(0.5, times = 2), xmax = rep(ds.resolution + 0.5, times = 2)
   )
 
-  SCrank_correlation.df <- mclapply(seq_along(computevar.list), function(i) {
-    computevar <- computevar.list[[i]]
-    SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
-  }, mc.cores = min(6L, n_cores))
+  if (is_windows) {
+    SCrank_correlation.df <- lapply(seq_along(computevar.list), function(i) {
+      computevar <- computevar.list[[i]]
+      SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
+    })
+  } else {
+    SCrank_correlation.df <- mclapply(seq_along(computevar.list), function(i) {
+      computevar <- computevar.list[[i]]
+      SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
+    }, mc.cores = min(6L, n_cores))
+  }
 
   for (i in seq_along(computevar.list)) {
     computevar <- computevar.list[[i]]

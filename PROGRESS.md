@@ -216,3 +216,4 @@
 - 2026-01-29: 修复 HCP-D S4 在 SA17 输入 SC 列数不匹配时的 setNames 报错，缺列时跳过 meanSC 相关性检查。
 - 2026-01-29: SAmult 本地绘图脚本改为使用项目内输入/输出路径以对齐 sbatch。
 - 2026-01-29: HCP-D TractSeg 与 covariates 的 S4 在 Windows 交互环境默认仅绘图并跳过 matrix graphs。
+- 2026-01-29: HCP-D Yeo7/Yeo17 S4 在 Windows 交互环境默认仅绘图并跳过 matrix graphs，散点坐标与色标范围按分辨率固定。
