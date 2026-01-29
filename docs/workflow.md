@@ -123,6 +123,7 @@
   - S3：当 `plotdatasum_scale_TRUE_SA12.rds` 与关键图（`devcurve_Rsq_fit.ratio.tiff`、`devcurve_meanderv2_fit.Z.tiff`）存在时跳过。
   - S4：当 `SCrank_correlation_summary.csv` 存在时跳过重算（但会在日志中读取并打印 Spearman 相关系数与 p 值，便于检查）。
 - 强制重跑：为任一步脚本增加 `--force=1`（例如：`Rscript .../S3rd_visualizationfitSCcurves_SA12sumSCinvnode_HCPD.R --force=1`）。
+- 注：HCP-D devmodel 的 S4 若 summary 已存在（`--force=0`），但散点图缺失，将自动补画 `correlation_sumSCinvnode_SCrank_*`（不会重算 summary；SA7/SA17/SAmult 等 tag 版本同样适用）。
 
 ## HCP-D 发育模型输出 QC（conda 环境）
 - 目的：在 **conda R 环境** 下检查已生成的 `gamresults/gammodel`（raw+scaled）是否一致、是否为 `mgcv::gam` 对象、以及 `mgcv::predict.gam()` 是否可用（含 `se.fit` 路径）。

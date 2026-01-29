@@ -142,16 +142,17 @@ EuricDistance <- if (do_euclid) read.csv(euclid_csv) else NULL
 message(sum(gamresult$sig), " edges have significant developmental effects.")
 
 out_summary <- file.path(resultFolder, paste0("SCrank_correlation_summary", tag_suffix, ".csv"))
-if (!force && file.exists(out_summary)) {
-  message("[INFO] S4 summary exists, skipping recompute: ", out_summary, " (set --force=1 to re-run)")
-  sum_df <- read.csv(out_summary)
-  if (all(c("Interest.var", "r.spearman", "p.spearman") %in% names(sum_df))) {
+should_recompute_summary <- force || !file.exists(out_summary)
+sum_df_existing <- NULL
+if (!should_recompute_summary) {
+  message("[INFO] S4 summary exists; will reuse unless --force=1: ", out_summary)
+  sum_df_existing <- tryCatch(read.csv(out_summary), error = function(e) NULL)
+  if (is.data.frame(sum_df_existing) && all(c("Interest.var", "r.spearman", "p.spearman") %in% names(sum_df_existing))) {
     message(sprintf("[INFO] SCrank Spearman summary (ds.resolution=%d sa_axis_mode=%s tag=%s)", ds.resolution, sa_axis_mode, ifelse(nzchar(out_tag), out_tag, "<none>")))
-    for (i in seq_len(nrow(sum_df))) {
-      message(sprintf("[INFO]  %s: r=%.5f, p=%.3g", as.character(sum_df$Interest.var[[i]]), as.numeric(sum_df$r.spearman[[i]]), as.numeric(sum_df$p.spearman[[i]])))
+    for (i in seq_len(nrow(sum_df_existing))) {
+      message(sprintf("[INFO]  %s: r=%.5f, p=%.3g", as.character(sum_df_existing$Interest.var[[i]]), as.numeric(sum_df_existing$r.spearman[[i]]), as.numeric(sum_df_existing$p.spearman[[i]])))
     }
   }
-  quit(save = "no", status = 0)
 }
 
 ## description
@@ -202,28 +203,63 @@ gamresult$pfdr <- p.adjust(gamresult$anova.smooth.pvalue, method = "fdr")
 computevar.list <- c("partialRsq", "increase.onset2", "increase.offset2", "peak.increase.change", "meanderv2")
 sa_rank_all <- build_sa_rank(ds.resolution, mode = sa_axis_mode)
 sa_rank_map <- setNames(sa_rank_all, parcel_all)
-SCrank_correlation <- do.call(
-  rbind,
-  lapply(computevar.list, function(computevar) SCrankcorr_custom(gamresult, computevar, sa_rank_map, ds.resolution, dsdata = FALSE))
-)
+SCrank_correlation <- NULL
+if (should_recompute_summary) {
+  SCrank_correlation <- do.call(
+    rbind,
+    lapply(computevar.list, function(computevar) SCrankcorr_custom(gamresult, computevar, sa_rank_map, ds.resolution, dsdata = FALSE))
+  )
+}
 
 ## Validation: Control for Euclidean distance
 if (do_euclid) {
   gamresult$meanderv2_control_distance <- residuals(lm(meanderv2 ~ EuricDistance, data = gamresult))
   gamresult$partialRsq_control_distance <- residuals(lm(partialRsq ~ EuricDistance, data = gamresult))
-  SCrank_correlation <- rbind(
-    SCrank_correlation,
-    SCrankcorr_custom(gamresult, "meanderv2_control_distance", sa_rank_map, ds.resolution, dsdata = FALSE),
-    SCrankcorr_custom(gamresult, "partialRsq_control_distance", sa_rank_map, ds.resolution, dsdata = FALSE)
-  )
+  if (should_recompute_summary) {
+    SCrank_correlation <- rbind(
+      SCrank_correlation,
+      SCrankcorr_custom(gamresult, "meanderv2_control_distance", sa_rank_map, ds.resolution, dsdata = FALSE),
+      SCrankcorr_custom(gamresult, "partialRsq_control_distance", sa_rank_map, ds.resolution, dsdata = FALSE)
+    )
+  }
 } else {
   message("[INFO] euclid_csv not provided or missing; skip control-distance correlations.")
 }
-write.csv(SCrank_correlation, out_summary, row.names = FALSE)
+if (should_recompute_summary) {
+  write.csv(SCrank_correlation, out_summary, row.names = FALSE)
+}
 
 ## scatter plots
 FigCorrFolder <- file.path(FigureRoot, paste0("correlation_sumSCinvnode_SCrank", tag_suffix))
 dir.create(FigCorrFolder, showWarnings = FALSE, recursive = TRUE)
+
+plots_complete <- function() {
+  scatter_targets <- c(
+    "partialRsq",
+    "meanderv2",
+    "meanderv2_control_distance",
+    "partialRsq_control_distance",
+    "increase.onset2",
+    "increase.offset2",
+    "peak.increase.change"
+  )
+  present <- scatter_targets[scatter_targets %in% names(gamresult)]
+  if (length(present) == 0) return(FALSE)
+  required <- c()
+  for (nm in present) {
+    required <- c(
+      required,
+      file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".tiff")),
+      file.path(FigCorrFolder, paste0("mean", nm, "_SCrankcorr_n", ds.resolution, ".pdf"))
+    )
+  }
+  all(file.exists(required))
+}
+
+if (!force && !should_recompute_summary && plots_complete()) {
+  message("[INFO] S4 plots already exist; skipping plotting (set --force=1 to re-draw).")
+  quit(save = "no", status = 0)
+}
 
 yeo_scatter_theme <- theme(
   axis.text = element_text(size = 23, color = "black"),

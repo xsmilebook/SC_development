@@ -198,3 +198,4 @@
 - 2026-01-28: HCP-D（SA12，ComBat-GAM）changerate S-A 对齐分析：S1 增加 control-distance 版本（对 change rate 按欧氏距离残差化后再相关），并将主要对齐图/flip-age 分布图风格对齐 TractSeg（尺寸/配色/主题一致；默认不生成 svg）。
 - 2026-01-28: 新增 Chinese Cohort（SA12，ComBat-GAM）4th_changerate_SAcorr 可复现入口：实现 S1 对齐曲线（含关键 `[RESULT]` 数值输出、默认不生成 svg、输出 `tiff+pdf`）与 S2 flip-age 分组 GAM（日志输出 r/p，输出 `tiff+pdf`），并提供容器 sbatch `sbatch/run_chinese_changerate_sacorr_combatgam_CV75_container.sbatch`。
 - 2026-01-28: 新增 HCP-D SA7/SA17 ComBat-GAM sbatch 与对应 devmodel/changerate 容器入口；同时扩展 HCP-D devmodel/changerate 脚本支持 `--ds_res`、`--out_tag` 与 `--sa_axis_mode={addsquare,multiply}`，并统一默认输出 `tiff+pdf`、日志打印关键数值（r/p、flip-age、rho）。
+- 2026-01-29: HCP-D devmodel S4：当 summary 已存在且 `--force=0` 时，若检测到 S4 的散点图缺失则仍继续生成 `correlation_sumSCinvnode_SCrank_*` 图像（SA7/SA17 等 tag 版本同样适用）。
