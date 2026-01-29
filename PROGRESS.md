@@ -205,3 +205,4 @@
 - 2026-01-29: HCP-D devmodel S4：当 summary 已存在且 `--force=0` 时，若检测到 S4 的散点图缺失则仍继续生成 `correlation_sumSCinvnode_SCrank_*` 图像（SA7/SA17 等 tag 版本同样适用）。
 - 2026-01-29: ABCD ComBat-GAM S4 散点图风格对齐参考脚本，并将输出调整为 `pdf`（必需）+ Windows 下 `svg`。
 - 2026-01-29: ABCD ComBat-GAM S4 在 Windows 下默认跳过 summary 计算，仅生成散点图，并在缺少 `svglite` 时跳过 svg 输出。
+- 2026-01-29: ABCD ComBat-GAM S4 散点图改为按 `SCrank` 着色，颜色随 S-A 轴单调变化。

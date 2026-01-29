@@ -238,25 +238,15 @@ get_scatter_style <- function(computevar, cvthr) {
   )
 }
 
-get_colorbar_prob <- function(computevar) {
-  if (computevar == "partialRsq2") return(0.4)
-  if (computevar == "meanderv2") return(0.46)
-  if (computevar == "partialRsq_control_distance") return(0.4)
-  if (computevar == "meanderv2_control_distance") return(0.53)
-  0.4
-}
-
 plot_one_scatter <- function(computevar, ylab) {
   df <- SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
   names(df) <- c("SCrank", computevar)
   style <- get_scatter_style(computevar, CVthr)
-  colorbar_prob <- get_colorbar_prob(computevar)
-  colorbar_vals <- colorbarvalues(df[[computevar]], colorbar_prob)
 
   p <- ggplot(df) +
-    geom_point(aes(x = SCrank, y = .data[[computevar]], color = .data[[computevar]]), size = 5) +
+    geom_point(aes(x = SCrank, y = .data[[computevar]], color = SCrank), size = 5) +
     geom_smooth(aes(x = SCrank, y = .data[[computevar]]), method = "lm", color = "black", linewidth = 1.2) +
-    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, values = colorbar_vals) +
+    scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
     labs(x = "S-A connectional axis rank", y = ylab) +
     theme_classic() + style$theme
 
