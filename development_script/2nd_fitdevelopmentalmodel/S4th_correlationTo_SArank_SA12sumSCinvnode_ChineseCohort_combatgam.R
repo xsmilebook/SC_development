@@ -268,7 +268,7 @@ if ("meanderv2_c" %in% names(gamresult)) {
       geom_smooth(aes(x = SCrank, y = meanderv2_c), linewidth = 2, method = "lm", color = "black") +
       scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
       labs(x = "S-A connectional axis rank", y = "Second derivative") +
-      scale_y_continuous(breaks = c(-0.003, 0, 0.003), labels = c(-3, 0, 3)) +
+      scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) +
       theme_classic() + mytheme
   }
   ggsave(out_fig_meanderv2, p_meanderv2, width = 13, height = 12, units = "cm", bg = "transparent")
@@ -296,18 +296,7 @@ if ("meanderv2_c_control_distance" %in% names(gamresult)) {
       scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, guide = "none") +
       labs(x = "S-A connectional axis rank", y = "Second derivative") +
       scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) +
-      theme_classic() +
-      theme(
-        axis.text = element_text(size = 23, color = "black"),
-        axis.title = element_text(size = 23),
-        aspect.ratio = 0.75,
-        axis.line = element_line(linewidth = 0.6),
-        axis.ticks = element_line(linewidth = 0.6),
-        plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
-        plot.background = element_rect(fill = "transparent", color = NA),
-        panel.background = element_rect(fill = "transparent", color = NA),
-        legend.position = "none"
-      )
+      theme_classic() + mytheme
   }
   ggsave(out_fig_meanderv2_ctrl_tiff, p_meanderv2_ctrl, width = 16, height = 14, units = "cm", bg = "transparent")
   ggsave(out_fig_meanderv2_ctrl_pdf, p_meanderv2_ctrl, dpi = 600, width = 16, height = 14, units = "cm", bg = "transparent")

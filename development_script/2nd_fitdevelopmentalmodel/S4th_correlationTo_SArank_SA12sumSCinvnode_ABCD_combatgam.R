@@ -170,9 +170,9 @@ get_scatter_style <- function(computevar, cvthr) {
     if (cvthr == 75) {
       return(list(
         theme = theme(
-          axis.text = element_text(size = 24.3, color = "black"),
-          axis.title = element_text(size = 24.3),
-          aspect.ratio = 0.8,
+          axis.text = element_text(size = 23, color = "black"),
+          axis.title = element_text(size = 23),
+          aspect.ratio = 0.9,
           axis.line = element_line(linewidth = 0.6),
           axis.ticks = element_line(linewidth = 0.6),
           plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
@@ -180,25 +180,24 @@ get_scatter_style <- function(computevar, cvthr) {
           panel.background = element_rect(fill = "transparent", color = NA),
           legend.position = "none"
         ),
-        svg_width = 17.5,
-        svg_height = 15
+        svg_width = 13,
+        svg_height = 12
       ))
     }
     return(list(
       theme = theme(
-        axis.text = element_text(size = 24, color = "black"),
-        axis.title = element_text(size = 24),
-        aspect.ratio = 1.05,
+        axis.text = element_text(size = 23, color = "black"),
+        axis.title = element_text(size = 23),
+        aspect.ratio = 0.9,
         axis.line = element_line(linewidth = 0.6),
         axis.ticks = element_line(linewidth = 0.6),
-        plot.title = element_text(size = 15, hjust = 0.5, vjust = 0),
-        plot.subtitle = element_text(size = 21, hjust = 0.9, vjust = -6),
+        plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
         plot.background = element_rect(fill = "transparent", color = NA),
         panel.background = element_rect(fill = "transparent", color = NA),
         legend.position = "none"
       ),
-      svg_width = 17,
-      svg_height = 14
+      svg_width = 13,
+      svg_height = 12
     ))
   }
 
