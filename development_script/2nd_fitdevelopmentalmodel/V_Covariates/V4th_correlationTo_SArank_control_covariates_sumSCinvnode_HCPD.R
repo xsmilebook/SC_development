@@ -98,6 +98,7 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 is_windows <- .Platform$OS.type == "windows"
+is_interactive <- interactive()
 skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)) args$skip_compute_on_windows else 1L) == 1L
 skip_compute <- is_windows && skip_compute_on_windows
 
@@ -118,6 +119,9 @@ input_rds <- if (!is.null(args$input_rds)) {
   )
 }
 make_matrix_graphs <- as.integer(if (!is.null(args$make_matrix_graphs)) args$make_matrix_graphs else 1L) == 1L
+if (is_windows && is_interactive && is.null(args$make_matrix_graphs)) {
+  make_matrix_graphs <- FALSE
+}
 
 ds.resolution <- 12
 elementnum <- ds.resolution * (ds.resolution + 1) / 2

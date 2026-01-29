@@ -59,6 +59,7 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 is_windows <- .Platform$OS.type == "windows"
+is_interactive <- interactive()
 skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)) args$skip_compute_on_windows else 1L) == 1L
 skip_compute <- is_windows && skip_compute_on_windows
 
@@ -67,6 +68,9 @@ ds.resolution <- 12
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
 
 make_matrix_graphs <- as.integer(if (!is.null(args$make_matrix_graphs)) args$make_matrix_graphs else 1L) == 1L
+if (is_windows && is_interactive && is.null(args$make_matrix_graphs)) {
+  make_matrix_graphs <- FALSE
+}
 
 interfileFolder <- file.path(
   project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
@@ -114,12 +118,14 @@ if (!skip_compute && (force || !file.exists(out_summary))) {
 } else if (skip_compute && !file.exists(out_summary)) {
   message("[WARN] Skip summary computation on Windows; correlation summary not written: ", out_summary)
 }
-tryCatch({
-  SCrank_correlation <- read.csv(out_summary, stringsAsFactors = FALSE)
-  print_spearman_summary(SCrank_correlation)
-}, error = function(e) {
-  message("[WARN] Failed to read/print S4 summary: ", out_summary, " | ", conditionMessage(e))
-})
+if (file.exists(out_summary) && !skip_compute) {
+  tryCatch({
+    SCrank_correlation <- read.csv(out_summary, stringsAsFactors = FALSE)
+    print_spearman_summary(SCrank_correlation)
+  }, error = function(e) {
+    message("[WARN] Failed to read/print S4 summary: ", out_summary, " | ", conditionMessage(e))
+  })
+}
 
 ## scatter plot: meanderv2 (match original)
 out_meanderv2_tiff <- file.path(FigCorrFolder, paste0("meanmeanderv2_SCrankcorr_n", ds.resolution, ".tiff"))
