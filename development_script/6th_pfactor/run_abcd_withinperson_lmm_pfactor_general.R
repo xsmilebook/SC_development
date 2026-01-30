@@ -237,7 +237,9 @@ for (d in deciles) {
   delta_long$res_delta[idx] <- residuals(lm(delta_per_year ~ sex + mean_fd_mean, data = dd))
 }
 
-for (d in deciles) {
+rp_rows <- vector("list", length(deciles))
+for (j in seq_along(deciles)) {
+  d <- deciles[[j]]
   dd <- delta_long[delta_long$decile == d, , drop = FALSE]
   dd <- dd[is.finite(dd$pfactor_base) & is.finite(dd$res_delta), , drop = FALSE]
   ct <- suppressWarnings(stats::cor.test(dd$pfactor_base, dd$res_delta))
@@ -247,19 +249,28 @@ for (d in deciles) {
     " p=", signif(ct$p.value, 4),
     " n=", nrow(dd)
   )
-
-  Fig_d <- ggplot(dd, aes(x = pfactor_base, y = res_delta)) +
-    geom_point(size = 1.0, alpha = 0.4) +
-    geom_smooth(method = "lm", se = TRUE, linewidth = 0.8, color = "black") +
-    theme_classic() +
-    labs(
-      x = "p-factor",
-      y = "Within-person Δ SC ratio/year residual"
-    )
-
-  out_base <- file.path(FigureFolder, sprintf("delta_SC_decile%02d_vs_pfactor_%s_residualized", d, int_var))
-  ggsave(paste0(out_base, ".pdf"), Fig_d, width = 12, height = 10, units = "cm", bg = "transparent")
-  ggsave(paste0(out_base, ".tiff"), Fig_d, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+  rp_rows[[j]] <- data.frame(
+    decile = d,
+    r = unname(ct$estimate),
+    p = ct$p.value,
+    n = nrow(dd)
+  )
 }
+rp_df <- do.call(rbind, rp_rows)
+write.csv(rp_df, file.path(resultFolder, paste0("delta_SC_deciles_vs_pfactor_", int_var, "_residualized_rp.csv")), row.names = FALSE)
+
+Fig_dec <- ggplot(delta_long, aes(x = pfactor_base, y = res_delta)) +
+  geom_point(size = 0.9, alpha = 0.35) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 0.7, color = "black") +
+  facet_wrap(~decile, ncol = 5) +
+  theme_classic() +
+  labs(
+    x = "p-factor",
+    y = "Within-person Δ SC ratio/year residual"
+  )
+
+out_base <- file.path(FigureFolder, paste0("delta_SC_deciles_vs_pfactor_", int_var, "_residualized"))
+ggsave(paste0(out_base, ".pdf"), Fig_dec, width = 22, height = 12, units = "cm", bg = "transparent")
+ggsave(paste0(out_base, ".tiff"), Fig_dec, width = 22, height = 12, units = "cm", bg = "transparent", dpi = 600)
 
 message("[INFO] Done.")

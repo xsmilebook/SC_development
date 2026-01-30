@@ -218,7 +218,7 @@
        - 结果：`outputs/results/6th_pfactor/abcd/withinperson_lmm/`
        - 图像：`outputs/figures/6th_pfactor/abcd/withinperson_lmm/`
          - `totalstrength` 预测（low10/high90）：`pred_totalstrength_time_by_GENERAL_low10_high90.*`
-         - S-A deciles（10 张图）：`delta_SC_decile{01..10}_vs_pfactor_GENERAL_residualized.*`（y 为“归一化连接强度比率”的变化率；log 中输出每张图的 r/p）
+         - S-A deciles（汇总 1 张图）：`delta_SC_deciles_vs_pfactor_GENERAL_residualized.*`（y 为“归一化连接强度比率”的变化率；log 中输出每个 decile 的 r/p，并写入 `delta_SC_deciles_vs_pfactor_GENERAL_residualized_rp.csv`）
      - 可复现参数（两者通用，sbatch 通过环境变量传入）：
        - `N_EDGES=78`：拟合边数（调试时可设为 3–5）
        - `PB_METHOD=KR`（默认）或 `PB_METHOD=PB`：交互项检验方法
