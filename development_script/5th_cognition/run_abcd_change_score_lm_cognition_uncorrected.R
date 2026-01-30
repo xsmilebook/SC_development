@@ -27,7 +27,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 
 functionFolder <- file.path(project_root, "gamfunction")
 resultFolder <- file.path(project_root, "outputs", "results", "5th_cognition", "abcd", "change_score_lm")
+FigureFolder <- file.path(project_root, "outputs", "figures", "5th_cognition", "abcd", "change_score_lm")
 dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
+dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
 input_rds <- file.path(
   project_root, "outputs", "results", "combat_gam", "abcd",
@@ -178,8 +180,8 @@ scatterFig.beta <- ggplot(data = SCrank.data.beta) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr.beta, limthr.beta)) +
   theme_classic() +
   labs(x = "S-A connectional axis rank", y = "Change-score beta")
-ggsave(file.path(resultFolder, paste0("scatter_beta_vs_SCrank_change_score_", Cogvar_base, "_CV", CVthr, ".pdf")), scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent")
-ggsave(file.path(resultFolder, paste0("scatter_beta_vs_SCrank_change_score_", Cogvar_base, "_CV", CVthr, ".tiff")), scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+ggsave(file.path(FigureFolder, paste0("scatter_beta_vs_SCrank_change_score_", Cogvar_base, "_CV", CVthr, ".pdf")), scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_beta_vs_SCrank_change_score_", Cogvar_base, "_CV", CVthr, ".tiff")), scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
 
 message("[INFO] Scatter plot: t_int vs S-A rank")
 SCrank.data.t <- SCrankcorr(lmresult, "t_int", 12, dsdata = TRUE)
@@ -190,8 +192,8 @@ scatterFig.t <- ggplot(data = SCrank.data.t) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr.t, limthr.t)) +
   theme_classic() +
   labs(x = "S-A connectional axis rank", y = "Change-score t value")
-ggsave(file.path(resultFolder, paste0("scatter_tvalue_vs_SCrank_change_score_", Cogvar_base, "_CV", CVthr, ".pdf")), scatterFig.t, width = 12, height = 10, units = "cm", bg = "transparent")
-ggsave(file.path(resultFolder, paste0("scatter_tvalue_vs_SCrank_change_score_", Cogvar_base, "_CV", CVthr, ".tiff")), scatterFig.t, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+ggsave(file.path(FigureFolder, paste0("scatter_tvalue_vs_SCrank_change_score_", Cogvar_base, "_CV", CVthr, ".pdf")), scatterFig.t, width = 12, height = 10, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_tvalue_vs_SCrank_change_score_", Cogvar_base, "_CV", CVthr, ".tiff")), scatterFig.t, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
 
 message("[INFO] Decile-wise change-score vs cognition (S-A axis deciles)")
 sa12_csv <- Sys.getenv(
@@ -308,7 +310,7 @@ Fig_dec <- ggplot(delta_long, aes(x = cognition_base, y = res_delta)) +
     y = "Within-person Δ SC ratio/year residual"
   )
 
-out_base <- file.path(resultFolder, paste0("delta_SC_deciles_vs_", Cogvar_base, "_residualized"))
+out_base <- file.path(FigureFolder, paste0("delta_SC_deciles_vs_", Cogvar_base, "_residualized"))
 ggsave(paste0(out_base, ".pdf"), Fig_dec, width = 22, height = 12, units = "cm", bg = "transparent")
 ggsave(paste0(out_base, ".tiff"), Fig_dec, width = 22, height = 12, units = "cm", bg = "transparent", dpi = 600)
 
