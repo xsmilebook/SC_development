@@ -15,6 +15,7 @@ suppressPackageStartupMessages({
   library(pbkrtest)
   library(parallel)
   library(dplyr)
+  library(tidyr)
   library(ggplot2)
 })
 
@@ -190,11 +191,108 @@ Fig <- ggplot(plot_df, aes(x = res_cog, y = res_delta)) +
   geom_smooth(method = "lm", se = TRUE, linewidth = 0.8, color = "black") +
   theme_classic() +
   labs(
-    x = "Baseline cognition (residualized: sex + mean_fd)",
-    y = "Within-person Δ totalstrength / year (residualized: sex + mean_fd)"
+    x = "Baseline cognition residual",
+    y = "Within-person Δ totalstrength/year residual"
   )
 
 ggsave(file.path(FigureFolder, paste0("delta_totalstrength_vs_", Cogvar_base, "_residualized.pdf")), Fig, width = 12, height = 10, units = "cm", bg = "transparent")
 ggsave(file.path(FigureFolder, paste0("delta_totalstrength_vs_", Cogvar_base, "_residualized.tiff")), Fig, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+
+message("[INFO] Decile-wise within-person SC change vs cognition (S-A axis deciles)")
+sa12_csv <- Sys.getenv(
+  "ABCD_SA12_CSV",
+  unset = file.path(project_root, "wd", "interdataFolder_ABCD", "SA12_10.csv")
+)
+if (!file.exists(sa12_csv)) stop("Missing ABCD_SA12_CSV: ", sa12_csv)
+SA12_10 <- read.csv(sa12_csv, stringsAsFactors = FALSE)
+needed_sa <- c("SC_label", "decile")
+missing_sa <- setdiff(needed_sa, names(SA12_10))
+if (length(missing_sa) > 0) stop("Missing columns in SA12_10: ", paste(missing_sa, collapse = ", "))
+
+edge_map <- SA12_10 %>%
+  select(SC_label, decile) %>%
+  filter(SC_label %in% sc_cols) %>%
+  distinct()
+if (nrow(edge_map) < 78) {
+  missing_edges <- setdiff(sc_cols, edge_map$SC_label)
+  stop("SA12_10 missing edges: ", paste(head(missing_edges, 10), collapse = ", "))
+}
+
+edges_by_decile <- split(edge_map$SC_label, edge_map$decile)
+deciles <- sort(unique(as.integer(names(edges_by_decile))))
+if (length(deciles) != 10) {
+  stop("Expected 10 deciles, got: ", paste(deciles, collapse = ", "))
+}
+
+SCdata_dec <- SCdata_time
+for (d in deciles) {
+  d_edges <- edges_by_decile[[as.character(d)]]
+  SCdata_dec[[paste0("SC_decile", d)]] <- rowMeans(SCdata_dec[, d_edges, drop = FALSE], na.rm = TRUE)
+}
+
+decile_cols <- paste0("SC_decile", deciles)
+needed_cols <- c("subID", "time", "sex", "mean_fd", Cogvar_base, decile_cols)
+SCdata_dec <- SCdata_dec[, needed_cols, drop = FALSE]
+SCdata_dec <- SCdata_dec[is.finite(SCdata_dec$time) & !is.na(SCdata_dec[[Cogvar_base]]), , drop = FALSE]
+
+idx_by_sub <- split(seq_len(nrow(SCdata_dec)), as.character(SCdata_dec$subID))
+rows <- vector("list", length(idx_by_sub))
+names(rows) <- names(idx_by_sub)
+for (k in seq_along(idx_by_sub)) {
+  ii <- idx_by_sub[[k]]
+  tsub <- SCdata_dec$time[ii]
+  if (length(unique(round(tsub, 6))) < 2) next
+  i0 <- ii[which.min(tsub)]
+  i1 <- ii[which.max(tsub)]
+  dt <- SCdata_dec$time[i1] - SCdata_dec$time[i0]
+  if (!is.finite(dt) || dt <= 0) next
+
+  out <- data.frame(
+    subID = SCdata_dec$subID[i0],
+    sex = SCdata_dec$sex[i0],
+    mean_fd_mean = mean(SCdata_dec$mean_fd[ii], na.rm = TRUE),
+    cognition_base = SCdata_dec[[Cogvar_base]][i0],
+    delta_t = dt,
+    stringsAsFactors = FALSE
+  )
+  for (d in deciles) {
+    v0 <- SCdata_dec[[paste0("SC_decile", d)]][i0]
+    v1 <- SCdata_dec[[paste0("SC_decile", d)]][i1]
+    out[[paste0("delta_decile", d, "_per_year")]] <- (v1 - v0) / dt
+  }
+  rows[[k]] <- out
+}
+delta_dec <- dplyr::bind_rows(rows)
+delta_dec$sex <- as.factor(delta_dec$sex)
+
+delta_long <- delta_dec %>%
+  pivot_longer(
+    cols = starts_with("delta_decile") & ends_with("_per_year"),
+    names_to = "decile",
+    values_to = "delta_per_year"
+  )
+delta_long$decile <- as.integer(gsub("^delta_decile([0-9]+)_per_year$", "\\1", delta_long$decile))
+
+delta_long$res_delta <- NA_real_
+delta_long$res_cog <- NA_real_
+for (d in deciles) {
+  idx <- which(delta_long$decile == d)
+  dd <- delta_long[idx, , drop = FALSE]
+  delta_long$res_delta[idx] <- residuals(lm(delta_per_year ~ sex + mean_fd_mean, data = dd))
+  delta_long$res_cog[idx] <- residuals(lm(cognition_base ~ sex + mean_fd_mean, data = dd))
+}
+
+Fig_dec <- ggplot(delta_long, aes(x = res_cog, y = res_delta)) +
+  geom_point(size = 0.9, alpha = 0.35) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 0.7, color = "black") +
+  facet_wrap(~decile, ncol = 5) +
+  theme_classic() +
+  labs(
+    x = "Baseline cognition residual",
+    y = "Within-person Δ SC/year residual"
+  )
+
+ggsave(file.path(FigureFolder, paste0("delta_SC_deciles_vs_", Cogvar_base, "_residualized.pdf")), Fig_dec, width = 22, height = 12, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("delta_SC_deciles_vs_", Cogvar_base, "_residualized.tiff")), Fig_dec, width = 22, height = 12, units = "cm", bg = "transparent", dpi = 600)
 
 message("[INFO] Done.")
