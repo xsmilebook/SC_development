@@ -216,7 +216,9 @@
        - 入口脚本：`development_script/6th_pfactor/run_abcd_withinperson_lmm_pfactor_general.R`
        - sbatch（容器版，40 核）：`sbatch sbatch/run_abcd_withinperson_lmm_pfactor_general_container.sbatch`
        - 结果：`outputs/results/6th_pfactor/abcd/withinperson_lmm/`
-       - 图像：`outputs/figures/6th_pfactor/abcd/withinperson_lmm/`（`pred_totalstrength_time_by_GENERAL_low10_high90.*`）
+       - 图像：`outputs/figures/6th_pfactor/abcd/withinperson_lmm/`
+         - `totalstrength` 预测（low10/high90）：`pred_totalstrength_time_by_GENERAL_low10_high90.*`
+         - S-A deciles（10 张图）：`delta_SC_decile{01..10}_vs_pfactor_GENERAL_residualized.*`（y 为“归一化连接强度比率”的变化率；log 中输出每张图的 r/p）
      - 可复现参数（两者通用，sbatch 通过环境变量传入）：
        - `N_EDGES=78`：拟合边数（调试时可设为 3–5）
        - `PB_METHOD=KR`（默认）或 `PB_METHOD=PB`：交互项检验方法
