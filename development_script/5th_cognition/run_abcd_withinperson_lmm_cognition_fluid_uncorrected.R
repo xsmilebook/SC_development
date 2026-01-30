@@ -27,18 +27,11 @@ dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
 input_rds <- file.path(
   project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds"
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (age/sex/mean_fd variant; longitudinal)")
+  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (cognition variant)")
 }
-
-sa12_csv <- Sys.getenv(
-  "ABCD_SA12_CSV",
-  unset = file.path(project_root, "wd", "interdataFolder_ABCD", "SA12_10.csv")
-)
-if (!file.exists(sa12_csv)) stop("Missing ABCD_SA12_CSV: ", sa12_csv)
-SA12_10 <- read.csv(sa12_csv, stringsAsFactors = FALSE)
 
 source(file.path(functionFolder, "lmminteraction.R"))
 
@@ -54,6 +47,9 @@ SCdata <- readRDS(input_rds)
 if (!("eventname" %in% names(SCdata)) && ("scanID" %in% names(SCdata))) {
   SCdata$eventname <- scanid_to_eventname(SCdata$scanID)
 }
+if (!("eventname" %in% names(SCdata))) {
+  stop("Missing eventname (required to construct baseline cognition): input has no eventname/scanID")
+}
 
 needed <- c("subID", "age", "sex", "mean_fd")
 missing <- setdiff(needed, names(SCdata))
@@ -61,30 +57,15 @@ if (length(missing) > 0) stop("Missing required columns in SCdata: ", paste(miss
 SCdata$sex <- as.factor(SCdata$sex)
 
 if (!Cogvar %in% names(SCdata)) {
-  message("[WARN] Missing phenotype column in SCdata: ", Cogvar)
-  message("[WARN] Will backfill baseline cognition from demopath/DemodfScreenFinal.csv by subID.")
-  demopath_csv <- file.path(project_root, "demopath", "DemodfScreenFinal.csv")
-  if (!file.exists(demopath_csv)) stop("Missing demopath/DemodfScreenFinal.csv: ", demopath_csv)
-  Demodf <- read.csv(demopath_csv, stringsAsFactors = FALSE)
-  missing_demo <- setdiff(c("subID", "eventname", Cogvar), names(Demodf))
-  if (length(missing_demo) > 0) {
-    stop("Missing required columns in demopath/DemodfScreenFinal.csv: ", paste(missing_demo, collapse = ", "))
-  }
-  Cogdf <- Demodf %>%
-    select(subID, eventname, all_of(Cogvar)) %>%
-    filter(grepl("base", eventname, ignore.case = TRUE)) %>%
-    select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
-    distinct()
-  SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
-} else {
-  Cogdf <- SCdata %>%
-    select(subID, eventname, all_of(Cogvar)) %>%
-    filter(!is.na(.data[[Cogvar]])) %>%
-    filter(grepl("base", eventname, ignore.case = TRUE)) %>%
-    select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
-    distinct()
-  SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
+  stop("Missing cognition variable in input: ", Cogvar, "\nInput: ", input_rds)
 }
+Cogdf <- SCdata %>%
+  select(subID, eventname, all_of(Cogvar)) %>%
+  filter(!is.na(.data[[Cogvar]])) %>%
+  filter(grepl("base", eventname, ignore.case = TRUE)) %>%
+  select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
+  distinct()
+SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
 if (!Cogvar_base %in% names(SCdata)) stop("Baseline cognition join failed, missing: ", Cogvar_base)
 
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
@@ -109,24 +90,32 @@ out_csv <- sub("\\.rds$", ".csv", out_rds)
 message("[INFO] Fitting LMM interaction models (n_edges=", n_edges, ", mc.cores=", num_cores, ", PB_METHOD=", pb_method, ", PB_NSIM=", pb_nsim, ")")
 res_list <- parallel::mclapply(seq_len(n_edges), function(i) {
   region <- sc_cols[[i]]
-  lmm.time.predict.covariateinteraction(
-    region = region,
-    dataname = "SCdata",
-    age_var = "age",
-    int_var = Cogvar_base,
-    covariates = "sex+mean_fd",
-    int_var_mode = "as_is",
-    pb_method = pb_method,
-    pb_nsim = pb_nsim,
-    stats_only = TRUE
+  tryCatch(
+    {
+      out <- lmm.time.predict.covariateinteraction(
+        region = region,
+        dataname = "SCdata",
+        age_var = "age",
+        int_var = Cogvar_base,
+        covariates = "sex+mean_fd",
+        int_var_mode = "as_is",
+        pb_method = pb_method,
+        pb_nsim = pb_nsim,
+        stats_only = TRUE
+      )
+      list(ok = TRUE, row = out, region = region, err = NA_character_)
+    },
+    error = function(e) list(ok = FALSE, row = NULL, region = region, err = conditionMessage(e))
   )
 }, mc.cores = num_cores)
 
-if (any(vapply(res_list, inherits, logical(1), what = "try-error"))) {
-  stop("At least one edge failed (mclapply returned try-error). Set N_EDGES small and rerun to locate the failing edge.")
+ok_mask <- vapply(res_list, function(z) isTRUE(z$ok), logical(1))
+if (!all(ok_mask)) {
+  first_bad <- which(!ok_mask)[[1]]
+  stop("Edge failed: ", res_list[[first_bad]]$region, "\n", res_list[[first_bad]]$err)
 }
 
-lmmresult <- do.call(rbind, res_list)
+lmmresult <- do.call(rbind, lapply(res_list, `[[`, "row"))
 lmmresult$p_time_int_fdr <- p.adjust(lmmresult$p_time_int, method = "fdr")
 saveRDS(lmmresult, out_rds)
 write.csv(lmmresult, out_csv, row.names = FALSE)
@@ -185,4 +174,3 @@ ggsave(file.path(FigureFolder, paste0("delta_totalstrength_vs_", Cogvar_base, "_
 ggsave(file.path(FigureFolder, paste0("delta_totalstrength_vs_", Cogvar_base, "_residualized.tiff")), Fig, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
 
 message("[INFO] Done.")
-
