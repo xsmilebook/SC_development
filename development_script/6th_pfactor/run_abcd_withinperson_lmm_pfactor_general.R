@@ -1,5 +1,15 @@
 #!/usr/bin/env Rscript
 
+rm(list = ls())
+
+# Prefer the active conda environment libraries, and avoid accidental user-library pollution on clusters.
+Sys.unsetenv(c("R_LIBS_USER", "R_LIBS"))
+conda_prefix <- Sys.getenv("CONDA_PREFIX", unset = "")
+if (nzchar(conda_prefix)) {
+  .libPaths(c(file.path(conda_prefix, "lib", "R", "library"), .libPaths()))
+}
+.libPaths(.libPaths()[!grepl("/GPFS/.*/R/packages", .libPaths())])
+
 suppressPackageStartupMessages({
   library(lme4)
   library(pbkrtest)
@@ -7,8 +17,6 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
 })
-
-rm(list = ls())
 
 CVthr <- 75
 int_var <- "GENERAL"
@@ -114,4 +122,3 @@ ggsave(file.path(FigureFolder, paste0("pred_totalstrength_time_by_", int_var, "_
 ggsave(file.path(FigureFolder, paste0("pred_totalstrength_time_by_", int_var, "_low10_high90.tiff")), Fig, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
 
 message("[INFO] Done.")
-

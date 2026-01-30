@@ -91,7 +91,9 @@ make_constant_pred_data <- function(modelobj, time_var, int_var, time_values, in
 
 predict_fixed_only <- function(modelobj, newdata) {
   fixed_formula <- lme4::nobars(formula(modelobj))
-  mm <- model.matrix(fixed_formula, newdata)
+  tt <- stats::terms(fixed_formula)
+  tt <- stats::delete.response(tt)
+  mm <- model.matrix(tt, newdata)
   beta <- lme4::fixef(modelobj)
   vc <- as.matrix(stats::vcov(modelobj))
   fit <- as.numeric(mm %*% beta)
@@ -195,7 +197,12 @@ lmm.time.predict.covariateinteraction <- function(
     subid_var
   ))
 
-  control <- lme4::lmerControl(optimizer = optimizer)
+  control <- lme4::lmerControl(
+    optimizer = optimizer,
+    check.nobs.vs.nRE = "ignore",
+    check.nobs.vs.rankZ = "ignore",
+    check.nobs.vs.nlev = "ignore"
+  )
   m_full <- lme4::lmer(modelformula, data = lmm.data, REML = FALSE, control = control)
   m_null <- lme4::lmer(modelformula.null, data = lmm.data, REML = FALSE, control = control)
 

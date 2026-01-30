@@ -202,12 +202,14 @@
          - cognition：采用 baseline 值并填充 follow-up（与现有 cognition 分析保持一致，脚本内自动回填 `*_base`）。
          - pfactor：time-varying（与现有 pfactor 分析保持一致，按原始列直接进入模型）。
      - 统计检验：默认使用 `pbkrtest::KRmodcomp(full, null)` 比较是否加入 `time:int_var`（可通过环境变量切换为 parametric bootstrap）。
+       - 说明：两时间点 + `(1+time|subID)` 会触发 `lme4` 的 “nobs <= nRE” 可辨识性检查；函数内已将该检查设为 `ignore` 以允许拟合（通常会伴随 `boundary (singular) fit` 警告）。
      - 函数：`gamfunction/lmminteraction.R`（`lmm.time.predict.covariateinteraction()`）。
      - ABCD cognition（uncorrected；within-person change × cognition）：
        - 入口脚本：`development_script/5th_cognition/run_abcd_withinperson_lmm_cognition_fluid_uncorrected.R`
        - sbatch（容器版，40 核）：`sbatch sbatch/run_abcd_withinperson_lmm_cognition_fluid_uncorrected_container.sbatch`
        - 结果：`outputs/results/5th_cognition/abcd/withinperson_lmm/`
        - 图像：`outputs/figures/5th_cognition/abcd/withinperson_lmm/`（`delta_totalstrength_vs_nihtbx_fluidcomp_uncorrected_base_residualized.*`）
+       - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；baseline cognition 从 `*combatgam_cognition.rds` 提取后按 `subID` 合并到纵向 SC（保持“baseline 填充”设定）。
      - ABCD p-factor（GENERAL；within-person change × pfactor）：
        - 入口脚本：`development_script/6th_pfactor/run_abcd_withinperson_lmm_pfactor_general.R`
        - sbatch（容器版，40 核）：`sbatch sbatch/run_abcd_withinperson_lmm_pfactor_general_container.sbatch`

@@ -1,5 +1,15 @@
 #!/usr/bin/env Rscript
 
+rm(list = ls())
+
+# Prefer the active conda environment libraries, and avoid accidental user-library pollution on clusters.
+Sys.unsetenv(c("R_LIBS_USER", "R_LIBS"))
+conda_prefix <- Sys.getenv("CONDA_PREFIX", unset = "")
+if (nzchar(conda_prefix)) {
+  .libPaths(c(file.path(conda_prefix, "lib", "R", "library"), .libPaths()))
+}
+.libPaths(.libPaths()[!grepl("/GPFS/.*/R/packages", .libPaths())])
+
 suppressPackageStartupMessages({
   library(lme4)
   library(pbkrtest)
@@ -7,8 +17,6 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
 })
-
-rm(list = ls())
 
 CVthr <- 75
 Cogvar <- "nihtbx_fluidcomp_uncorrected"
@@ -27,10 +35,10 @@ dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
 input_rds <- file.path(
   project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds"
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (cognition variant)")
+  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (age/sex/mean_fd variant; longitudinal)")
 }
 
 source(file.path(functionFolder, "lmminteraction.R"))
@@ -56,17 +64,33 @@ missing <- setdiff(needed, names(SCdata))
 if (length(missing) > 0) stop("Missing required columns in SCdata: ", paste(missing, collapse = ", "))
 SCdata$sex <- as.factor(SCdata$sex)
 
-if (!Cogvar %in% names(SCdata)) {
-  stop("Missing cognition variable in input: ", Cogvar, "\nInput: ", input_rds)
+# Baseline cognition comes from the cognition-specific ComBat output (baseline-only),
+# then merged into the longitudinal SCdata by subID to keep "baseline fill" logic consistent.
+cog_rds <- file.path(
+  project_root, "outputs", "results", "combat_gam", "abcd",
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds"
+)
+if (!file.exists(cog_rds)) {
+  stop("Missing cognition baseline input: ", cog_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (cognition variant)")
 }
-Cogdf <- SCdata %>%
+SCcog <- readRDS(cog_rds)
+if (!("eventname" %in% names(SCcog)) && ("scanID" %in% names(SCcog))) {
+  SCcog$eventname <- scanid_to_eventname(SCcog$scanID)
+}
+missing_cog <- setdiff(c("subID", "eventname", Cogvar), names(SCcog))
+if (length(missing_cog) > 0) stop("Missing required columns in cognition SCdata: ", paste(missing_cog, collapse = ", "))
+
+Cogdf <- SCcog %>%
   select(subID, eventname, all_of(Cogvar)) %>%
   filter(!is.na(.data[[Cogvar]])) %>%
   filter(grepl("base", eventname, ignore.case = TRUE)) %>%
   select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
   distinct()
+if (nrow(Cogdf) < 1) stop("No baseline cognition rows found in: ", cog_rds)
+
 SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
 if (!Cogvar_base %in% names(SCdata)) stop("Baseline cognition join failed, missing: ", Cogvar_base)
+if (all(is.na(SCdata[[Cogvar_base]]))) stop("Baseline cognition is all NA after join: ", Cogvar_base)
 
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
 if (any(grepl("_h$", sc_cols))) sc_cols <- sc_cols[grepl("_h$", sc_cols)]
