@@ -147,7 +147,11 @@ lmm.time.predict.covariateinteraction <- function(
   )
   if (length(outlier_int) > 0) lmm.data[outlier_int, int_used] <- NA
 
-  keep <- which(!is.na(lmm.data[[int_used]]) & !is.na(lmm.data[[region]]) & !is.na(lmm.data$time))
+  keep <- which(
+    !is.na(lmm.data[[int_used]]) &
+      !is.na(lmm.data[[region]]) &
+      is.finite(lmm.data$time)
+  )
   lmm.data <- lmm.data[keep, , drop = FALSE]
 
   tmp <- lmm.data[[region]]
@@ -164,8 +168,15 @@ lmm.time.predict.covariateinteraction <- function(
   ok_ids <- names(ok_sub)[ok_sub]
   lmm.data <- lmm.data[subj %in% ok_ids, , drop = FALSE]
 
-  if (stats::sd(lmm.data[[int_used]], na.rm = TRUE) == 0) stop("int_var has zero variance after cleaning: ", int_used)
-  if (length(unique(round(lmm.data$time, 6))) < 2) stop("time has <2 unique values after cleaning.")
+  sd_int <- stats::sd(lmm.data[[int_used]], na.rm = TRUE)
+  if (is.na(sd_int) || !is.finite(sd_int) || sd_int == 0) {
+    stop("int_var has zero/undefined variance after cleaning: ", int_used, " (sd=", sd_int, ")")
+  }
+  uniq_time <- unique(round(lmm.data$time, 6))
+  uniq_time <- uniq_time[is.finite(uniq_time)]
+  if (length(uniq_time) < 2) {
+    stop("time has <2 unique finite values after cleaning.")
+  }
 
   # Ensure factor covariates remain factors if present
   if ("sex" %in% names(lmm.data)) lmm.data$sex <- as.factor(lmm.data$sex)
@@ -217,6 +228,7 @@ lmm.time.predict.covariateinteraction <- function(
   q10 <- as.numeric(stats::quantile(lmm.data[[int_used]], 0.1, na.rm = TRUE))
   q90 <- as.numeric(stats::quantile(lmm.data[[int_used]], 0.9, na.rm = TRUE))
   fu_time <- suppressWarnings(stats::median(tapply(lmm.data$time, lmm.data[[subid_var]], max, na.rm = TRUE), na.rm = TRUE))
+  if (is.na(fu_time) || !is.finite(fu_time)) stop("Invalid follow-up time summary (fu_time_median=", fu_time, ").")
   delta_change_q90_vs_q10 <- beta_int * fu_time * (q90 - q10)
 
   stats.results <- data.frame(
