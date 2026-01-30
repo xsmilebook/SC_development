@@ -223,6 +223,22 @@
        - `N_EDGES=78`：拟合边数（调试时可设为 3–5）
        - `PB_METHOD=KR`（默认）或 `PB_METHOD=PB`：交互项检验方法
        - `PB_NSIM=1000`：仅对 `PB_METHOD=PB` 生效
+   - ABCD latent change（change score）分析（两时间点，被试内变化率；线性模型）：
+     - change score 定义：每条边的 `delta_SC/year = (SC_followup - SC_baseline)/(time_followup - time_baseline)`。
+     - SC 归一化：每条连接先除以 `plotdatasum` 初始 `fit`，得到“归一化连接强度比率”，再计算 change score。
+     - 模型：`change score ~ X + age_baseline + sex + mean_fd`
+       - `X`：cognition（uncorrected；baseline 值）或 pfactor（baseline 值）
+       - `age_baseline`：基线年龄（由 `eventname` 识别 baseline）
+       - `mean_fd`：被试两次扫描的平均值
+     - cognition 入口脚本：`development_script/5th_cognition/run_abcd_change_score_lm_cognition_uncorrected.R`
+       - 输入：纵向 SC `*combatgam_age_sex_meanfd.rds`；baseline cognition 来自 `*combatgam_cognition.rds` 并按 `subID` 合并
+       - 结果：`outputs/results/5th_cognition/abcd/change_score_lm/`
+       - 统计：输出每条边 `beta_int`（X 的系数）与 FDR，并计算 `beta_int` 与 S-A rank 的相关
+     - pfactor 入口脚本：`development_script/6th_pfactor/run_abcd_change_score_lm_pfactor_general.R`
+       - 输入：纵向 SC `*combatgam_pfactor.rds`（含 pfactor）
+       - 结果：`outputs/results/6th_pfactor/abcd/change_score_lm/`
+       - 统计：输出每条边 `beta_int` 与 FDR，并计算 `beta_int` 与 S-A rank 的相关
+     - 相关输出：`SCrankcorr_change_score_*`（RDS；Spearman r/p）
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`

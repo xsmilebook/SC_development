@@ -120,6 +120,7 @@
 - 2026-01-21: 将本次容器/依赖/并行/容错/对齐/QC 等可复用经验整理补充到 `docs/workflow.md`，作为后续排错与复现的优先清单。
 - 2026-01-30: 新增两时间点纵向 LMM（random intercept + random slope）交互模型函数 `gamfunction/lmminteraction.R`，并提供 ABCD cognition（baseline 填充）与 pfactor（time-varying）对应的复现入口脚本、容器 sbatch 与 within-person change 相关 figure；更新 `docs/workflow.md` 与会话记录。
 - 2026-01-30: 更新 cognition 的 decile 级 change-score figure：使用归一化连接强度比率（按 `plotdatasum` 的初始 `fit` 缩放），并在 log 中输出每个 decile 图的 r/p。
+- 2026-01-30: 新增 change score（latent change）线性模型：实现 `gamfunction/lmfunction.R`，并提供 cognition/pfactor 的 per-edge change-score LM 与 S-A rank 相关结果输出。
 - 2026-01-22: 修复 ABCD cognition 关联分析绘图阶段 `theme()` 报错：避免 `mvabund::theme()` 覆盖 `ggplot2::theme()` 导致参数冲突。
 - 2026-01-22: ABCD `nihtbx_fluidcomp_agecorrected` 关联分析新增 `meanfd_only` 变体（`COG_ASSOC_MODE=meanfd_only`），并提供独立 sbatch 脚本避免覆盖默认输出。
 - 2026-01-23: pfactor/CBCL 的 `developmentcurve_decile*` 图像将 age 横坐标标签按 ×10 显示（0.9→9）；并为 ABCD cognition（uncorrected/age-corrected）新增 S3 development-curve 绘图脚本并接入 sbatch。
