@@ -195,6 +195,28 @@
      - 结果：`outputs/results/6th_pfactor/abcd/pfactor/`
      - 图像（tiff + svg/pdf）：`outputs/figures/6th_pfactor/abcd/pfactor/`
      - 注：交互曲线图需要 `ABCD_PLOTDATASUM_RDS`（默认指向 `outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`；可在提交时覆盖）。
+   - ABCD 两时间点 within-person SC change 的纵向调制检验（LMM；random intercept + random slope；`lme4::lmer`）：
+     - 模型（每条边/或 `totalstrength`）：`SC ~ time + time*int_var + sex + mean_fd + (1 + time | subID)`
+       - `time`：距基线年数（`time = age - baseline_age`；基线=0，随访≈2；baseline 由 `eventname` 中包含 `base` 的记录识别，否则回退到该被试最小 age）。
+       - `int_var`：
+         - cognition：采用 baseline 值并填充 follow-up（与现有 cognition 分析保持一致，脚本内自动回填 `*_base`）。
+         - pfactor：time-varying（与现有 pfactor 分析保持一致，按原始列直接进入模型）。
+     - 统计检验：默认使用 `pbkrtest::KRmodcomp(full, null)` 比较是否加入 `time:int_var`（可通过环境变量切换为 parametric bootstrap）。
+     - 函数：`gamfunction/lmminteraction.R`（`lmm.time.predict.covariateinteraction()`）。
+     - ABCD cognition（uncorrected；within-person change × cognition）：
+       - 入口脚本：`development_script/5th_cognition/run_abcd_withinperson_lmm_cognition_fluid_uncorrected.R`
+       - sbatch（容器版，40 核）：`sbatch sbatch/run_abcd_withinperson_lmm_cognition_fluid_uncorrected_container.sbatch`
+       - 结果：`outputs/results/5th_cognition/abcd/withinperson_lmm/`
+       - 图像：`outputs/figures/5th_cognition/abcd/withinperson_lmm/`（`delta_totalstrength_vs_nihtbx_fluidcomp_uncorrected_base_residualized.*`）
+     - ABCD p-factor（GENERAL；within-person change × pfactor）：
+       - 入口脚本：`development_script/6th_pfactor/run_abcd_withinperson_lmm_pfactor_general.R`
+       - sbatch（容器版，40 核）：`sbatch sbatch/run_abcd_withinperson_lmm_pfactor_general_container.sbatch`
+       - 结果：`outputs/results/6th_pfactor/abcd/withinperson_lmm/`
+       - 图像：`outputs/figures/6th_pfactor/abcd/withinperson_lmm/`（`pred_totalstrength_time_by_GENERAL_low10_high90.*`）
+     - 可复现参数（两者通用，sbatch 通过环境变量传入）：
+       - `N_EDGES=78`：拟合边数（调试时可设为 3–5）
+       - `PB_METHOD=KR`（默认）或 `PB_METHOD=PB`：交互项检验方法
+       - `PB_NSIM=1000`：仅对 `PB_METHOD=PB` 生效
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
