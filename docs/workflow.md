@@ -208,7 +208,9 @@
        - 入口脚本：`development_script/5th_cognition/run_abcd_withinperson_lmm_cognition_fluid_uncorrected.R`
        - sbatch（容器版，40 核）：`sbatch sbatch/run_abcd_withinperson_lmm_cognition_fluid_uncorrected_container.sbatch`
        - 结果：`outputs/results/5th_cognition/abcd/withinperson_lmm/`
-       - 图像：`outputs/figures/5th_cognition/abcd/withinperson_lmm/`（`delta_totalstrength_vs_nihtbx_fluidcomp_uncorrected_base_residualized.*`）
+       - 图像：`outputs/figures/5th_cognition/abcd/withinperson_lmm/`
+         - 总强度：`delta_totalstrength_vs_nihtbx_fluidcomp_uncorrected_base_residualized.*`
+         - S-A deciles（10 张图）：`delta_SC_decile{01..10}_vs_nihtbx_fluidcomp_uncorrected_base_residualized.*`（y 为“归一化连接强度比率”的变化率；log 中输出每张图的 r/p）
        - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；baseline cognition 从 `*combatgam_cognition.rds` 提取后按 `subID` 合并到纵向 SC（保持“baseline 填充”设定）。
      - ABCD p-factor（GENERAL；within-person change × pfactor）：
        - 入口脚本：`development_script/6th_pfactor/run_abcd_withinperson_lmm_pfactor_general.R`

@@ -226,7 +226,29 @@ if (length(deciles) != 10) {
   stop("Expected 10 deciles, got: ", paste(deciles, collapse = ", "))
 }
 
+# Normalize SC strength to ratio (divide by initial fit) to match previous figures.
+plotdatasum_rds <- Sys.getenv(
+  "ABCD_PLOTDATASUM_RDS",
+  unset = file.path(
+    project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
+    "abcd", "combat_gam", "CV75", "plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds"
+  )
+)
+if (!file.exists(plotdatasum_rds)) stop("Missing ABCD_PLOTDATASUM_RDS: ", plotdatasum_rds)
+plotdata <- readRDS(plotdatasum_rds)
+if (!all(c("SC_label", "fit") %in% names(plotdata))) stop("plotdata missing SC_label/fit: ", plotdatasum_rds)
+plot_fit <- plotdata$fit
+names(plot_fit) <- as.character(plotdata$SC_label)
+missing_fit <- setdiff(sc_cols, names(plot_fit))
+if (length(missing_fit) > 0) stop("plotdata missing fits for edges: ", paste(head(missing_fit, 10), collapse = ", "))
+
 SCdata_dec <- SCdata_time
+for (edge in sc_cols[seq_len(78)]) {
+  f0 <- as.numeric(plot_fit[[edge]])
+  if (is.na(f0) || !is.finite(f0) || f0 == 0) stop("Invalid plotdata fit for edge: ", edge)
+  SCdata_dec[[edge]] <- as.numeric(SCdata_dec[[edge]]) / f0
+}
+
 for (d in deciles) {
   d_edges <- edges_by_decile[[as.character(d)]]
   SCdata_dec[[paste0("SC_decile", d)]] <- rowMeans(SCdata_dec[, d_edges, drop = FALSE], na.rm = TRUE)
@@ -282,17 +304,29 @@ for (d in deciles) {
   delta_long$res_delta[idx] <- residuals(lm(delta_per_year ~ sex + mean_fd_mean, data = dd))
 }
 
-Fig_dec <- ggplot(delta_long, aes(x = cognition_base, y = res_delta)) +
-  geom_point(size = 0.9, alpha = 0.35) +
-  geom_smooth(method = "lm", se = TRUE, linewidth = 0.7, color = "black") +
-  facet_wrap(~decile, ncol = 5) +
-  theme_classic() +
-  labs(
-    x = "Baseline cognition",
-    y = "Within-person Δ SC/year residual"
+for (d in deciles) {
+  dd <- delta_long[delta_long$decile == d, , drop = FALSE]
+  dd <- dd[is.finite(dd$cognition_base) & is.finite(dd$res_delta), , drop = FALSE]
+  ct <- suppressWarnings(stats::cor.test(dd$cognition_base, dd$res_delta))
+  message(
+    "[INFO] Decile ", d,
+    " r=", signif(unname(ct$estimate), 4),
+    " p=", signif(ct$p.value, 4),
+    " n=", nrow(dd)
   )
 
-ggsave(file.path(FigureFolder, paste0("delta_SC_deciles_vs_", Cogvar_base, "_residualized.pdf")), Fig_dec, width = 22, height = 12, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("delta_SC_deciles_vs_", Cogvar_base, "_residualized.tiff")), Fig_dec, width = 22, height = 12, units = "cm", bg = "transparent", dpi = 600)
+  Fig_d <- ggplot(dd, aes(x = cognition_base, y = res_delta)) +
+    geom_point(size = 1.0, alpha = 0.4) +
+    geom_smooth(method = "lm", se = TRUE, linewidth = 0.8, color = "black") +
+    theme_classic() +
+    labs(
+      x = "Baseline cognition",
+      y = "Within-person Δ SC ratio/year residual"
+    )
+
+  out_base <- file.path(FigureFolder, sprintf("delta_SC_decile%02d_vs_%s_residualized", d, Cogvar_base))
+  ggsave(paste0(out_base, ".pdf"), Fig_d, width = 12, height = 10, units = "cm", bg = "transparent")
+  ggsave(paste0(out_base, ".tiff"), Fig_d, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+}
 
 message("[INFO] Done.")
