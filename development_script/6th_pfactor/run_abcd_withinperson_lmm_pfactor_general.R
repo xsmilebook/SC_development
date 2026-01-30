@@ -42,6 +42,7 @@ if (!file.exists(input_rds)) {
 }
 
 source(file.path(functionFolder, "lmminteraction.R"))
+source(file.path(functionFolder, "SCrankcorr.R"))
 
 SCdata <- readRDS(input_rds)
 needed <- c("subID", "age", "sex", "mean_fd", int_var)
@@ -93,6 +94,23 @@ lmmresult$p_time_int_fdr <- p.adjust(lmmresult$p_time_int, method = "fdr")
 saveRDS(lmmresult, out_rds)
 write.csv(lmmresult, out_csv, row.names = FALSE)
 message("[INFO] Saved: ", out_rds)
+
+message("[INFO] Correlation to connectional axis (t_time_int)")
+SCrank.df.t <- SCrankcorr(lmmresult, "t_time_int", 12, dsdata = FALSE)
+saveRDS(SCrank.df.t, file.path(resultFolder, paste0("SCrankcorr_lmm_time_by_pfactor_", int_var, "_CV", CVthr, "_tvalue.rds")))
+message("[INFO] SCrankcorr (t) r=", round(SCrank.df.t$r.spearman, 3), " p=", signif(SCrank.df.t$p.spearman, 3))
+
+message("[INFO] Scatter plot: t_time_int vs S-A rank")
+SCrank.data.t <- SCrankcorr(lmmresult, "t_time_int", 12, dsdata = TRUE)
+limthr.t <- max(abs(SCrank.data.t$t_time_int), na.rm = TRUE)
+scatterFig.t <- ggplot(data = SCrank.data.t) +
+  geom_point(aes(x = SCrank, y = t_time_int, color = t_time_int), size = 3) +
+  geom_smooth(aes(x = SCrank, y = t_time_int), method = "lm", color = "black", linewidth = 0.9) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr.t, limthr.t)) +
+  theme_classic() +
+  labs(x = "S-A connectional axis rank", y = "LMM t value")
+ggsave(file.path(FigureFolder, paste0("scatter_tvalue_vs_SCrank_lmm_pfactor_", int_var, "_CV", CVthr, ".pdf")), scatterFig.t, width = 12, height = 10, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_tvalue_vs_SCrank_lmm_pfactor_", int_var, "_CV", CVthr, ".tiff")), scatterFig.t, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
 
 SCdata$totalstrength <- rowMeans(SCdata[, sc_cols[seq_len(78)], drop = FALSE], na.rm = TRUE)
 out_total <- lmm.time.predict.covariateinteraction(

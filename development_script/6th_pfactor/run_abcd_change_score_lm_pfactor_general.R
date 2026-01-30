@@ -133,21 +133,38 @@ write.csv(lmresult, out_csv, row.names = FALSE)
 message("[INFO] Saved: ", out_rds)
 
 message("[INFO] Correlation to connectional axis (beta_int)")
-SCrank.df <- SCrankcorr(lmresult, "beta_int", 12, dsdata = FALSE)
-saveRDS(SCrank.df, file.path(resultFolder, paste0("SCrankcorr_change_score_pfactor_", int_var, "_CV", CVthr, ".rds")))
-message("[INFO] SCrankcorr r=", round(SCrank.df$r.spearman, 3), " p=", signif(SCrank.df$p.spearman, 3))
+SCrank.df.beta <- SCrankcorr(lmresult, "beta_int", 12, dsdata = FALSE)
+saveRDS(SCrank.df.beta, file.path(resultFolder, paste0("SCrankcorr_change_score_pfactor_", int_var, "_CV", CVthr, "_beta.rds")))
+message("[INFO] SCrankcorr (beta) r=", round(SCrank.df.beta$r.spearman, 3), " p=", signif(SCrank.df.beta$p.spearman, 3))
+
+message("[INFO] Correlation to connectional axis (t_int)")
+SCrank.df.t <- SCrankcorr(lmresult, "t_int", 12, dsdata = FALSE)
+saveRDS(SCrank.df.t, file.path(resultFolder, paste0("SCrankcorr_change_score_pfactor_", int_var, "_CV", CVthr, "_tvalue.rds")))
+message("[INFO] SCrankcorr (t) r=", round(SCrank.df.t$r.spearman, 3), " p=", signif(SCrank.df.t$p.spearman, 3))
 
 message("[INFO] Scatter plot: beta_int vs S-A rank")
-SCrank.data <- SCrankcorr(lmresult, "beta_int", 12, dsdata = TRUE)
-limthr <- max(abs(SCrank.data$beta_int), na.rm = TRUE)
-scatterFig <- ggplot(data = SCrank.data) +
+SCrank.data.beta <- SCrankcorr(lmresult, "beta_int", 12, dsdata = TRUE)
+limthr.beta <- max(abs(SCrank.data.beta$beta_int), na.rm = TRUE)
+scatterFig.beta <- ggplot(data = SCrank.data.beta) +
   geom_point(aes(x = SCrank, y = beta_int, color = beta_int), size = 3) +
   geom_smooth(aes(x = SCrank, y = beta_int), method = "lm", color = "black", linewidth = 0.9) +
-  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr, limthr)) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr.beta, limthr.beta)) +
   theme_classic() +
   labs(x = "S-A connectional axis rank", y = "Change-score beta")
-ggsave(file.path(resultFolder, paste0("scatter_beta_vs_SCrank_change_score_pfactor_", int_var, "_CV", CVthr, ".pdf")), scatterFig, width = 12, height = 10, units = "cm", bg = "transparent")
-ggsave(file.path(resultFolder, paste0("scatter_beta_vs_SCrank_change_score_pfactor_", int_var, "_CV", CVthr, ".tiff")), scatterFig, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+ggsave(file.path(resultFolder, paste0("scatter_beta_vs_SCrank_change_score_pfactor_", int_var, "_CV", CVthr, ".pdf")), scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent")
+ggsave(file.path(resultFolder, paste0("scatter_beta_vs_SCrank_change_score_pfactor_", int_var, "_CV", CVthr, ".tiff")), scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+
+message("[INFO] Scatter plot: t_int vs S-A rank")
+SCrank.data.t <- SCrankcorr(lmresult, "t_int", 12, dsdata = TRUE)
+limthr.t <- max(abs(SCrank.data.t$t_int), na.rm = TRUE)
+scatterFig.t <- ggplot(data = SCrank.data.t) +
+  geom_point(aes(x = SCrank, y = t_int, color = t_int), size = 3) +
+  geom_smooth(aes(x = SCrank, y = t_int), method = "lm", color = "black", linewidth = 0.9) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr.t, limthr.t)) +
+  theme_classic() +
+  labs(x = "S-A connectional axis rank", y = "Change-score t value")
+ggsave(file.path(resultFolder, paste0("scatter_tvalue_vs_SCrank_change_score_pfactor_", int_var, "_CV", CVthr, ".pdf")), scatterFig.t, width = 12, height = 10, units = "cm", bg = "transparent")
+ggsave(file.path(resultFolder, paste0("scatter_tvalue_vs_SCrank_change_score_pfactor_", int_var, "_CV", CVthr, ".tiff")), scatterFig.t, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
 
 message("[INFO] Decile-wise change-score vs pfactor (S-A axis deciles)")
 sa12_csv <- Sys.getenv(

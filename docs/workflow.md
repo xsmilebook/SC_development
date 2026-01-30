@@ -211,6 +211,7 @@
        - 图像：`outputs/figures/5th_cognition/abcd/withinperson_lmm/`
          - 总强度：`delta_totalstrength_vs_nihtbx_fluidcomp_uncorrected_base_residualized.*`
          - S-A deciles（10 张图）：`delta_SC_decile{01..10}_vs_nihtbx_fluidcomp_uncorrected_base_residualized.*`（y 为“归一化连接强度比率”的变化率；log 中输出每张图的 r/p）
+         - t value 散点：`scatter_tvalue_vs_SCrank_lmm_nihtbx_fluidcomp_uncorrected_base_CV75.*`
        - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；baseline cognition 从 `*combatgam_cognition.rds` 提取后按 `subID` 合并到纵向 SC（保持“baseline 填充”设定）。
      - ABCD p-factor（GENERAL；within-person change × pfactor）：
        - 入口脚本：`development_script/6th_pfactor/run_abcd_withinperson_lmm_pfactor_general.R`
@@ -219,6 +220,7 @@
        - 图像：`outputs/figures/6th_pfactor/abcd/withinperson_lmm/`
          - `totalstrength` 预测（low10/high90）：`pred_totalstrength_time_by_GENERAL_low10_high90.*`
          - S-A deciles（汇总 1 张图）：`delta_SC_deciles_vs_pfactor_GENERAL_residualized.*`（y 为“归一化连接强度比率”的变化率；log 中输出每个 decile 的 r/p，并写入 `delta_SC_deciles_vs_pfactor_GENERAL_residualized_rp.csv`）
+         - t value 散点：`scatter_tvalue_vs_SCrank_lmm_pfactor_GENERAL_CV75.*`
      - 可复现参数（两者通用，sbatch 通过环境变量传入）：
        - `N_EDGES=78`：拟合边数（调试时可设为 3–5）
        - `PB_METHOD=KR`（默认）或 `PB_METHOD=PB`：交互项检验方法
@@ -234,12 +236,12 @@
        - 输入：纵向 SC `*combatgam_age_sex_meanfd.rds`；baseline cognition 来自 `*combatgam_cognition.rds` 并按 `subID` 合并
        - 结果：`outputs/results/5th_cognition/abcd/change_score_lm/`
        - 统计：输出每条边 `beta_int`（X 的系数）与 FDR，并计算 `beta_int` 与 S-A rank 的相关
-       - 图像：`scatter_beta_vs_SCrank_change_score_*` 与 `delta_SC_deciles_vs_*`（含 r/p CSV）
+       - 图像：`scatter_beta_vs_SCrank_change_score_*`、`scatter_tvalue_vs_SCrank_change_score_*` 与 `delta_SC_deciles_vs_*`（含 r/p CSV）
      - pfactor 入口脚本：`development_script/6th_pfactor/run_abcd_change_score_lm_pfactor_general.R`
        - 输入：纵向 SC `*combatgam_pfactor.rds`（含 pfactor）
        - 结果：`outputs/results/6th_pfactor/abcd/change_score_lm/`
        - 统计：输出每条边 `beta_int` 与 FDR，并计算 `beta_int` 与 S-A rank 的相关
-       - 图像：`scatter_beta_vs_SCrank_change_score_*` 与 `delta_SC_deciles_vs_*`（含 r/p CSV）
+       - 图像：`scatter_beta_vs_SCrank_change_score_*`、`scatter_tvalue_vs_SCrank_change_score_*` 与 `delta_SC_deciles_vs_*`（含 r/p CSV）
      - 相关输出：`SCrankcorr_change_score_*`（RDS；Spearman r/p）
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
