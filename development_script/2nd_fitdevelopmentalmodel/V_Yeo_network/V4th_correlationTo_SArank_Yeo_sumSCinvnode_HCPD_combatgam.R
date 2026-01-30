@@ -212,7 +212,7 @@ if (!force &&
     scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(scr_min, scr_max), guide = "none") +
     labs(x = "S-A connectional axis rank", y = "Second derivative") +
     scale_x_continuous(breaks = x_breaks) +
-    scale_y_continuous(breaks = c(-0.001, 0, 0.001), labels = c(-1, 0, 1)) +
+    scale_y_continuous(breaks = c(-0.002, -0.001, 0, 0.001), labels = c(-2, -1, 0, 1)) +
     theme_classic() + mytheme
   ggsave(out_meanderv2_tiff, p2, width = 13, height = 12, units = "cm", bg = "transparent")
   ggsave(out_meanderv2_pdf, p2, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
