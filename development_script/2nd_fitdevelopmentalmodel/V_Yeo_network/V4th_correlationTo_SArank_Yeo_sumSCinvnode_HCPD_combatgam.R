@@ -129,8 +129,6 @@ gamresult$peak.change[gamresult$sig == FALSE] <- NA
 gamresult$peak.increase.change[gamresult$sig == FALSE] <- NA
 
 gamresult <- gamresult %>% mutate(meanderv2_2 = meanderv2)
-gamresult$meanderv2_2[(gamresult$meanderv2 < (mean(gamresult$meanderv2, na.rm = TRUE) - 3 * sd(gamresult$meanderv2, na.rm = TRUE))) |
-  (gamresult$meanderv2 > (mean(gamresult$meanderv2, na.rm = TRUE) + 3 * sd(gamresult$meanderv2, na.rm = TRUE)))] <- NA
 
 out_summary <- file.path(resultFolder, "SCrank_correlation_summary.csv")
 if (!force && file.exists(out_summary) && !skip_compute) {
@@ -191,10 +189,6 @@ if (!force &&
 
   ## partial Rsq
   correlation.df <- SCrankcorr(gamresult, "partialRsq", ds.resolution, dsdata = TRUE)
-  correlation.df <- correlation.df[is.finite(correlation.df$SCrank) & is.finite(correlation.df$partialRsq), , drop = FALSE]
-  scr_range <- range(correlation.df$SCrank, na.rm = TRUE)
-  scr_min <- min(scr_min, scr_range[[1]])
-  scr_max <- max(scr_max, scr_range[[2]])
   p1 <- ggplot(data = correlation.df) +
     geom_point(aes(x = SCrank, y = partialRsq, color = SCrank), size = 3.5, alpha = 0.9) +
     geom_smooth(aes(x = SCrank, y = partialRsq), method = "lm", color = "black") +
@@ -212,14 +206,13 @@ if (!force &&
 
   ## meanderv2_2
   correlation.df <- SCrankcorr(gamresult, "meanderv2_2", ds.resolution, dsdata = TRUE)
-  correlation.df <- correlation.df[is.finite(correlation.df$SCrank) & is.finite(correlation.df$meanderv2_2), , drop = FALSE]
   p2 <- ggplot(data = correlation.df) +
     geom_point(aes(x = SCrank, y = meanderv2_2, color = SCrank), size = 5.5, alpha = 0.9) +
     geom_smooth(aes(x = SCrank, y = meanderv2_2), linewidth = 2, method = "lm", color = "black") +
     scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(scr_min, scr_max), guide = "none") +
     labs(x = "S-A connectional axis rank", y = "Second derivative") +
     scale_x_continuous(breaks = x_breaks) +
-    scale_y_continuous(breaks = c(-0.002, 0, 0.002), labels = c(-2, 0, 2)) +
+    scale_y_continuous(breaks = c(-0.001, 0, 0.001), labels = c(-1, 0, 1)) +
     theme_classic() + mytheme
   ggsave(out_meanderv2_tiff, p2, width = 13, height = 12, units = "cm", bg = "transparent")
   ggsave(out_meanderv2_pdf, p2, dpi = 600, width = 17.5, height = 15, units = "cm", bg = "transparent")
