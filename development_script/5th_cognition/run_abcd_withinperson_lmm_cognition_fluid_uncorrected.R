@@ -183,15 +183,17 @@ message(
 )
 
 res_delta <- residuals(lm(delta_totalstrength_per_year ~ sex + mean_fd_mean, data = delta_df))
-res_cog <- residuals(lm(cognition_base ~ sex + mean_fd_mean, data = delta_df))
-plot_df <- data.frame(res_delta = res_delta, res_cog = res_cog)
+plot_df <- data.frame(
+  delta_res = res_delta,
+  cognition_base = delta_df$cognition_base
+)
 
-Fig <- ggplot(plot_df, aes(x = res_cog, y = res_delta)) +
+Fig <- ggplot(plot_df, aes(x = cognition_base, y = delta_res)) +
   geom_point(size = 1.2, alpha = 0.6) +
   geom_smooth(method = "lm", se = TRUE, linewidth = 0.8, color = "black") +
   theme_classic() +
   labs(
-    x = "Baseline cognition residual",
+    x = "Baseline cognition",
     y = "Within-person Δ totalstrength/year residual"
   )
 
@@ -274,21 +276,19 @@ delta_long <- delta_dec %>%
 delta_long$decile <- as.integer(gsub("^delta_decile([0-9]+)_per_year$", "\\1", delta_long$decile))
 
 delta_long$res_delta <- NA_real_
-delta_long$res_cog <- NA_real_
 for (d in deciles) {
   idx <- which(delta_long$decile == d)
   dd <- delta_long[idx, , drop = FALSE]
   delta_long$res_delta[idx] <- residuals(lm(delta_per_year ~ sex + mean_fd_mean, data = dd))
-  delta_long$res_cog[idx] <- residuals(lm(cognition_base ~ sex + mean_fd_mean, data = dd))
 }
 
-Fig_dec <- ggplot(delta_long, aes(x = res_cog, y = res_delta)) +
+Fig_dec <- ggplot(delta_long, aes(x = cognition_base, y = res_delta)) +
   geom_point(size = 0.9, alpha = 0.35) +
   geom_smooth(method = "lm", se = TRUE, linewidth = 0.7, color = "black") +
   facet_wrap(~decile, ncol = 5) +
   theme_classic() +
   labs(
-    x = "Baseline cognition residual",
+    x = "Baseline cognition",
     y = "Within-person Δ SC/year residual"
   )
 
