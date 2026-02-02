@@ -266,6 +266,8 @@ saveRDS(SCrank.personal, file.path(resultFolder, paste0("SCrankcorr_age_personal
 message("[INFO] SCrankcorr personal r=", round(SCrank.personal$r.spearman, 3), " p=", signif(SCrank.personal$p.spearman, 3))
 
 SCrank.fixed.df <- SCrankcorr(res_all, "beta_age", 12, dsdata = TRUE)
+fixed_z <- scale(SCrank.fixed.df$beta_age)
+SCrank.fixed.df <- SCrank.fixed.df[!is.na(fixed_z) & abs(fixed_z) <= 3, , drop = FALSE]
 limthr <- max(abs(SCrank.fixed.df$beta_age), na.rm = TRUE)
 p_fixed <- ggplot(SCrank.fixed.df) +
   geom_point(aes(x = SCrank, y = beta_age, color = beta_age), size = 5) +
@@ -290,6 +292,8 @@ ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_bas
        p_fixed, width = 15, height = 15, units = "cm", bg = "transparent")
 
 SCrank.rand.df <- SCrankcorr(res_all, "rand_age_mean", 12, dsdata = TRUE)
+rand_z <- scale(SCrank.rand.df$rand_age_mean)
+SCrank.rand.df <- SCrank.rand.df[!is.na(rand_z) & abs(rand_z) <= 3, , drop = FALSE]
 limthr2 <- max(abs(SCrank.rand.df$rand_age_mean), na.rm = TRUE)
 p_rand <- ggplot(SCrank.rand.df) +
   geom_point(aes(x = SCrank, y = rand_age_mean, color = rand_age_mean), size = 5) +
@@ -314,6 +318,8 @@ ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_ba
        p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
 
 SCrank.personal.df <- SCrankcorr(res_all, "personal_slope", 12, dsdata = TRUE)
+personal_z <- scale(SCrank.personal.df$personal_slope)
+SCrank.personal.df <- SCrank.personal.df[!is.na(personal_z) & abs(personal_z) <= 3, , drop = FALSE]
 limthr3 <- max(abs(SCrank.personal.df$personal_slope), na.rm = TRUE)
 p_personal <- ggplot(SCrank.personal.df) +
   geom_point(aes(x = SCrank, y = personal_slope, color = personal_slope), size = 5) +

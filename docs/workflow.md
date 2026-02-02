@@ -214,6 +214,7 @@
        - 个体斜率：`age_lmm_random_slope_personal_slopes_*_CV*.rds`（每条边一个 data.frame，含 fixed/random/个人斜率）
      - S-A 相关：固定效应（age beta）与随机斜率均值（全样本 78 edges）
      - S-A 相关：个人斜率均值（全样本 78 edges）
+     - 散点图：绘图前剔除偏离均值超过 3 SD 的点。
      - 矩阵：全样本 fixed/random/personal
    - 临时对比脚本（LCMM vs LMM 参数差异，单边示例）：
      - 脚本：`development_script/5th_cognition/tmp_compare_lcmm_lmm_params.R`
