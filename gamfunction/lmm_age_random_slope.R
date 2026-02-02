@@ -18,8 +18,6 @@ lmm.age.random.slope <- function(region,
   keep <- !is.na(df[[region]]) & !is.na(df[[age_var]]) & !is.na(df[[sex_var]]) & !is.na(df[[fd_var]])
   df <- df[keep, , drop = FALSE]
 
-  ok <- tapply(df[[age_var]], df[[subid_var]], function(x) length(unique(round(x, 6))) >= 2)
-  df <- df[df[[subid_var]] %in% names(ok)[ok], , drop = FALSE]
   if (nrow(df) < min_obs) {
     out <- data.frame(
       parcel = as.character(region),

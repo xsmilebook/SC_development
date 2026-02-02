@@ -140,6 +140,11 @@ for (region in sc_cols[seq_len(n_edges)]) {
 SCdata.diw[, sc_cols] <- lapply(SCdata.diw[, sc_cols, drop = FALSE], as.numeric)
 SCdata <- SCdata.diw
 
+# Keep subjects with >=2 unique timepoints before fitting.
+sub_time_ok <- tapply(SCdata$age, SCdata$subID, function(x) length(unique(round(x, 6))) >= 2)
+SCdata <- SCdata[SCdata$subID %in% names(sub_time_ok)[sub_time_ok], , drop = FALSE]
+if (nrow(SCdata) < 10) stop("Too few rows after >=2 timepoint filter: ", nrow(SCdata))
+
 run_all <- function() {
   dataname <- "SCdata_all"
   assign(dataname, SCdata, envir = .GlobalEnv)
