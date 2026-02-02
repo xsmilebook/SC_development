@@ -215,7 +215,21 @@
      - S-A 相关：固定效应（age beta）与随机斜率均值（全样本 78 edges）
      - S-A 相关：个人斜率均值（全样本 78 edges）
      - 散点图：不做 3 SD 异常值剔除。
-     - 矩阵：全样本 fixed/random/personal；low10/high10 个人斜率矩阵；low10 vs high10 的 t-value 矩阵（显著性标记，色标按 |value| 对称）
+     - 矩阵：全样本 fixed/random/personal；low10/high10 个人斜率矩阵；low10 vs high10 的 t-value 矩阵（显著性标记，色标按 |value| 对称；t 检验常量/失败时置为 0）
+   - ABCD p-factor 年龄随机斜率 LMM（固定效应 + 随机效应矩阵）：
+     - 脚本：`development_script/6th_pfactor/run_abcd_age_lmm_random_slope_pfactor_groups.R`
+     - 模型（每条边）：`SC ~ age + sex + mean_fd + (1 + age || subID)`
+     - 处理流程：不做额外异常值剔除；≥2 时间点筛选在脚本中完成，函数内部仅做 complete-case。
+     - SC 归一化：建模前按 `ABCD_PLOTDATASUM_RDS` 的 `fit` 对每条边做 ratio 缩放（与 S3 交互曲线一致）。
+     - 输出：
+       - 结果：`outputs/results/6th_pfactor/abcd/age_lmm/`
+       - 图像：`outputs/figures/6th_pfactor/abcd/age_lmm/`
+       - 模型对象：`age_lmm_random_slope_models_*_CV*.rds`（每条边一个 `lme4::lmer` 模型）
+       - 个体斜率：`age_lmm_random_slope_personal_slopes_*_CV*.rds`（每条边一个 data.frame，含 fixed/random/个人斜率）
+     - S-A 相关：固定效应（age beta）与随机斜率均值（全样本 78 edges）
+     - S-A 相关：个人斜率均值（全样本 78 edges）
+     - 散点图：不做 3 SD 异常值剔除。
+     - 矩阵：全样本 fixed/random/personal；low10/high10 个人斜率矩阵；low10 vs high10 的 t-value 矩阵（显著性标记，色标按 |value| 对称；t 检验常量/失败时置为 0）
    - 临时对比脚本（LCMM vs LMM 参数差异，单边示例）：
      - 脚本：`development_script/5th_cognition/tmp_compare_lcmm_lmm_params.R`
      - 输入：`*combatgam_age_sex_meanfd.rds` 与 `ABCD_PLOTDATASUM_RDS`（ratio 缩放与 LMM 一致）

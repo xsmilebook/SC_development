@@ -256,5 +256,7 @@
 - 2026-02-02: 修复 t-value 矩阵配色：色标按 |t| 对称，避免全灰。
 - 2026-02-02: 修复 random/personal 矩阵配色：色标按 |value| 对称，避免因 limits 过窄导致大面积灰色（oob censor）。
 - 2026-02-02: age LMM cognition 散点图移除 3 SD 异常值剔除。
+- 2026-02-02: age LMM cognition 在 t 检验失败/常量时将 t=0、p=1，避免矩阵大面积灰色。
+- 2026-02-02: 新增 p-factor 版本的年龄随机斜率 LMM 脚本（含 personal slope 与 low/high 对比矩阵）。
 - 2026-02-02: age LMM 收敛检查阈值调整为 0.02 以减少轻微梯度警告。
 - 2026-02-02: 修复 `lmerControl` 参数名：使用 `check.conv.grad` 以避免参数未被使用的报错。

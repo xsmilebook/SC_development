@@ -9,8 +9,8 @@ suppressPackageStartupMessages({
 rm(list = ls())
 
 CVthr <- 75
-Cogvar <- "nihtbx_fluidcomp_uncorrected"
-Cogvar_base <- "nihtbx_fluidcomp_uncorrected_base"
+Pvar <- "GENERAL"
+Pvar_base <- "GENERAL_base"
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -18,25 +18,17 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 
 functionFolder <- file.path(project_root, "gamfunction")
-resultFolder <- file.path(project_root, "outputs", "results", "5th_cognition", "abcd", "age_lmm")
-FigureFolder <- file.path(project_root, "outputs", "figures", "5th_cognition", "abcd", "age_lmm")
+resultFolder <- file.path(project_root, "outputs", "results", "6th_pfactor", "abcd", "age_lmm")
+FigureFolder <- file.path(project_root, "outputs", "figures", "6th_pfactor", "abcd", "age_lmm")
 dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
 input_rds <- file.path(
   project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_pfactor.rds"
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (age/sex/mean_fd variant; longitudinal)")
-}
-
-cog_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds"
-)
-if (!file.exists(cog_rds)) {
-  stop("Missing cognition baseline input: ", cog_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (cognition variant)")
+  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (p-factor variant)")
 }
 
 plotdatasum_rds <- Sys.getenv(
@@ -93,27 +85,20 @@ message(
   round(min(SCdata$age, na.rm = TRUE), 3), "–", round(max(SCdata$age, na.rm = TRUE), 3)
 )
 
-needed <- c("subID", "age", "sex", "mean_fd")
+needed <- c("subID", "age", "sex", "mean_fd", Pvar)
 missing <- setdiff(needed, names(SCdata))
 if (length(missing) > 0) stop("Missing required columns in SCdata: ", paste(missing, collapse = ", "))
 SCdata$sex <- as.factor(SCdata$sex)
 
-SCcog <- readRDS(cog_rds)
-if (!("eventname" %in% names(SCcog)) && ("scanID" %in% names(SCcog))) {
-  SCcog$eventname <- scanid_to_eventname(SCcog$scanID)
-}
-
-missing_cog <- setdiff(c("subID", "eventname", Cogvar), names(SCcog))
-if (length(missing_cog) > 0) stop("Missing required columns in cognition SCdata: ", paste(missing_cog, collapse = ", "))
-Cogdf <- SCcog %>%
-  select(subID, eventname, all_of(Cogvar)) %>%
-  filter(!is.na(.data[[Cogvar]])) %>%
+Pdf <- SCdata %>%
+  select(subID, eventname, all_of(Pvar)) %>%
+  filter(!is.na(.data[[Pvar]])) %>%
   filter(grepl("base", eventname, ignore.case = TRUE)) %>%
-  select(subID, !!Cogvar_base := all_of(Cogvar)) %>%
+  select(subID, !!Pvar_base := all_of(Pvar)) %>%
   distinct()
-if (nrow(Cogdf) < 1) stop("No baseline cognition rows found in: ", cog_rds)
-SCdata <- SCdata %>% left_join(Cogdf, by = "subID")
-if (!Cogvar_base %in% names(SCdata)) stop("Baseline cognition join failed, missing: ", Cogvar_base)
+if (nrow(Pdf) < 1) stop("No baseline p-factor rows found in: ", input_rds)
+SCdata <- SCdata %>% left_join(Pdf, by = "subID")
+if (!Pvar_base %in% names(SCdata)) stop("Baseline p-factor join failed, missing: ", Pvar_base)
 
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
 if (any(grepl("_h$", sc_cols))) sc_cols <- sc_cols[grepl("_h$", sc_cols)]
@@ -302,15 +287,14 @@ personal_slope <- vapply(slopes_list, function(df) {
 }, numeric(1))
 res_all$personal_slope <- personal_slope
 
-# low10/high10 groups for personal slope comparison
-sub_cog <- SCdata %>%
-  select(subID, all_of(Cogvar_base)) %>%
+sub_p <- SCdata %>%
+  select(subID, all_of(Pvar_base)) %>%
   distinct() %>%
-  filter(!is.na(.data[[Cogvar_base]]))
-q10 <- quantile(sub_cog[[Cogvar_base]], 0.1, na.rm = TRUE)
-q90 <- quantile(sub_cog[[Cogvar_base]], 0.9, na.rm = TRUE)
-sub_low <- sub_cog$subID[sub_cog[[Cogvar_base]] <= q10]
-sub_high <- sub_cog$subID[sub_cog[[Cogvar_base]] >= q90]
+  filter(!is.na(.data[[Pvar_base]]))
+q10 <- quantile(sub_p[[Pvar_base]], 0.1, na.rm = TRUE)
+q90 <- quantile(sub_p[[Pvar_base]], 0.9, na.rm = TRUE)
+sub_low <- sub_p$subID[sub_p[[Pvar_base]] <= q10]
+sub_high <- sub_p$subID[sub_p[[Pvar_base]] >= q90]
 
 personal_low_mean <- numeric(length(sc_cols))
 personal_high_mean <- numeric(length(sc_cols))
@@ -350,30 +334,30 @@ res_all$personal_t_low_high <- personal_t
 res_all$personal_p_low_high <- personal_p
 
 saveRDS(res_all,
-        file.path(resultFolder, paste0("age_lmm_random_slope_results_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+        file.path(resultFolder, paste0("age_lmm_random_slope_results_", Pvar_base, "_CV", CVthr, out_suffix, ".rds")))
 saveRDS(model_list,
-        file.path(resultFolder, paste0("age_lmm_random_slope_models_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+        file.path(resultFolder, paste0("age_lmm_random_slope_models_", Pvar_base, "_CV", CVthr, out_suffix, ".rds")))
 saveRDS(slopes_list,
-        file.path(resultFolder, paste0("age_lmm_random_slope_personal_slopes_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+        file.path(resultFolder, paste0("age_lmm_random_slope_personal_slopes_", Pvar_base, "_CV", CVthr, out_suffix, ".rds")))
 write.csv(
   res_all,
-  file.path(resultFolder, paste0("age_lmm_random_slope_results_all_", Cogvar_base, "_CV", CVthr, out_suffix, ".csv")),
+  file.path(resultFolder, paste0("age_lmm_random_slope_results_all_", Pvar_base, "_CV", CVthr, out_suffix, ".csv")),
   row.names = FALSE
 )
 
 message("[INFO] Correlation to connectional axis (fixed age beta)")
 SCrank.fixed <- SCrankcorr(res_all, "beta_age", 12, dsdata = FALSE)
-saveRDS(SCrank.fixed, file.path(resultFolder, paste0("SCrankcorr_age_fixed_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+saveRDS(SCrank.fixed, file.path(resultFolder, paste0("SCrankcorr_age_fixed_", Pvar_base, "_CV", CVthr, out_suffix, ".rds")))
 message("[INFO] SCrankcorr fixed r=", round(SCrank.fixed$r.spearman, 3), " p=", signif(SCrank.fixed$p.spearman, 3))
 
 message("[INFO] Correlation to connectional axis (mean random slope)")
 SCrank.rand <- SCrankcorr(res_all, "rand_age_mean", 12, dsdata = FALSE)
-saveRDS(SCrank.rand, file.path(resultFolder, paste0("SCrankcorr_age_random_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+saveRDS(SCrank.rand, file.path(resultFolder, paste0("SCrankcorr_age_random_", Pvar_base, "_CV", CVthr, out_suffix, ".rds")))
 message("[INFO] SCrankcorr random r=", round(SCrank.rand$r.spearman, 3), " p=", signif(SCrank.rand$p.spearman, 3))
 
 message("[INFO] Correlation to connectional axis (mean personal slope)")
 SCrank.personal <- SCrankcorr(res_all, "personal_slope", 12, dsdata = FALSE)
-saveRDS(SCrank.personal, file.path(resultFolder, paste0("SCrankcorr_age_personal_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+saveRDS(SCrank.personal, file.path(resultFolder, paste0("SCrankcorr_age_personal_", Pvar_base, "_CV", CVthr, out_suffix, ".rds")))
 message("[INFO] SCrankcorr personal r=", round(SCrank.personal$r.spearman, 3), " p=", signif(SCrank.personal$p.spearman, 3))
 
 SCrank.fixed.df <- SCrankcorr(res_all, "beta_age", 12, dsdata = TRUE)
@@ -395,9 +379,9 @@ p_fixed <- ggplot(SCrank.fixed.df) +
     legend.position = "none"
   ) +
   labs(x = "S-A connectional axis rank", y = "Fixed age effect (beta)")
-ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".tiff")),
+ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Pvar_base, "_CV", CVthr, out_suffix, ".tiff")),
        p_fixed, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")),
+ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Pvar_base, "_CV", CVthr, out_suffix, ".pdf")),
        p_fixed, width = 15, height = 15, units = "cm", bg = "transparent")
 
 SCrank.rand.df <- SCrankcorr(res_all, "rand_age_mean", 12, dsdata = TRUE)
@@ -419,9 +403,9 @@ p_rand <- ggplot(SCrank.rand.df) +
     legend.position = "none"
   ) +
   labs(x = "S-A connectional axis rank", y = "Mean random age effect")
-ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".tiff")),
+ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Pvar_base, "_CV", CVthr, out_suffix, ".tiff")),
        p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")),
+ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Pvar_base, "_CV", CVthr, out_suffix, ".pdf")),
        p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
 
 SCrank.personal.df <- SCrankcorr(res_all, "personal_slope", 12, dsdata = TRUE)
@@ -443,9 +427,9 @@ p_personal <- ggplot(SCrank.personal.df) +
     legend.position = "none"
   ) +
   labs(x = "S-A connectional axis rank", y = "Mean personal age effect")
-ggsave(file.path(FigureFolder, paste0("scatter_personal_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".tiff")),
+ggsave(file.path(FigureFolder, paste0("scatter_personal_age_vs_SCrank_", Pvar_base, "_CV", CVthr, out_suffix, ".tiff")),
        p_personal, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_personal_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")),
+ggsave(file.path(FigureFolder, paste0("scatter_personal_age_vs_SCrank_", Pvar_base, "_CV", CVthr, out_suffix, ".pdf")),
        p_personal, width = 15, height = 15, units = "cm", bg = "transparent")
 
 mat_fixed_all <- vec_to_mat(res_all$beta_age)
@@ -465,13 +449,14 @@ saveRDS(
     personal_t_low_high = mat_t_low_high,
     personal_sig_low_high = sig_low_high
   ),
-  file.path(resultFolder, paste0("age_lmm_matrices_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds"))
+  file.path(resultFolder, paste0("age_lmm_matrices_", Pvar_base, "_CV", CVthr, out_suffix, ".rds"))
 )
 
-plot_matrix(mat_fixed_all, "Fixed age effect (all)", file.path(FigureFolder, paste0("matrix_fixed_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
-plot_matrix(mat_rand_all, "Random age effect (all)", file.path(FigureFolder, paste0("matrix_random_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
-plot_matrix(mat_personal_all, "Personal age effect (all)", file.path(FigureFolder, paste0("matrix_personal_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
-plot_matrix(mat_personal_low, "Personal age effect (low10)", file.path(FigureFolder, paste0("matrix_personal_age_low10_", Cogvar_base, "_CV", CVthr, out_suffix)))
-plot_matrix(mat_personal_high, "Personal age effect (high10)", file.path(FigureFolder, paste0("matrix_personal_age_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
-plot_matrix_sig(mat_t_low_high, sig_low_high, "Personal slope t-value (low10 vs high10)", file.path(FigureFolder, paste0("matrix_personal_age_tvalue_low10_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_fixed_all, "Fixed age effect (all)", file.path(FigureFolder, paste0("matrix_fixed_age_all_", Pvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_rand_all, "Random age effect (all)", file.path(FigureFolder, paste0("matrix_random_age_all_", Pvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_personal_all, "Personal age effect (all)", file.path(FigureFolder, paste0("matrix_personal_age_all_", Pvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_personal_low, "Personal age effect (low10)", file.path(FigureFolder, paste0("matrix_personal_age_low10_", Pvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_personal_high, "Personal age effect (high10)", file.path(FigureFolder, paste0("matrix_personal_age_high10_", Pvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix_sig(mat_t_low_high, sig_low_high, "Personal slope t-value (low10 vs high10)", file.path(FigureFolder, paste0("matrix_personal_age_tvalue_low10_high10_", Pvar_base, "_CV", CVthr, out_suffix)))
+
 message("[INFO] Done.")
