@@ -131,9 +131,17 @@ SCdata <- SCdata[SCdata$subID %in% names(sub_time_ok)[sub_time_ok], , drop = FAL
 if (nrow(SCdata) < 10) stop("Too few rows after >=2 timepoint filter: ", nrow(SCdata))
 
 run_all <- function() {
-  dataname <- "SCdata_all"
-  assign(dataname, SCdata, envir = .GlobalEnv)
   results <- lapply(sc_cols, function(edge) {
+    df_edge <- SCdata
+    y <- df_edge[[edge]]
+    y_mean <- mean(y, na.rm = TRUE)
+    y_sd <- stats::sd(y, na.rm = TRUE)
+    if (is.finite(y_mean) && is.finite(y_sd) && y_sd > 0) {
+      out_idx <- which(y < y_mean - 3 * y_sd | y > y_mean + 3 * y_sd)
+      if (length(out_idx) > 0) df_edge <- df_edge[-out_idx, , drop = FALSE]
+    }
+    dataname <- paste0("SCdata_all_", edge)
+    assign(dataname, df_edge, envir = .GlobalEnv)
     lmm.age.random.slope(edge, dataname, return_model = TRUE, return_slopes = TRUE)
   })
   stats <- dplyr::bind_rows(lapply(results, `[[`, "stats"))

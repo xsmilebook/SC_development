@@ -202,6 +202,7 @@
      - 脚本：`development_script/5th_cognition/run_abcd_age_lmm_random_slope_cognition_groups.R`
      - 模型（每条边）：`SC ~ age + sex + mean_fd + (1 + age || subID)`
      - 处理流程：不做额外异常值剔除；≥2 时间点筛选在脚本中完成，函数内部仅做 complete-case。
+     - 建模前：每条边剔除该边超出均值±3SD 的观测（按该边的 SC 值筛选）。
      - SC 归一化：建模前按 `ABCD_PLOTDATASUM_RDS` 的 `fit` 对每条边做 ratio 缩放（与 S3 交互曲线一致）。
      - 收敛检查：`lmer` 的梯度阈值调为 0.02（保持 warning 行为），用于降低轻微不收敛提示（`check.conv.grad`）。
      - 接口支持返回个体随机斜率（`return_slopes=TRUE` 时返回每个 `subID` 的随机斜率与固定斜率）。
@@ -220,6 +221,7 @@
      - 脚本：`development_script/6th_pfactor/run_abcd_age_lmm_random_slope_pfactor_groups.R`
      - 模型（每条边）：`SC ~ age + sex + mean_fd + (1 + age || subID)`
      - 处理流程：不做额外异常值剔除；≥2 时间点筛选在脚本中完成，函数内部仅做 complete-case。
+     - 建模前：每条边剔除该边超出均值±3SD 的观测（按该边的 SC 值筛选）。
      - SC 归一化：建模前按 `ABCD_PLOTDATASUM_RDS` 的 `fit` 对每条边做 ratio 缩放（与 S3 交互曲线一致）。
      - 输出：
        - 结果：`outputs/results/6th_pfactor/abcd/age_lmm/`
