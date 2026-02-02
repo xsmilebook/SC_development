@@ -230,3 +230,4 @@
 - 2026-01-29: 修复 HCP-D Yeo7 S4 散点图因 color scale 限制导致丢点的问题。
 - 2026-01-29: HCP-D Yeo7 S4 散点图保留离群点（不再将 meanderv2_2 异常值设为 NA）。
 - 2026-02-02: 新增 ABCD 年龄随机斜率 LMM 的容器 sbatch（`sbatch/run_abcd_age_lmm_random_slope_cognition_groups_container.sbatch`），并将该脚本的矩阵与 S-A 相关散点图风格对齐旧版输出（点/线宽与配色一致）。
+- 2026-02-02: age 随机斜率 LMM 的矩阵绘图加入 limthr 兜底，避免全 NA/全 0 时绘图为空。

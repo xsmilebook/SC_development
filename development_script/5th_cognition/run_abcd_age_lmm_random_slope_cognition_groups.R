@@ -179,6 +179,10 @@ plot_matrix <- function(mat, title, out_base) {
   df_melt$value <- as.numeric(df_melt$value)
 
   limthr <- max(abs(df_melt$value), na.rm = TRUE)
+  if (!is.finite(limthr) || limthr == 0) {
+    message("[WARN] Matrix values are all NA/zero for: ", title, "; set limthr=1 for plotting")
+    limthr <- 1
+  }
   linerange_frame <- data.frame(
     x = c(0.5, 12 + 0.5),
     ymin = rep(-12 - 0.5, times = 2),
