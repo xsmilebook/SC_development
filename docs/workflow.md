@@ -212,6 +212,11 @@
        - 模型对象：`age_lmm_random_slope_models_*_CV*.rds`（每条边一个 `lme4::lmer` 模型）
      - S-A 相关：固定效应（age beta）与随机斜率均值（全样本 78 edges）
      - 矩阵：全样本 fixed/random
+   - 临时对比脚本（LCMM vs LMM 参数差异，单边示例）：
+     - 脚本：`development_script/5th_cognition/tmp_compare_lcmm_lmm_params.R`
+     - 输入：`*combatgam_age_sex_meanfd.rds` 与 `ABCD_PLOTDATASUM_RDS`（ratio 缩放与 LMM 一致）
+     - 说明：默认比较 `SC.1_h`，可用 `EDGE_NAME=SC.X_h` 覆盖；输出包含 lcmm/lmm 模型与随机斜率向量的相关、最大差值。
+     - 输出：`outputs/results/5th_cognition/abcd/age_lmm/tmp_lcmm_lmm_compare/`
    - ABCD cognition（uncorrected；within-person change × cognition）：
        - 入口脚本：`development_script/5th_cognition/run_abcd_withinperson_lmm_cognition_fluid_uncorrected.R`
        - sbatch（容器版，40 核）：`sbatch sbatch/run_abcd_withinperson_lmm_cognition_fluid_uncorrected_container.sbatch`
