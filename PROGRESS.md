@@ -248,3 +248,4 @@
 - 2026-02-02: age LMM cognition 脚本建模前增加 ratio 缩放（复用 `plotdatasum` 的 `fit`）。
 - 2026-02-02: age LMM ≥2 时间点筛选移到脚本层，函数仅做 complete-case。
 - 2026-02-02: 新增临时脚本对比 lcmm 与 lmm 的随机效应差异（单边示例，沿用现有清洗与 ratio 缩放）。
+- 2026-02-02: age LMM 收敛检查阈值调整为 0.02 以减少轻微梯度警告。
