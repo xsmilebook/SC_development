@@ -252,3 +252,4 @@
 - 2026-02-02: 临时脚本移除基于 `lmer@u` 的随机斜率比较，改为仅使用 `ranef(...)[[\"subID\"]][[\"age\"]]` 并按 subID/ID 对齐。
 - 2026-02-02: age LMM cognition 脚本新增 personal slope 的 S-A 相关散点与矩阵输出，并保存 per-edge 个体斜率。
 - 2026-02-02: age LMM 收敛检查阈值调整为 0.02 以减少轻微梯度警告。
+- 2026-02-02: 修复 `lmerControl` 参数名：使用 `check.conv.grad` 以避免参数未被使用的报错。

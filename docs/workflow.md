@@ -203,7 +203,7 @@
      - 模型（每条边）：`SC ~ age + sex + mean_fd + (1 + age || subID)`
      - 处理流程：不做额外异常值剔除；≥2 时间点筛选在脚本中完成，函数内部仅做 complete-case。
      - SC 归一化：建模前按 `ABCD_PLOTDATASUM_RDS` 的 `fit` 对每条边做 ratio 缩放（与 S3 交互曲线一致）。
-     - 收敛检查：`lmer` 的梯度阈值调为 0.02（保持 warning 行为），用于降低轻微不收敛提示。
+     - 收敛检查：`lmer` 的梯度阈值调为 0.02（保持 warning 行为），用于降低轻微不收敛提示（`check.conv.grad`）。
      - 接口支持返回个体随机斜率（`return_slopes=TRUE` 时返回每个 `subID` 的随机斜率与固定斜率）。
      - 接口支持返回完整模型对象（`return_model=TRUE` 时返回 `lme4::lmer` 模型）。
      - 随机效应矩阵使用随机斜率的“平均绝对值”（random slopes 以 0 为中心，直接均值会接近 0）。
