@@ -254,5 +254,6 @@
 - 2026-02-02: age LMM cognition 散点图绘制前剔除 3 SD 之外的点。
 - 2026-02-02: age LMM cognition 增加 low10/high10 个人斜率矩阵与组间 t-value 矩阵（显著性标记）。
 - 2026-02-02: 修复 t-value 矩阵配色：色标按 |t| 对称，避免全灰。
+- 2026-02-02: 修复 random/personal 矩阵配色：色标按 |value| 对称，避免因 limits 过窄导致大面积灰色（oob censor）。
 - 2026-02-02: age LMM 收敛检查阈值调整为 0.02 以减少轻微梯度警告。
 - 2026-02-02: 修复 `lmerControl` 参数名：使用 `check.conv.grad` 以避免参数未被使用的报错。
