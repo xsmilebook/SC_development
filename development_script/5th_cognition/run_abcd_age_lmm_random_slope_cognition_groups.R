@@ -10,41 +10,120 @@ if (nzchar(conda_prefix)) {
 }
 .libPaths(.libPaths()[!grepl("/GPFS/.*/R/packages", .libPaths())])
 
+args <- commandArgs(trailingOnly = TRUE)
+full_args <- commandArgs(trailingOnly = FALSE)
+if ("--help" %in% args) {
+  cat("Usage: Rscript development_script/5th_cognition/run_abcd_age_lmm_random_slope_cognition_groups.R [options]\n",
+      "Options:\n",
+      "  --project-root PATH     Project root (default: auto-detect via script location)\n",
+      "  --input-rds PATH        Longitudinal SCdata RDS (default: outputs/results/combat_gam/abcd/*age_sex_meanfd.rds)\n",
+      "  --cog-rds PATH          Baseline cognition RDS (default: outputs/results/combat_gam/abcd/*combatgam_cognition.rds)\n",
+      "  --result-dir PATH       Output results dir (default: outputs/results/5th_cognition/abcd/age_lmm)\n",
+      "  --figure-dir PATH       Output figure dir (default: outputs/figures/5th_cognition/abcd/age_lmm)\n",
+      "  --cvthr INT             CV threshold (default: 75)\n",
+      "  --cogvar NAME           Cognition variable (default: nihtbx_fluidcomp_uncorrected)\n",
+      "  --cogvar-base NAME      Baseline cognition variable name (default: nihtbx_fluidcomp_uncorrected_base)\n",
+      "  --n-edges INT           Number of edges for quick tests (default: env N_EDGES or 78)\n",
+      "\n",
+      "Environment overrides (if args not provided): PROJECT_ROOT, INPUT_RDS, COG_RDS, RESULT_DIR, FIGURE_DIR, CVTHR, COGVAR, COGVAR_BASE, N_EDGES\n",
+      sep = "")
+  quit(save = "no", status = 0)
+}
+
+get_arg <- function(args, key, default = NULL) {
+  hit <- which(args == key)
+  if (length(hit) == 1 && length(args) >= hit + 1) return(args[hit + 1])
+  default
+}
+
+is_abs_path <- function(path) {
+  grepl("^[A-Za-z]:[\\\\/]", path) || grepl("^/", path)
+}
+
+resolve_path <- function(path, base_dir) {
+  if (is.null(path) || !nzchar(path)) return(NULL)
+  if (is_abs_path(path)) return(normalizePath(path, mustWork = FALSE))
+  normalizePath(file.path(base_dir, path), mustWork = FALSE)
+}
+
+get_script_path <- function() {
+  arg_file <- sub("^--file=", "", full_args[grepl("^--file=", full_args)][1])
+  if (length(arg_file) == 0 || !nzchar(arg_file)) return(NULL)
+  normalizePath(arg_file, mustWork = FALSE)
+}
+
+find_project_root <- function(start_dir) {
+  cur <- normalizePath(start_dir, mustWork = FALSE)
+  for (i in seq_len(8)) {
+    if (file.exists(file.path(cur, "ARCHITECTURE.md"))) return(cur)
+    parent <- dirname(cur)
+    if (parent == cur) break
+    cur <- parent
+  }
+  NULL
+}
+
 suppressPackageStartupMessages({
   library(lme4)
   library(dplyr)
   library(ggplot2)
 })
 
-CVthr <- 75
-Cogvar <- "nihtbx_fluidcomp_uncorrected"
-Cogvar_base <- "nihtbx_fluidcomp_uncorrected_base"
+CVthr <- as.integer(get_arg(args, "--cvthr", Sys.getenv("CVTHR", unset = "75")))
+if (is.na(CVthr)) CVthr <- 75
+Cogvar <- get_arg(args, "--cogvar", Sys.getenv("COGVAR", unset = "nihtbx_fluidcomp_uncorrected"))
+Cogvar_base <- get_arg(args, "--cogvar-base", Sys.getenv("COGVAR_BASE", unset = "nihtbx_fluidcomp_uncorrected_base"))
 
-project_root <- normalizePath(getwd(), mustWork = FALSE)
-if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
-  stop("Please run from SCDevelopment project root (missing ARCHITECTURE.md): ", project_root)
+project_root_arg <- get_arg(args, "--project-root", Sys.getenv("PROJECT_ROOT", unset = ""))
+script_path <- get_script_path()
+script_dir <- if (!is.null(script_path)) dirname(script_path) else getwd()
+project_root <- if (nzchar(project_root_arg)) {
+  resolve_path(project_root_arg, getwd())
+} else {
+  find_project_root(script_dir)
+}
+if (is.null(project_root) || !file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
+  stop("Cannot find project root. Provide --project-root or PROJECT_ROOT env, or run under SCDevelopment.")
 }
 
 functionFolder <- file.path(project_root, "gamfunction")
-resultFolder <- file.path(project_root, "outputs", "results", "5th_cognition", "abcd", "age_lmm")
-FigureFolder <- file.path(project_root, "outputs", "figures", "5th_cognition", "abcd", "age_lmm")
+resultFolder <- resolve_path(get_arg(args, "--result-dir", Sys.getenv("RESULT_DIR", unset = "")),
+                             project_root)
+FigureFolder <- resolve_path(get_arg(args, "--figure-dir", Sys.getenv("FIGURE_DIR", unset = "")),
+                             project_root)
+if (is.null(resultFolder)) {
+  resultFolder <- file.path(project_root, "outputs", "results", "5th_cognition", "abcd", "age_lmm")
+}
+if (is.null(FigureFolder)) {
+  FigureFolder <- file.path(project_root, "outputs", "figures", "5th_cognition", "abcd", "age_lmm")
+}
 dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
-input_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"
-)
+input_rds <- resolve_path(get_arg(args, "--input-rds", Sys.getenv("INPUT_RDS", unset = "")),
+                          project_root)
+if (is.null(input_rds)) {
+  input_rds <- file.path(
+    project_root, "outputs", "results", "combat_gam", "abcd",
+    "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"
+  )
+}
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (age/sex/mean_fd variant; longitudinal)")
+  stop("Missing input_rds: ", input_rds,
+       "\nProvide --input-rds or INPUT_RDS env, or generate via combat_gam/sbatch/abcd_combat_gam.sbatch (age/sex/mean_fd variant; longitudinal).")
 }
 
-cog_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds"
-)
+cog_rds <- resolve_path(get_arg(args, "--cog-rds", Sys.getenv("COG_RDS", unset = "")),
+                        project_root)
+if (is.null(cog_rds)) {
+  cog_rds <- file.path(
+    project_root, "outputs", "results", "combat_gam", "abcd",
+    "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds"
+  )
+}
 if (!file.exists(cog_rds)) {
-  stop("Missing cognition baseline input: ", cog_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (cognition variant)")
+  stop("Missing cognition baseline input: ", cog_rds,
+       "\nProvide --cog-rds or COG_RDS env, or generate via combat_gam/sbatch/abcd_combat_gam.sbatch (cognition variant).")
 }
 
 source(file.path(functionFolder, "SCrankcorr.R"))
@@ -110,7 +189,7 @@ SCdata$age_baseline <- base_age[match(as.character(SCdata$subID), names(base_age
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
 if (any(grepl("_h$", sc_cols))) sc_cols <- sc_cols[grepl("_h$", sc_cols)]
 if (length(sc_cols) < 78) stop("Expected >=78 SC.* columns, got: ", length(sc_cols))
-n_edges <- as.integer(Sys.getenv("N_EDGES", unset = "78"))
+n_edges <- as.integer(get_arg(args, "--n-edges", Sys.getenv("N_EDGES", unset = "78")))
 if (is.na(n_edges) || n_edges < 1) n_edges <- 78
 n_edges <- min(n_edges, 78L)
 sc_cols <- sc_cols[seq_len(n_edges)]

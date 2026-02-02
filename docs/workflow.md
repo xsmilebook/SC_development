@@ -237,6 +237,10 @@
        - 固定效应（age beta）与随机斜率均值的 S-A 相关散点：`scatter_fixed_age_vs_SCrank_*`、`scatter_random_age_vs_SCrank_*`
        - 固定/随机矩阵（all/low10/high10）：`matrix_fixed_age_*`、`matrix_random_age_*`
      - low/high 组：按 baseline cognition 最低/最高 10% 的被试分别拟合得到固定效应矩阵与随机效应矩阵。
+     - 本地直跑（可在任意工作目录执行）：
+       - `Rscript development_script/5th_cognition/run_abcd_age_lmm_random_slope_cognition_groups.R`
+       - 可选参数：`--project-root`、`--input-rds`、`--cog-rds`、`--result-dir`、`--figure-dir`、`--cvthr`、`--cogvar`、`--cogvar-base`、`--n-edges`
+       - 同名环境变量可覆盖默认值：`PROJECT_ROOT`、`INPUT_RDS`、`COG_RDS`、`RESULT_DIR`、`FIGURE_DIR`、`CVTHR`、`COGVAR`、`COGVAR_BASE`、`N_EDGES`
      - ABCD p-factor（GENERAL；within-person change × pfactor）：
        - 入口脚本：`development_script/6th_pfactor/run_abcd_withinperson_lmm_pfactor_general.R`
        - sbatch（容器版，40 核）：`sbatch sbatch/run_abcd_withinperson_lmm_pfactor_general_container.sbatch`
