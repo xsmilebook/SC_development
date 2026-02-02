@@ -115,25 +115,9 @@ if (n_edges < 78) {
   message("[WARN] N_EDGES=", n_edges, " < 78: outputs are partial; matrices will be mostly NA (grey) except computed edges.")
 }
 
-sub_cog <- SCdata %>%
-  select(subID, all_of(Cogvar_base)) %>%
-  distinct() %>%
-  filter(!is.na(.data[[Cogvar_base]]))
-q10 <- quantile(sub_cog[[Cogvar_base]], 0.1, na.rm = TRUE)
-q90 <- quantile(sub_cog[[Cogvar_base]], 0.9, na.rm = TRUE)
-sub_low <- sub_cog$subID[sub_cog[[Cogvar_base]] <= q10]
-sub_high <- sub_cog$subID[sub_cog[[Cogvar_base]] >= q90]
-
-groups <- list(
-  all = unique(SCdata$subID),
-  low10 = sub_low,
-  high10 = sub_high
-)
-
-run_group <- function(group_name, sub_ids) {
-  df <- SCdata[SCdata$subID %in% sub_ids, , drop = FALSE]
-  dataname <- paste0("SCdata_", group_name)
-  assign(dataname, df, envir = .GlobalEnv)
+run_all <- function() {
+  dataname <- "SCdata_all"
+  assign(dataname, SCdata, envir = .GlobalEnv)
   results <- lapply(sc_cols, function(edge) {
     lmm.age.random.slope(edge, dataname)
   })
@@ -208,15 +192,11 @@ plot_matrix <- function(mat, title, out_base) {
   ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
 }
 
-message("[INFO] Fitting LMM per edge for all/low10/high10 groups (random slope: age || subID)")
-res_all <- run_group("all", groups$all)
-res_low <- run_group("low10", groups$low10)
-res_high <- run_group("high10", groups$high10)
+message("[INFO] Fitting LMM per edge (random slope: age || subID)")
+res_all <- run_all()
 
-saveRDS(
-  list(all = res_all, low10 = res_low, high10 = res_high),
-  file.path(resultFolder, paste0("age_lmm_random_slope_results_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds"))
-)
+saveRDS(res_all,
+        file.path(resultFolder, paste0("age_lmm_random_slope_results_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
 write.csv(
   res_all,
   file.path(resultFolder, paste0("age_lmm_random_slope_results_all_", Cogvar_base, "_CV", CVthr, out_suffix, ".csv")),
@@ -283,28 +263,14 @@ ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_ba
 
 mat_fixed_all <- vec_to_mat(res_all$beta_age)
 mat_rand_all <- vec_to_mat(res_all$rand_age_mean)
-mat_fixed_low <- vec_to_mat(res_low$beta_age)
-mat_rand_low <- vec_to_mat(res_low$rand_age_mean)
-mat_fixed_high <- vec_to_mat(res_high$beta_age)
-mat_rand_high <- vec_to_mat(res_high$rand_age_mean)
-
 saveRDS(
   list(
     fixed_all = mat_fixed_all,
-    random_all = mat_rand_all,
-    fixed_low10 = mat_fixed_low,
-    random_low10 = mat_rand_low,
-    fixed_high10 = mat_fixed_high,
-    random_high10 = mat_rand_high
+    random_all = mat_rand_all
   ),
   file.path(resultFolder, paste0("age_lmm_matrices_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds"))
 )
 
 plot_matrix(mat_fixed_all, "Fixed age effect (all)", file.path(FigureFolder, paste0("matrix_fixed_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
 plot_matrix(mat_rand_all, "Random age effect (all)", file.path(FigureFolder, paste0("matrix_random_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
-plot_matrix(mat_fixed_low, "Fixed age effect (low10)", file.path(FigureFolder, paste0("matrix_fixed_age_low10_", Cogvar_base, "_CV", CVthr, out_suffix)))
-plot_matrix(mat_rand_low, "Random age effect (low10)", file.path(FigureFolder, paste0("matrix_random_age_low10_", Cogvar_base, "_CV", CVthr, out_suffix)))
-plot_matrix(mat_fixed_high, "Fixed age effect (high10)", file.path(FigureFolder, paste0("matrix_fixed_age_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
-plot_matrix(mat_rand_high, "Random age effect (high10)", file.path(FigureFolder, paste0("matrix_random_age_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
-
 message("[INFO] Done.")
