@@ -332,6 +332,7 @@ res_all$personal_low10_mean <- personal_low_mean
 res_all$personal_high10_mean <- personal_high_mean
 res_all$personal_t_low_high <- personal_t
 res_all$personal_p_low_high <- personal_p
+res_all$personal_p_low_high_fdr <- p.adjust(res_all$personal_p_low_high, method = "fdr")
 
 saveRDS(res_all,
         file.path(resultFolder, paste0("age_lmm_random_slope_results_", Pvar_base, "_CV", CVthr, out_suffix, ".rds")))
@@ -438,7 +439,7 @@ mat_personal_all <- vec_to_mat(res_all$personal_slope)
 mat_personal_low <- vec_to_mat(res_all$personal_low10_mean)
 mat_personal_high <- vec_to_mat(res_all$personal_high10_mean)
 mat_t_low_high <- vec_to_mat(res_all$personal_t_low_high)
-sig_low_high <- vec_to_mat(res_all$personal_p_low_high < 0.05)
+sig_low_high <- vec_to_mat(res_all$personal_p_low_high_fdr < 0.05)
 saveRDS(
   list(
     fixed_all = mat_fixed_all,
