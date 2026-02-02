@@ -226,6 +226,72 @@ plot_matrix <- function(mat, title, out_base) {
   ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
 }
 
+plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
+  df_melt <- as.data.frame(as.table(mat))
+  names(df_melt) <- c("nodeid", "variable", "value")
+  node_raw <- df_melt$nodeid
+  var_raw <- df_melt$variable
+  df_melt$nodeid <- suppressWarnings(as.numeric(as.character(node_raw)))
+  df_melt$variable <- suppressWarnings(as.numeric(as.character(var_raw)))
+  if (all(is.na(df_melt$nodeid))) df_melt$nodeid <- as.integer(node_raw)
+  if (all(is.na(df_melt$variable))) df_melt$variable <- as.integer(var_raw)
+  df_melt$nodeid <- -df_melt$nodeid
+  df_melt$value <- as.numeric(df_melt$value)
+
+  sig_df <- as.data.frame(as.table(sig_mat))
+  names(sig_df) <- c("nodeid", "variable", "sig")
+  sig_df$nodeid <- suppressWarnings(as.numeric(as.character(sig_df$nodeid)))
+  sig_df$variable <- suppressWarnings(as.numeric(as.character(sig_df$variable)))
+  if (all(is.na(sig_df$nodeid))) sig_df$nodeid <- as.integer(sig_df$nodeid)
+  if (all(is.na(sig_df$variable))) sig_df$variable <- as.integer(sig_df$variable)
+  sig_df$nodeid <- -sig_df$nodeid
+  sig_df <- sig_df[!is.na(sig_df$sig) & sig_df$sig, , drop = FALSE]
+
+  lwth <- min(df_melt$value, na.rm = TRUE)
+  if (!is.finite(lwth)) {
+    message("[WARN] Matrix values are all NA for: ", title, "; set lwth=-1 for plotting")
+    lwth <- -1
+  }
+  if (lwth > 0) lwth <- -lwth
+
+  linerange_frame <- data.frame(
+    x = c(0.5, 12 + 0.5),
+    ymin = rep(-12 - 0.5, times = 2),
+    ymax = rep(-0.5, times = 2),
+    y = c(-0.5, -12 - 0.5),
+    xmin = rep(0.5, times = 2),
+    xmax = rep(12 + 0.5, times = 2)
+  )
+
+  p <- ggplot(data = df_melt) +
+    geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
+    scale_fill_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(lwth, -lwth)) +
+    scale_color_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(lwth, -lwth)) +
+    geom_text(data = sig_df, aes(x = variable, y = nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size = 8) +
+    geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
+    geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
+    geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+    ggtitle(label = title) +
+    labs(x = NULL, y = NULL) +
+    scale_y_continuous(breaks = NULL, labels = NULL) +
+    scale_x_continuous(breaks = NULL, labels = NULL) +
+    theme(
+      axis.line = element_blank(),
+      axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
+      axis.title = element_text(size = 18),
+      plot.title = element_text(size = 12, hjust = 0.5),
+      legend.title = element_text(size = 18),
+      legend.text = element_text(size = 18),
+      panel.background = element_rect(fill = NA),
+      panel.grid.major = element_line(linewidth = 0),
+      panel.grid.minor = element_line(linewidth = 1)
+    )
+
+  ggsave(paste0(out_base, ".tiff"), p, height = 18, width = 20, units = "cm", bg = "transparent")
+  ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
+}
+
 message("[INFO] Fitting LMM per edge (random slope: age || subID)")
 res_all_out <- run_all()
 res_all <- res_all_out$stats
@@ -237,6 +303,53 @@ personal_slope <- vapply(slopes_list, function(df) {
   mean(df$fixed_slope + df$random_slope, na.rm = TRUE)
 }, numeric(1))
 res_all$personal_slope <- personal_slope
+
+# low10/high10 groups for personal slope comparison
+sub_cog <- SCdata %>%
+  select(subID, all_of(Cogvar_base)) %>%
+  distinct() %>%
+  filter(!is.na(.data[[Cogvar_base]]))
+q10 <- quantile(sub_cog[[Cogvar_base]], 0.1, na.rm = TRUE)
+q90 <- quantile(sub_cog[[Cogvar_base]], 0.9, na.rm = TRUE)
+sub_low <- sub_cog$subID[sub_cog[[Cogvar_base]] <= q10]
+sub_high <- sub_cog$subID[sub_cog[[Cogvar_base]] >= q90]
+
+personal_low_mean <- numeric(length(sc_cols))
+personal_high_mean <- numeric(length(sc_cols))
+personal_t <- numeric(length(sc_cols))
+personal_p <- numeric(length(sc_cols))
+for (i in seq_along(sc_cols)) {
+  df <- slopes_list[[i]]
+  if (!is.data.frame(df) || nrow(df) == 0) {
+    personal_low_mean[i] <- NA_real_
+    personal_high_mean[i] <- NA_real_
+    personal_t[i] <- NA_real_
+    personal_p[i] <- NA_real_
+    next
+  }
+  df$personal <- df$fixed_slope + df$random_slope
+  low_vals <- df$personal[df$subID %in% sub_low]
+  high_vals <- df$personal[df$subID %in% sub_high]
+  personal_low_mean[i] <- if (length(low_vals) > 0) mean(low_vals, na.rm = TRUE) else NA_real_
+  personal_high_mean[i] <- if (length(high_vals) > 0) mean(high_vals, na.rm = TRUE) else NA_real_
+  if (length(low_vals) > 1 && length(high_vals) > 1) {
+    tt <- tryCatch(t.test(low_vals, high_vals), error = function(e) NULL)
+    if (!is.null(tt)) {
+      personal_t[i] <- unname(tt$statistic)
+      personal_p[i] <- tt$p.value
+    } else {
+      personal_t[i] <- NA_real_
+      personal_p[i] <- NA_real_
+    }
+  } else {
+    personal_t[i] <- NA_real_
+    personal_p[i] <- NA_real_
+  }
+}
+res_all$personal_low10_mean <- personal_low_mean
+res_all$personal_high10_mean <- personal_high_mean
+res_all$personal_t_low_high <- personal_t
+res_all$personal_p_low_high <- personal_p
 
 saveRDS(res_all,
         file.path(resultFolder, paste0("age_lmm_random_slope_results_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
@@ -346,11 +459,19 @@ ggsave(file.path(FigureFolder, paste0("scatter_personal_age_vs_SCrank_", Cogvar_
 mat_fixed_all <- vec_to_mat(res_all$beta_age)
 mat_rand_all <- vec_to_mat(res_all$rand_age_mean)
 mat_personal_all <- vec_to_mat(res_all$personal_slope)
+mat_personal_low <- vec_to_mat(res_all$personal_low10_mean)
+mat_personal_high <- vec_to_mat(res_all$personal_high10_mean)
+mat_t_low_high <- vec_to_mat(res_all$personal_t_low_high)
+sig_low_high <- vec_to_mat(res_all$personal_p_low_high < 0.05)
 saveRDS(
   list(
     fixed_all = mat_fixed_all,
     random_all = mat_rand_all,
-    personal_all = mat_personal_all
+    personal_all = mat_personal_all,
+    personal_low10 = mat_personal_low,
+    personal_high10 = mat_personal_high,
+    personal_t_low_high = mat_t_low_high,
+    personal_sig_low_high = sig_low_high
   ),
   file.path(resultFolder, paste0("age_lmm_matrices_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds"))
 )
@@ -358,4 +479,7 @@ saveRDS(
 plot_matrix(mat_fixed_all, "Fixed age effect (all)", file.path(FigureFolder, paste0("matrix_fixed_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
 plot_matrix(mat_rand_all, "Random age effect (all)", file.path(FigureFolder, paste0("matrix_random_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
 plot_matrix(mat_personal_all, "Personal age effect (all)", file.path(FigureFolder, paste0("matrix_personal_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_personal_low, "Personal age effect (low10)", file.path(FigureFolder, paste0("matrix_personal_age_low10_", Cogvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_personal_high, "Personal age effect (high10)", file.path(FigureFolder, paste0("matrix_personal_age_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix_sig(mat_t_low_high, sig_low_high, "Personal slope t-value (low10 vs high10)", file.path(FigureFolder, paste0("matrix_personal_age_tvalue_low10_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
 message("[INFO] Done.")
