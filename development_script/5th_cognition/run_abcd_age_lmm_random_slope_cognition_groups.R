@@ -39,6 +39,18 @@ if (!file.exists(cog_rds)) {
   stop("Missing cognition baseline input: ", cog_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (cognition variant)")
 }
 
+plotdatasum_rds <- Sys.getenv(
+  "ABCD_PLOTDATASUM_RDS",
+  unset = file.path(
+    project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
+    "abcd", "combat_gam", "CV75", "plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds"
+  )
+)
+if (!file.exists(plotdatasum_rds)) {
+  stop("Missing ABCD_PLOTDATASUM_RDS: ", plotdatasum_rds)
+}
+plotdata <- readRDS(plotdatasum_rds)
+
 source(file.path(functionFolder, "SCrankcorr.R"))
 source(file.path(functionFolder, "lmm_age_random_slope.R"))
 
@@ -114,6 +126,19 @@ out_suffix <- if (n_edges < 78) paste0("_N", n_edges) else ""
 if (n_edges < 78) {
   message("[WARN] N_EDGES=", n_edges, " < 78: outputs are partial; matrices will be mostly NA (grey) except computed edges.")
 }
+
+# Scale SC strength by initial fit (ratio) before LMM.
+SCdata.diw <- SCdata
+for (region in sc_cols[seq_len(n_edges)]) {
+  plotdata.tmp <- plotdata[plotdata$SC_label == region, , drop = FALSE]
+  if (!("fit" %in% names(plotdata.tmp)) || nrow(plotdata.tmp) < 1 || is.na(plotdata.tmp$fit[[1]]) || plotdata.tmp$fit[[1]] == 0) {
+    message("[WARN] Missing/invalid plotdata fit for ", region, "; skip scaling for this edge")
+    next
+  }
+  SCdata.diw[[region]] <- SCdata[[region]] / plotdata.tmp$fit[[1]]
+}
+SCdata.diw[, sc_cols] <- lapply(SCdata.diw[, sc_cols, drop = FALSE], as.numeric)
+SCdata <- SCdata.diw
 
 run_all <- function() {
   dataname <- "SCdata_all"

@@ -245,3 +245,4 @@
 - 2026-02-02: age LMM 随机斜率接口新增模型返回选项（`return_model=TRUE`）。
 - 2026-02-02: age LMM cognition 脚本移除 low10/high10 分组拟合与矩阵输出，仅保留全样本结果。
 - 2026-02-02: age LMM cognition 脚本保存每条边的 `lmer` 模型对象（便于检查拟合）。
+- 2026-02-02: age LMM cognition 脚本建模前增加 ratio 缩放（复用 `plotdatasum` 的 `fit`）。
