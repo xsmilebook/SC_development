@@ -215,7 +215,7 @@
      - S-A 相关：固定效应（age beta）与随机斜率均值（全样本 78 edges）
      - S-A 相关：个人斜率均值（全样本 78 edges）
      - 散点图：绘图前剔除偏离均值超过 3 SD 的点。
-     - 矩阵：全样本 fixed/random/personal；low10/high10 个人斜率矩阵；low10 vs high10 的 t-value 矩阵（显著性标记）
+     - 矩阵：全样本 fixed/random/personal；low10/high10 个人斜率矩阵；low10 vs high10 的 t-value 矩阵（显著性标记，色标按 |t| 对称）
    - 临时对比脚本（LCMM vs LMM 参数差异，单边示例）：
      - 脚本：`development_script/5th_cognition/tmp_compare_lcmm_lmm_params.R`
      - 输入：`*combatgam_age_sex_meanfd.rds` 与 `ABCD_PLOTDATASUM_RDS`（ratio 缩放与 LMM 一致）

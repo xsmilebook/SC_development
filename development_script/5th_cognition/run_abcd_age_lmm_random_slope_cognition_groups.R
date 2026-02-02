@@ -247,12 +247,11 @@ plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
   sig_df$nodeid <- -sig_df$nodeid
   sig_df <- sig_df[!is.na(sig_df$sig) & sig_df$sig, , drop = FALSE]
 
-  lwth <- min(df_melt$value, na.rm = TRUE)
-  if (!is.finite(lwth)) {
-    message("[WARN] Matrix values are all NA for: ", title, "; set lwth=-1 for plotting")
-    lwth <- -1
+  limthr <- max(abs(df_melt$value), na.rm = TRUE)
+  if (!is.finite(limthr) || limthr == 0) {
+    message("[WARN] Matrix values are all NA/0 for: ", title, "; set limthr=1 for plotting")
+    limthr <- 1
   }
-  if (lwth > 0) lwth <- -lwth
 
   linerange_frame <- data.frame(
     x = c(0.5, 12 + 0.5),
@@ -265,8 +264,8 @@ plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
 
   p <- ggplot(data = df_melt) +
     geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
-    scale_fill_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(lwth, -lwth)) +
-    scale_color_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(lwth, -lwth)) +
+    scale_fill_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
+    scale_color_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
     geom_text(data = sig_df, aes(x = variable, y = nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size = 8) +
     geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
     geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
