@@ -321,9 +321,7 @@ saveRDS(
 
 plot_matrix(mat_fixed_all, "Fixed age effect (all)", file.path(FigureFolder, paste0("matrix_fixed_age_all_", Cogvar_base, "_CV", CVthr)))
 plot_matrix(mat_rand_all, "Random age effect (all)", file.path(FigureFolder, paste0("matrix_random_age_all_", Cogvar_base, "_CV", CVthr)))
-plot_matrix(mat_fixed_low, "Fixed age effect (low10)", file.path(FigureFolder, paste0("matrix_fixed_age_low10_", Cogvar_base, "_CV", CVthr)))
 plot_matrix(mat_rand_low, "Random age effect (low10)", file.path(FigureFolder, paste0("matrix_random_age_low10_", Cogvar_base, "_CV", CVthr)))
-plot_matrix(mat_fixed_high, "Fixed age effect (high10)", file.path(FigureFolder, paste0("matrix_fixed_age_high10_", Cogvar_base, "_CV", CVthr)))
 plot_matrix(mat_rand_high, "Random age effect (high10)", file.path(FigureFolder, paste0("matrix_random_age_high10_", Cogvar_base, "_CV", CVthr)))
 
 message("[INFO] Done.")
