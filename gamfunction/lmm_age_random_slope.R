@@ -7,7 +7,8 @@ lmm.age.random.slope <- function(region,
                                  fd_var = "mean_fd",
                                  subid_var = "subID",
                                  min_obs = 10,
-                                 stats_only = TRUE) {
+                                 stats_only = TRUE,
+                                 return_slopes = FALSE) {
   df <- get(dataname)
   needed <- unique(c(region, age_var, sex_var, fd_var, subid_var))
   missing <- setdiff(needed, names(df))
@@ -19,7 +20,7 @@ lmm.age.random.slope <- function(region,
   ok <- tapply(df[[age_var]], df[[subid_var]], function(x) length(unique(round(x, 6))) >= 2)
   df <- df[df[[subid_var]] %in% names(ok)[ok], , drop = FALSE]
   if (nrow(df) < min_obs) {
-    return(data.frame(
+    out <- data.frame(
       parcel = as.character(region),
       ok = FALSE,
       beta_age = NA_real_,
@@ -28,22 +29,20 @@ lmm.age.random.slope <- function(region,
       n_obs = nrow(df),
       n_sub = length(unique(df[[subid_var]])),
       stringsAsFactors = FALSE
-    ))
+    )
+    if (return_slopes || !stats_only) {
+      return(list(stats = out, rand_slopes = data.frame()))
+    }
+    return(out)
   }
 
   df[[sex_var]] <- as.factor(df[[sex_var]])
-  ctrl <- lmerControl(
-    optimizer = "bobyqa",
-    check.nobs.vs.nRE = "ignore",
-    check.nobs.vs.rankZ = "ignore",
-    check.nobs.vs.nlev = "ignore"
-  )
   fml <- as.formula(
     sprintf("%s ~ %s + %s + %s + (1 + %s || %s)",
             region, age_var, sex_var, fd_var, age_var, subid_var)
   )
 
-  mod <- suppressWarnings(lmer(fml, data = df, REML = FALSE, control = ctrl))
+  mod <- suppressWarnings(lmer(fml, data = df, REML = FALSE))
   sm <- summary(mod)
   beta_age <- sm$coefficients[age_var, "Estimate"]
   t_age <- sm$coefficients[age_var, "t value"]
@@ -60,6 +59,15 @@ lmm.age.random.slope <- function(region,
     stringsAsFactors = FALSE
   )
 
-  if (stats_only) return(out)
-  list(stats = out, data = df)
+  rand_slopes <- data.frame(
+    subID = rownames(re),
+    fixed_slope = as.numeric(beta_age),
+    random_slope = as.numeric(re[, age_var]),
+    stringsAsFactors = FALSE
+  )
+
+  if (return_slopes || !stats_only) {
+    return(list(stats = out, rand_slopes = rand_slopes))
+  }
+  out
 }
