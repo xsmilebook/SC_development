@@ -152,8 +152,8 @@ run_all <- function() {
     y_mean <- mean(y, na.rm = TRUE)
     y_sd <- stats::sd(y, na.rm = TRUE)
     if (is.finite(y_mean) && is.finite(y_sd) && y_sd > 0) {
-      out_idx <- which(y < y_mean - 3 * y_sd | y > y_mean + 3 * y_sd)
-      if (length(out_idx) > 0) df_edge <- df_edge[-out_idx, , drop = FALSE]
+      out_sub <- unique(df_edge$subID[which(y < y_mean - 2.69 * y_sd | y > y_mean + 2.69 * y_sd)])
+      if (length(out_sub) > 0) df_edge <- df_edge[!df_edge$subID %in% out_sub, , drop = FALSE]
     }
     dataname <- paste0("SCdata_all_", edge)
     assign(dataname, df_edge, envir = .GlobalEnv)
