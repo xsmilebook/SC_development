@@ -240,3 +240,4 @@
 - 2026-02-02: age LMM cognition 脚本支持本地直跑与参数化输入/输出路径（支持命令行参数与环境变量），可在非项目根目录执行。
 - 2026-02-02: 删除 ABCD age LMM cognition/p-factor 分组脚本（对应文档入口同步移除）。
 - 2026-02-02: 新增 age LMM cognition 分组脚本与 `gamfunction/lmm_age_random_slope.R`，实现 `(1 + age || subID)` 并输出 fixed/random 矩阵与 S-A 相关散点。
+- 2026-02-02: age LMM 随机斜率接口对齐现有流程：移除异常值剔除与 tryCatch，保持与既有 cognition 脚本一致的筛选逻辑。

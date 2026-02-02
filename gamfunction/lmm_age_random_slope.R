@@ -1,5 +1,4 @@
 library(lme4)
-library(dplyr)
 
 lmm.age.random.slope <- function(region,
                                  dataname,
@@ -16,16 +15,6 @@ lmm.age.random.slope <- function(region,
 
   keep <- !is.na(df[[region]]) & !is.na(df[[age_var]]) & !is.na(df[[sex_var]]) & !is.na(df[[fd_var]])
   df <- df[keep, , drop = FALSE]
-
-  y <- df[[region]]
-  y_sd <- suppressWarnings(stats::sd(y, na.rm = TRUE))
-  if (is.finite(y_sd) && y_sd > 0) {
-    out_y <- which(
-      y < mean(y, na.rm = TRUE) - 3 * y_sd |
-        y > mean(y, na.rm = TRUE) + 3 * y_sd
-    )
-    if (length(out_y) > 0) df <- df[-out_y, , drop = FALSE]
-  }
 
   ok <- tapply(df[[age_var]], df[[subid_var]], function(x) length(unique(round(x, 6))) >= 2)
   df <- df[df[[subid_var]] %in% names(ok)[ok], , drop = FALSE]
@@ -54,37 +43,21 @@ lmm.age.random.slope <- function(region,
             region, age_var, sex_var, fd_var, age_var, subid_var)
   )
 
-  out <- tryCatch(
-    {
-      mod <- suppressWarnings(lmer(fml, data = df, REML = FALSE, control = ctrl))
-      sm <- summary(mod)
-      beta_age <- sm$coefficients[age_var, "Estimate"]
-      t_age <- sm$coefficients[age_var, "t value"]
-      re <- ranef(mod)[[subid_var]]
-      rand_age_mean <- mean(abs(re[, age_var]), na.rm = TRUE)
-      data.frame(
-        parcel = as.character(region),
-        ok = TRUE,
-        beta_age = as.numeric(beta_age),
-        t_age = as.numeric(t_age),
-        rand_age_mean = as.numeric(rand_age_mean),
-        n_obs = nrow(df),
-        n_sub = length(unique(df[[subid_var]])),
-        stringsAsFactors = FALSE
-      )
-    },
-    error = function(e) {
-      data.frame(
-        parcel = as.character(region),
-        ok = FALSE,
-        beta_age = NA_real_,
-        t_age = NA_real_,
-        rand_age_mean = NA_real_,
-        n_obs = nrow(df),
-        n_sub = length(unique(df[[subid_var]])),
-        stringsAsFactors = FALSE
-      )
-    }
+  mod <- suppressWarnings(lmer(fml, data = df, REML = FALSE, control = ctrl))
+  sm <- summary(mod)
+  beta_age <- sm$coefficients[age_var, "Estimate"]
+  t_age <- sm$coefficients[age_var, "t value"]
+  re <- ranef(mod)[[subid_var]]
+  rand_age_mean <- mean(abs(re[, age_var]), na.rm = TRUE)
+  out <- data.frame(
+    parcel = as.character(region),
+    ok = TRUE,
+    beta_age = as.numeric(beta_age),
+    t_age = as.numeric(t_age),
+    rand_age_mean = as.numeric(rand_age_mean),
+    n_obs = nrow(df),
+    n_sub = length(unique(df[[subid_var]])),
+    stringsAsFactors = FALSE
   )
 
   if (stats_only) return(out)

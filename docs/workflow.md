@@ -201,6 +201,7 @@
    - ABCD 年龄随机斜率 LMM（固定效应 + 随机效应矩阵；按 baseline cognition 低/高 10% 分组）：
      - 脚本：`development_script/5th_cognition/run_abcd_age_lmm_random_slope_cognition_groups.R`
      - 模型（每条边）：`SC ~ age + sex + mean_fd + (1 + age || subID)`
+     - 处理流程：不做额外异常值剔除，仅做 complete-case 与≥2 时间点筛选。
      - 随机效应矩阵使用随机斜率的“平均绝对值”（random slopes 以 0 为中心，直接均值会接近 0）。
      - 输出：
        - 结果：`outputs/results/5th_cognition/abcd/age_lmm/`
