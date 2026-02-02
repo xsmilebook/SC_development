@@ -205,6 +205,13 @@
        - 结果：`outputs/results/5th_cognition/abcd/age_lmm/`
        - 图像：`outputs/figures/5th_cognition/abcd/age_lmm/`
      - sbatch（容器版）：`sbatch sbatch/run_abcd_age_lmm_random_slope_cognition_groups_container.sbatch`
+   - ABCD 年龄随机斜率 LMM（p-factor 分组；baseline p-factor 低/高 10%）：
+     - 脚本：`development_script/6th_pfactor/run_abcd_age_lmm_random_slope_pfactor_groups.R`
+     - 模型（每条边）：`SC ~ age + sex + mean_fd + (1 + age | subID)`
+     - 输出：
+       - 结果：`outputs/results/6th_pfactor/abcd/age_lmm/`
+       - 图像：`outputs/figures/6th_pfactor/abcd/age_lmm/`
+     - sbatch（容器版）：`sbatch sbatch/run_abcd_age_lmm_random_slope_pfactor_groups_container.sbatch`
        - `int_var`：
          - cognition：采用 baseline 值并填充 follow-up（与现有 cognition 分析保持一致，脚本内自动回填 `*_base`）。
          - pfactor：time-varying（与现有 pfactor 分析保持一致，按原始列直接进入模型）。
