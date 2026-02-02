@@ -113,7 +113,7 @@ message("[INFO] Fitting lmm: ", edge_name)
 lmm_fit <- lme4::lmer(
   as.formula(sprintf("%s ~ age + sex + mean_fd + (1 + age || subID)", edge_name)),
   data = SCdata,
-  REML = FALSE
+  REML = TRUE
 )
 
 lcmm_re_age <- lcmm_fit[["predRE"]][["age"]]
@@ -164,6 +164,30 @@ corr_ranef <- suppressWarnings(cor(cmp_df$lcmm_re_age, cmp_df$lmm_re_age_ranef, 
 corr_personal <- suppressWarnings(cor(cmp_df$lcmm_slope_personal, cmp_df$lmm_slope_personal, use = "pairwise.complete.obs"))
 max_diff_ranef <- max(abs(cmp_df$lcmm_re_age - cmp_df$lmm_re_age_ranef), na.rm = TRUE)
 max_diff_personal <- max(abs(cmp_df$lcmm_slope_personal - cmp_df$lmm_slope_personal), na.rm = TRUE)
+
+# ---- lcmm scale transform (latent -> observed) ----
+lin2 <- as.numeric(lcmm_fit$best["Linear 2 (std err)"])  # ≈ residual SD on observed scale
+
+# fixed effect on observed scale
+lcmm_beta_age_obs <- lcmm_beta_age * lin2
+
+# random slope (predRE) on observed scale
+cmp_df$lcmm_re_age_obs <- cmp_df$lcmm_re_age * lin2
+
+# personal slope on observed scale
+cmp_df$lcmm_slope_personal_obs <- (lcmm_beta_age + cmp_df$lcmm_re_age) * lin2
+
+# lmer personal slope already on observed scale
+cmp_df$lmm_slope_personal_obs <- lmm_beta_age + cmp_df$lmm_re_age_ranef
+
+# now compare on same scale
+corr_personal_obs <- suppressWarnings(cor(
+  cmp_df$lcmm_slope_personal_obs, cmp_df$lmm_slope_personal_obs, use="pairwise.complete.obs"
+))
+max_diff_personal_obs <- max(abs(
+  cmp_df$lcmm_slope_personal_obs - cmp_df$lmm_slope_personal_obs
+), na.rm=TRUE)
+
 
 summary_df <- data.frame(
   edge = edge_name,
