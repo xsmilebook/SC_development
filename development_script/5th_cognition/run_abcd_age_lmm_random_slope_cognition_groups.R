@@ -114,6 +114,10 @@ n_edges <- as.integer(Sys.getenv("N_EDGES", unset = "78"))
 if (is.na(n_edges) || n_edges < 1) n_edges <- 78
 n_edges <- min(n_edges, 78L)
 sc_cols <- sc_cols[seq_len(n_edges)]
+out_suffix <- if (n_edges < 78) paste0("_N", n_edges) else ""
+if (n_edges < 78) {
+  message("[WARN] N_EDGES=", n_edges, " < 78: outputs are partial; matrices will be mostly NA (grey) except computed edges.")
+}
 
 # Subject groups based on baseline cognition (lowest/highest 10%)
 sub_cog <- SCdata %>%
@@ -250,18 +254,18 @@ res_low <- run_group("low10", groups$low10)
 res_high <- run_group("high10", groups$high10)
 
 saveRDS(list(all = res_all, low10 = res_low, high10 = res_high),
-        file.path(resultFolder, paste0("age_lmm_random_slope_results_", Cogvar_base, "_CV", CVthr, ".rds")))
-write.csv(res_all, file.path(resultFolder, paste0("age_lmm_random_slope_results_all_", Cogvar_base, "_CV", CVthr, ".csv")), row.names = FALSE)
+        file.path(resultFolder, paste0("age_lmm_random_slope_results_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+write.csv(res_all, file.path(resultFolder, paste0("age_lmm_random_slope_results_all_", Cogvar_base, "_CV", CVthr, out_suffix, ".csv")), row.names = FALSE)
 
 # Correlation with S-A axis (full sample)
 message("[INFO] Correlation to connectional axis (fixed age beta)")
 SCrank.fixed <- SCrankcorr(res_all, "beta_age", 12, dsdata = FALSE)
-saveRDS(SCrank.fixed, file.path(resultFolder, paste0("SCrankcorr_age_fixed_", Cogvar_base, "_CV", CVthr, ".rds")))
+saveRDS(SCrank.fixed, file.path(resultFolder, paste0("SCrankcorr_age_fixed_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
 message("[INFO] SCrankcorr fixed r=", round(SCrank.fixed$r.spearman, 3), " p=", signif(SCrank.fixed$p.spearman, 3))
 
 message("[INFO] Correlation to connectional axis (mean random slope)")
 SCrank.rand <- SCrankcorr(res_all, "rand_age_mean", 12, dsdata = FALSE)
-saveRDS(SCrank.rand, file.path(resultFolder, paste0("SCrankcorr_age_random_", Cogvar_base, "_CV", CVthr, ".rds")))
+saveRDS(SCrank.rand, file.path(resultFolder, paste0("SCrankcorr_age_random_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
 message("[INFO] SCrankcorr random r=", round(SCrank.rand$r.spearman, 3), " p=", signif(SCrank.rand$p.spearman, 3))
 
 # Scatter plots (full sample)
@@ -284,8 +288,8 @@ p_fixed <- ggplot(SCrank.fixed.df) +
     legend.position = "none"
   ) +
   labs(x = "S-A connectional axis rank", y = "Fixed age effect (beta)")
-ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".tiff")), p_fixed, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".pdf")), p_fixed, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".tiff")), p_fixed, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")), p_fixed, width = 15, height = 15, units = "cm", bg = "transparent")
 
 SCrank.rand.df <- SCrankcorr(res_all, "rand_age_mean", 12, dsdata = TRUE)
 limthr2 <- max(abs(SCrank.rand.df$rand_age_mean), na.rm = TRUE)
@@ -306,8 +310,8 @@ p_rand <- ggplot(SCrank.rand.df) +
     legend.position = "none"
   ) +
   labs(x = "S-A connectional axis rank", y = "Mean random age effect")
-ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".tiff")), p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".pdf")), p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".tiff")), p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")), p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
 
 # Matrices (full sample, low/high groups)
 mat_fixed_all <- vec_to_mat(res_all$beta_age)
@@ -326,12 +330,12 @@ saveRDS(
     fixed_high10 = mat_fixed_high,
     random_high10 = mat_rand_high
   ),
-  file.path(resultFolder, paste0("age_lmm_matrices_", Cogvar_base, "_CV", CVthr, ".rds"))
+  file.path(resultFolder, paste0("age_lmm_matrices_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds"))
 )
 
-plot_matrix(mat_fixed_all, "Fixed age effect (all)", file.path(FigureFolder, paste0("matrix_fixed_age_all_", Cogvar_base, "_CV", CVthr)))
-plot_matrix(mat_rand_all, "Random age effect (all)", file.path(FigureFolder, paste0("matrix_random_age_all_", Cogvar_base, "_CV", CVthr)))
-plot_matrix(mat_rand_low, "Random age effect (low10)", file.path(FigureFolder, paste0("matrix_random_age_low10_", Cogvar_base, "_CV", CVthr)))
-plot_matrix(mat_rand_high, "Random age effect (high10)", file.path(FigureFolder, paste0("matrix_random_age_high10_", Cogvar_base, "_CV", CVthr)))
+plot_matrix(mat_fixed_all, "Fixed age effect (all)", file.path(FigureFolder, paste0("matrix_fixed_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_rand_all, "Random age effect (all)", file.path(FigureFolder, paste0("matrix_random_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_rand_low, "Random age effect (low10)", file.path(FigureFolder, paste0("matrix_random_age_low10_", Cogvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_rand_high, "Random age effect (high10)", file.path(FigureFolder, paste0("matrix_random_age_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
 
 message("[INFO] Done.")
