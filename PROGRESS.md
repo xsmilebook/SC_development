@@ -239,3 +239,4 @@
 - 2026-02-02: age LMM 脚本在 N_EDGES<78 的测试模式下为结果/图像文件追加 `_N<n_edges>` 后缀，避免小样本覆盖全量输出；并在日志提示灰色矩阵为预期。
 - 2026-02-02: age LMM cognition 脚本支持本地直跑与参数化输入/输出路径（支持命令行参数与环境变量），可在非项目根目录执行。
 - 2026-02-02: 删除 ABCD age LMM cognition/p-factor 分组脚本（对应文档入口同步移除）。
+- 2026-02-02: 新增 age LMM cognition 分组脚本与 `gamfunction/lmm_age_random_slope.R`，实现 `(1 + age || subID)` 并输出 fixed/random 矩阵与 S-A 相关散点。
