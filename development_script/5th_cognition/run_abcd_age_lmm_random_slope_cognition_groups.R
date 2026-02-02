@@ -166,16 +166,26 @@ fit_edge <- function(df, edge_col) {
 
 vec_to_mat <- function(vec, ds = 12) {
   mat <- matrix(NA, ds, ds)
-  mat[lower.tri(mat, diag = TRUE)] <- vec
+  idx <- which(lower.tri(mat, diag = TRUE))
+  if (length(vec) > length(idx)) {
+    stop("vec length exceeds lower-triangle size: ", length(vec), " > ", length(idx))
+  }
+  # Fill without recycling (supports N_EDGES < full matrix for quick tests).
+  mat[idx[seq_along(vec)]] <- vec
   mat[upper.tri(mat)] <- t(mat)[upper.tri(mat)]
+  dimnames(mat) <- list(as.character(seq_len(ds)), as.character(seq_len(ds)))
   mat
 }
 
 plot_matrix <- function(mat, title, out_base) {
   df_melt <- as.data.frame(as.table(mat))
   names(df_melt) <- c("nodeid", "variable", "value")
-  df_melt$nodeid <- as.numeric(as.character(df_melt$nodeid))
-  df_melt$variable <- as.numeric(as.character(df_melt$variable))
+  node_raw <- df_melt$nodeid
+  var_raw <- df_melt$variable
+  df_melt$nodeid <- suppressWarnings(as.numeric(as.character(node_raw)))
+  df_melt$variable <- suppressWarnings(as.numeric(as.character(var_raw)))
+  if (all(is.na(df_melt$nodeid))) df_melt$nodeid <- as.integer(node_raw)
+  if (all(is.na(df_melt$variable))) df_melt$variable <- as.integer(var_raw)
   df_melt$nodeid <- -df_melt$nodeid
   df_melt$value <- as.numeric(df_melt$value)
 
