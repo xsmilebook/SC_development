@@ -208,6 +208,7 @@
      - 输出：
        - 结果：`outputs/results/5th_cognition/abcd/age_lmm/`
        - 图像：`outputs/figures/5th_cognition/abcd/age_lmm/`
+       - 模型对象：`age_lmm_random_slope_models_*_CV*.rds`（每条边一个 `lme4::lmer` 模型）
      - S-A 相关：固定效应（age beta）与随机斜率均值（全样本 78 edges）
      - 矩阵：全样本 fixed/random
    - ABCD cognition（uncorrected；within-person change × cognition）：

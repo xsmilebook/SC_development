@@ -119,9 +119,12 @@ run_all <- function() {
   dataname <- "SCdata_all"
   assign(dataname, SCdata, envir = .GlobalEnv)
   results <- lapply(sc_cols, function(edge) {
-    lmm.age.random.slope(edge, dataname)
+    lmm.age.random.slope(edge, dataname, return_model = TRUE)
   })
-  dplyr::bind_rows(results)
+  stats <- dplyr::bind_rows(lapply(results, `[[`, "stats"))
+  models <- lapply(results, `[[`, "model")
+  names(models) <- sc_cols
+  list(stats = stats, models = models)
 }
 
 vec_to_mat <- function(vec, ds = 12) {
@@ -193,10 +196,14 @@ plot_matrix <- function(mat, title, out_base) {
 }
 
 message("[INFO] Fitting LMM per edge (random slope: age || subID)")
-res_all <- run_all()
+res_all_out <- run_all()
+res_all <- res_all_out$stats
+model_list <- res_all_out$models
 
 saveRDS(res_all,
         file.path(resultFolder, paste0("age_lmm_random_slope_results_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+saveRDS(model_list,
+        file.path(resultFolder, paste0("age_lmm_random_slope_models_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
 write.csv(
   res_all,
   file.path(resultFolder, paste0("age_lmm_random_slope_results_all_", Cogvar_base, "_CV", CVthr, out_suffix, ".csv")),

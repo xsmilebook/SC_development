@@ -244,3 +244,4 @@
 - 2026-02-02: age LMM 随机斜率接口移除 bobyqa 控制项并新增个体随机斜率返回选项（含固定斜率）。
 - 2026-02-02: age LMM 随机斜率接口新增模型返回选项（`return_model=TRUE`）。
 - 2026-02-02: age LMM cognition 脚本移除 low10/high10 分组拟合与矩阵输出，仅保留全样本结果。
+- 2026-02-02: age LMM cognition 脚本保存每条边的 `lmer` 模型对象（便于检查拟合）。
