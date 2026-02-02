@@ -8,7 +8,8 @@ lmm.age.random.slope <- function(region,
                                  subid_var = "subID",
                                  min_obs = 10,
                                  stats_only = TRUE,
-                                 return_slopes = FALSE) {
+                                 return_slopes = FALSE,
+                                 return_model = FALSE) {
   df <- get(dataname)
   needed <- unique(c(region, age_var, sex_var, fd_var, subid_var))
   missing <- setdiff(needed, names(df))
@@ -30,8 +31,8 @@ lmm.age.random.slope <- function(region,
       n_sub = length(unique(df[[subid_var]])),
       stringsAsFactors = FALSE
     )
-    if (return_slopes || !stats_only) {
-      return(list(stats = out, rand_slopes = data.frame()))
+    if (return_slopes || return_model || !stats_only) {
+      return(list(stats = out, rand_slopes = data.frame(), model = NULL))
     }
     return(out)
   }
@@ -66,8 +67,8 @@ lmm.age.random.slope <- function(region,
     stringsAsFactors = FALSE
   )
 
-  if (return_slopes || !stats_only) {
-    return(list(stats = out, rand_slopes = rand_slopes))
+  if (return_slopes || return_model || !stats_only) {
+    return(list(stats = out, rand_slopes = rand_slopes, model = mod))
   }
   out
 }

@@ -242,3 +242,4 @@
 - 2026-02-02: 新增 age LMM cognition 分组脚本与 `gamfunction/lmm_age_random_slope.R`，实现 `(1 + age || subID)` 并输出 fixed/random 矩阵与 S-A 相关散点。
 - 2026-02-02: age LMM 随机斜率接口对齐现有流程：移除异常值剔除与 tryCatch，保持与既有 cognition 脚本一致的筛选逻辑。
 - 2026-02-02: age LMM 随机斜率接口移除 bobyqa 控制项并新增个体随机斜率返回选项（含固定斜率）。
+- 2026-02-02: age LMM 随机斜率接口新增模型返回选项（`return_model=TRUE`）。
