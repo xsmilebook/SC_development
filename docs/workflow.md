@@ -198,6 +198,13 @@
    - ABCD 两时间点 within-person SC change 的纵向调制检验（LMM；random intercept + random slope；`lme4::lmer`）：
      - 模型（每条边/或 `totalstrength`）：`SC ~ time + time*int_var + sex + mean_fd + (1 + time | subID)`
        - `time`：距基线年数（`time = age - baseline_age`；基线=0，随访≈2；baseline 由 `eventname` 中包含 `base` 的记录识别，否则回退到该被试最小 age）。
+   - ABCD 年龄随机斜率 LMM（固定效应 + 随机效应矩阵；按 baseline cognition 低/高 10% 分组）：
+     - 脚本：`development_script/5th_cognition/run_abcd_age_lmm_random_slope_cognition_groups.R`
+     - 模型（每条边）：`SC ~ age + sex + mean_fd + (1 + age | subID)`
+     - 输出：
+       - 结果：`outputs/results/5th_cognition/abcd/age_lmm/`
+       - 图像：`outputs/figures/5th_cognition/abcd/age_lmm/`
+     - sbatch（容器版）：`sbatch sbatch/run_abcd_age_lmm_random_slope_cognition_groups_container.sbatch`
        - `int_var`：
          - cognition：采用 baseline 值并填充 follow-up（与现有 cognition 分析保持一致，脚本内自动回填 `*_base`）。
          - pfactor：time-varying（与现有 pfactor 分析保持一致，按原始列直接进入模型）。

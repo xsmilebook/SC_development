@@ -179,14 +179,41 @@ plot_matrix <- function(mat, title, out_base) {
   df_melt$value <- as.numeric(df_melt$value)
 
   limthr <- max(abs(df_melt$value), na.rm = TRUE)
-  p <- ggplot(df_melt) +
-    geom_tile(aes(x = variable, y = nodeid, fill = value)) +
-    scale_fill_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr, limthr)) +
-    theme_classic() +
-    labs(x = NULL, y = NULL, title = title)
+  linerange_frame <- data.frame(
+    x = c(0.5, 12 + 0.5),
+    ymin = rep(-12 - 0.5, times = 2),
+    ymax = rep(-0.5, times = 2),
+    y = c(-0.5, -12 - 0.5),
+    xmin = rep(0.5, times = 2),
+    xmax = rep(12 + 0.5, times = 2)
+  )
 
-  ggsave(paste0(out_base, ".pdf"), p, width = 12, height = 10, units = "cm", bg = "transparent")
-  ggsave(paste0(out_base, ".tiff"), p, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+  p <- ggplot(data = df_melt) +
+    geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
+    scale_fill_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
+    scale_color_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
+    geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
+    geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
+    geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+    ggtitle(label = title) +
+    labs(x = NULL, y = NULL) +
+    scale_y_continuous(breaks = NULL, labels = NULL) +
+    scale_x_continuous(breaks = NULL, labels = NULL) +
+    theme(
+      axis.line = element_blank(),
+      axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
+      axis.title = element_text(size = 18),
+      plot.title = element_text(size = 12, hjust = 0.5),
+      legend.title = element_text(size = 18),
+      legend.text = element_text(size = 18),
+      panel.background = element_rect(fill = NA),
+      panel.grid.major = element_line(linewidth = 0),
+      panel.grid.minor = element_line(linewidth = 1)
+    )
+
+  ggsave(paste0(out_base, ".tiff"), p, height = 18, width = 20, units = "cm", bg = "transparent")
+  ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
 }
 
 run_group <- function(group_name, sub_ids) {
@@ -222,24 +249,46 @@ message("[INFO] SCrankcorr random r=", round(SCrank.rand$r.spearman, 3), " p=", 
 SCrank.fixed.df <- SCrankcorr(res_all, "beta_age", 12, dsdata = TRUE)
 limthr <- max(abs(SCrank.fixed.df$beta_age), na.rm = TRUE)
 p_fixed <- ggplot(SCrank.fixed.df) +
-  geom_point(aes(x = SCrank, y = beta_age, color = beta_age), size = 3) +
-  geom_smooth(aes(x = SCrank, y = beta_age), method = "lm", color = "black", linewidth = 0.9) +
+  geom_point(aes(x = SCrank, y = beta_age, color = beta_age), size = 5) +
+  geom_smooth(aes(x = SCrank, y = beta_age), method = "lm", color = "black", linewidth = 1.4) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr, limthr)) +
   theme_classic() +
+  theme(
+    axis.text = element_text(size = 23.4, color = "black"),
+    axis.title = element_text(size = 23.4),
+    aspect.ratio = 1,
+    axis.line = element_line(linewidth = 0.6),
+    axis.ticks = element_line(linewidth = 0.6),
+    plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    legend.position = "none"
+  ) +
   labs(x = "S-A connectional axis rank", y = "Fixed age effect (beta)")
-ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".pdf")), p_fixed, width = 12, height = 10, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".tiff")), p_fixed, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".tiff")), p_fixed, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_fixed_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".pdf")), p_fixed, width = 15, height = 15, units = "cm", bg = "transparent")
 
 SCrank.rand.df <- SCrankcorr(res_all, "rand_age_mean", 12, dsdata = TRUE)
 limthr2 <- max(abs(SCrank.rand.df$rand_age_mean), na.rm = TRUE)
 p_rand <- ggplot(SCrank.rand.df) +
-  geom_point(aes(x = SCrank, y = rand_age_mean, color = rand_age_mean), size = 3) +
-  geom_smooth(aes(x = SCrank, y = rand_age_mean), method = "lm", color = "black", linewidth = 0.9) +
+  geom_point(aes(x = SCrank, y = rand_age_mean, color = rand_age_mean), size = 5) +
+  geom_smooth(aes(x = SCrank, y = rand_age_mean), method = "lm", color = "black", linewidth = 1.4) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr2, limthr2)) +
   theme_classic() +
+  theme(
+    axis.text = element_text(size = 23.4, color = "black"),
+    axis.title = element_text(size = 23.4),
+    aspect.ratio = 1,
+    axis.line = element_line(linewidth = 0.6),
+    axis.ticks = element_line(linewidth = 0.6),
+    plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    legend.position = "none"
+  ) +
   labs(x = "S-A connectional axis rank", y = "Mean random age effect")
-ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".pdf")), p_rand, width = 12, height = 10, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".tiff")), p_rand, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600)
+ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".tiff")), p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, ".pdf")), p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
 
 # Matrices (full sample, low/high groups)
 mat_fixed_all <- vec_to_mat(res_all$beta_age)
