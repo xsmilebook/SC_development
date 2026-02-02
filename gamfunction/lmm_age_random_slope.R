@@ -43,6 +43,7 @@ lmm.age.random.slope <- function(region,
 
   ctrl <- lmerControl(check.conv.grad = lme4::.makeCC(action = "warning", tol = 0.02))
   mod <- suppressWarnings(lmer(fml, data = df, REML = TRUE, control = ctrl))
+  is_singular <- isSingular(mod)
   sm <- summary(mod)
   beta_age <- sm$coefficients[age_var, "Estimate"]
   t_age <- sm$coefficients[age_var, "t value"]
@@ -54,6 +55,7 @@ lmm.age.random.slope <- function(region,
     beta_age = as.numeric(beta_age),
     t_age = as.numeric(t_age),
     rand_age_mean = as.numeric(rand_age_mean),
+    singular = is_singular,
     n_obs = nrow(df),
     n_sub = length(unique(df[[subid_var]])),
     stringsAsFactors = FALSE

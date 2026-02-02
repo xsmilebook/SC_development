@@ -213,6 +213,7 @@
        - 图像：`outputs/figures/5th_cognition/abcd/age_lmm/`
        - 模型对象：`age_lmm_random_slope_models_*_CV*.rds`（每条边一个 `lme4::lmer` 模型）
        - 个体斜率：`age_lmm_random_slope_personal_slopes_*_CV*.rds`（每条边一个 data.frame，含 fixed/random/个人斜率）
+     - 记录：结果表包含 `singular` 标记（`lme4::isSingular()`）。
      - S-A 相关：固定效应（age beta）与随机斜率均值（全样本 78 edges）
      - S-A 相关：个人斜率均值（全样本 78 edges）
      - 散点图：不做 3 SD 异常值剔除。
@@ -228,6 +229,7 @@
        - 图像：`outputs/figures/6th_pfactor/abcd/age_lmm/`
        - 模型对象：`age_lmm_random_slope_models_*_CV*.rds`（每条边一个 `lme4::lmer` 模型）
        - 个体斜率：`age_lmm_random_slope_personal_slopes_*_CV*.rds`（每条边一个 data.frame，含 fixed/random/个人斜率）
+     - 记录：结果表包含 `singular` 标记（`lme4::isSingular()`）。
      - S-A 相关：固定效应（age beta）与随机斜率均值（全样本 78 edges）
      - S-A 相关：个人斜率均值（全样本 78 edges）
      - 散点图：不做 3 SD 异常值剔除。

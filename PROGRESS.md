@@ -260,5 +260,6 @@
 - 2026-02-02: 新增 p-factor 版本的年龄随机斜率 LMM 脚本（含 personal slope 与 low/high 对比矩阵）。
 - 2026-02-02: low10/high10 组间 t-value 矩阵显著性标记改为 FDR 校正。
 - 2026-02-02: age LMM cognition/pfactor 在进入 LMM 前按每条边剔除超出均值±3SD 的观测。
+- 2026-02-02: age LMM 结果表记录 `singular` 标记以追踪边界拟合。
 - 2026-02-02: age LMM 收敛检查阈值调整为 0.02 以减少轻微梯度警告。
 - 2026-02-02: 修复 `lmerControl` 参数名：使用 `check.conv.grad` 以避免参数未被使用的报错。
