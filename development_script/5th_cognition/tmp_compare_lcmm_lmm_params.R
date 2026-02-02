@@ -117,14 +117,7 @@ lmm_fit <- lme4::lmer(
 )
 
 lcmm_re_age <- lcmm_fit[["predRE"]][["age"]]
-lmm_u <- lmm_fit@u
 n_sub <- length(unique(SCdata$subID))
-if (length(lmm_u) != n_sub * 2) {
-  warning("Unexpected lmm @u length: ", length(lmm_u), " (n_sub=", n_sub, ")")
-}
-
-# For (1 + age || subID), u is concatenated (intercept, age) by subject.
-lmm_re_age_u <- tail(lmm_u, n_sub)
 lmm_re_age_ranef <- as.numeric(lme4::ranef(lmm_fit)[["subID"]][["age"]])
 
 # Align by subject ID (lcmm uses numeric ID).
@@ -133,11 +126,19 @@ id_map <- data.frame(
   ID = as.numeric(factor(unique(SCdata$subID), levels = unique(SCdata$subID))),
   stringsAsFactors = FALSE
 )
-lcmm_df <- data.frame(
-  ID = seq_along(lcmm_re_age),
-  lcmm_re_age = as.numeric(lcmm_re_age),
-  stringsAsFactors = FALSE
-)
+
+id_order <- sort(unique(SCdata$ID))
+if (length(id_order) != length(lcmm_re_age)) {
+  warning(
+    "Length mismatch between lcmm predRE$age (", length(lcmm_re_age),
+    ") and unique(SCdata$ID) (", length(id_order), "). Will align by min length."
+  )
+  min_len <- min(length(id_order), length(lcmm_re_age))
+  id_order <- id_order[seq_len(min_len)]
+  lcmm_re_age <- lcmm_re_age[seq_len(min_len)]
+}
+
+lcmm_df <- data.frame(ID = id_order, lcmm_re_age = as.numeric(lcmm_re_age), stringsAsFactors = FALSE)
 lcmm_df <- merge(lcmm_df, id_map, by = "ID", all.x = TRUE)
 
 lmm_re_df <- data.frame(
@@ -147,7 +148,6 @@ lmm_re_df <- data.frame(
 )
 
 cmp_df <- merge(lcmm_df, lmm_re_df, by = "subID", all = FALSE)
-cmp_df$lmm_re_age_u <- lmm_re_age_u[seq_len(nrow(cmp_df))]
 
 # Fixed effects
 lmm_beta_age <- as.numeric(lme4::fixef(lmm_fit)["age"])
@@ -160,10 +160,8 @@ if (!is.null(names(lcmm_fit$best)) && "age" %in% names(lcmm_fit$best)) {
 cmp_df$lmm_slope_personal <- lmm_beta_age + cmp_df$lmm_re_age_ranef
 cmp_df$lcmm_slope_personal <- lcmm_beta_age + cmp_df$lcmm_re_age
 
-corr_u <- suppressWarnings(cor(cmp_df$lcmm_re_age, cmp_df$lmm_re_age_u, use = "pairwise.complete.obs"))
 corr_ranef <- suppressWarnings(cor(cmp_df$lcmm_re_age, cmp_df$lmm_re_age_ranef, use = "pairwise.complete.obs"))
 corr_personal <- suppressWarnings(cor(cmp_df$lcmm_slope_personal, cmp_df$lmm_slope_personal, use = "pairwise.complete.obs"))
-max_diff_u <- max(abs(cmp_df$lcmm_re_age - cmp_df$lmm_re_age_u), na.rm = TRUE)
 max_diff_ranef <- max(abs(cmp_df$lcmm_re_age - cmp_df$lmm_re_age_ranef), na.rm = TRUE)
 max_diff_personal <- max(abs(cmp_df$lcmm_slope_personal - cmp_df$lmm_slope_personal), na.rm = TRUE)
 
@@ -172,13 +170,10 @@ summary_df <- data.frame(
   n_sub = n_sub,
   n_sub_overlap = nrow(cmp_df),
   len_lcmm = length(lcmm_re_age),
-  len_lmm_u = length(lmm_u),
   beta_age_lmm = lmm_beta_age,
   beta_age_lcmm = lcmm_beta_age,
-  corr_lcmm_vs_lmm_u = corr_u,
   corr_lcmm_vs_lmm_ranef = corr_ranef,
   corr_personal_slope = corr_personal,
-  max_abs_diff_lcmm_vs_lmm_u = max_diff_u,
   max_abs_diff_lcmm_vs_lmm_ranef = max_diff_ranef,
   max_abs_diff_personal_slope = max_diff_personal,
   stringsAsFactors = FALSE
@@ -192,7 +187,6 @@ saveRDS(
     lcmm_fit = lcmm_fit,
     lmm_fit = lmm_fit,
     lcmm_re_age = lcmm_re_age,
-    lmm_re_age_u = lmm_re_age_u,
     lmm_re_age_ranef = lmm_re_age_ranef,
     beta_age_lmm = lmm_beta_age,
     beta_age_lcmm = lcmm_beta_age,
