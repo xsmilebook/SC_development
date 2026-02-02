@@ -149,12 +149,13 @@ run_all <- function() {
   dataname <- "SCdata_all"
   assign(dataname, SCdata, envir = .GlobalEnv)
   results <- lapply(sc_cols, function(edge) {
-    lmm.age.random.slope(edge, dataname, return_model = TRUE)
+    lmm.age.random.slope(edge, dataname, return_model = TRUE, return_slopes = TRUE)
   })
   stats <- dplyr::bind_rows(lapply(results, `[[`, "stats"))
   models <- lapply(results, `[[`, "model")
+  slopes <- lapply(results, `[[`, "rand_slopes")
   names(models) <- sc_cols
-  list(stats = stats, models = models)
+  list(stats = stats, models = models, slopes = slopes)
 }
 
 vec_to_mat <- function(vec, ds = 12) {
@@ -229,11 +230,20 @@ message("[INFO] Fitting LMM per edge (random slope: age || subID)")
 res_all_out <- run_all()
 res_all <- res_all_out$stats
 model_list <- res_all_out$models
+slopes_list <- res_all_out$slopes
+
+personal_slope <- vapply(slopes_list, function(df) {
+  if (!is.data.frame(df) || nrow(df) == 0) return(NA_real_)
+  mean(df$fixed_slope + df$random_slope, na.rm = TRUE)
+}, numeric(1))
+res_all$personal_slope <- personal_slope
 
 saveRDS(res_all,
         file.path(resultFolder, paste0("age_lmm_random_slope_results_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
 saveRDS(model_list,
         file.path(resultFolder, paste0("age_lmm_random_slope_models_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+saveRDS(slopes_list,
+        file.path(resultFolder, paste0("age_lmm_random_slope_personal_slopes_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
 write.csv(
   res_all,
   file.path(resultFolder, paste0("age_lmm_random_slope_results_all_", Cogvar_base, "_CV", CVthr, out_suffix, ".csv")),
@@ -249,6 +259,11 @@ message("[INFO] Correlation to connectional axis (mean random slope)")
 SCrank.rand <- SCrankcorr(res_all, "rand_age_mean", 12, dsdata = FALSE)
 saveRDS(SCrank.rand, file.path(resultFolder, paste0("SCrankcorr_age_random_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
 message("[INFO] SCrankcorr random r=", round(SCrank.rand$r.spearman, 3), " p=", signif(SCrank.rand$p.spearman, 3))
+
+message("[INFO] Correlation to connectional axis (mean personal slope)")
+SCrank.personal <- SCrankcorr(res_all, "personal_slope", 12, dsdata = FALSE)
+saveRDS(SCrank.personal, file.path(resultFolder, paste0("SCrankcorr_age_personal_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
+message("[INFO] SCrankcorr personal r=", round(SCrank.personal$r.spearman, 3), " p=", signif(SCrank.personal$p.spearman, 3))
 
 SCrank.fixed.df <- SCrankcorr(res_all, "beta_age", 12, dsdata = TRUE)
 limthr <- max(abs(SCrank.fixed.df$beta_age), na.rm = TRUE)
@@ -298,16 +313,43 @@ ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_ba
 ggsave(file.path(FigureFolder, paste0("scatter_random_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")),
        p_rand, width = 15, height = 15, units = "cm", bg = "transparent")
 
+SCrank.personal.df <- SCrankcorr(res_all, "personal_slope", 12, dsdata = TRUE)
+limthr3 <- max(abs(SCrank.personal.df$personal_slope), na.rm = TRUE)
+p_personal <- ggplot(SCrank.personal.df) +
+  geom_point(aes(x = SCrank, y = personal_slope, color = personal_slope), size = 5) +
+  geom_smooth(aes(x = SCrank, y = personal_slope), method = "lm", color = "black", linewidth = 1.4) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr3, limthr3)) +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 23.4, color = "black"),
+    axis.title = element_text(size = 23.4),
+    aspect.ratio = 1,
+    axis.line = element_line(linewidth = 0.6),
+    axis.ticks = element_line(linewidth = 0.6),
+    plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    legend.position = "none"
+  ) +
+  labs(x = "S-A connectional axis rank", y = "Mean personal age effect")
+ggsave(file.path(FigureFolder, paste0("scatter_personal_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".tiff")),
+       p_personal, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_personal_age_vs_SCrank_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")),
+       p_personal, width = 15, height = 15, units = "cm", bg = "transparent")
+
 mat_fixed_all <- vec_to_mat(res_all$beta_age)
 mat_rand_all <- vec_to_mat(res_all$rand_age_mean)
+mat_personal_all <- vec_to_mat(res_all$personal_slope)
 saveRDS(
   list(
     fixed_all = mat_fixed_all,
-    random_all = mat_rand_all
+    random_all = mat_rand_all,
+    personal_all = mat_personal_all
   ),
   file.path(resultFolder, paste0("age_lmm_matrices_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds"))
 )
 
 plot_matrix(mat_fixed_all, "Fixed age effect (all)", file.path(FigureFolder, paste0("matrix_fixed_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
 plot_matrix(mat_rand_all, "Random age effect (all)", file.path(FigureFolder, paste0("matrix_random_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
+plot_matrix(mat_personal_all, "Personal age effect (all)", file.path(FigureFolder, paste0("matrix_personal_age_all_", Cogvar_base, "_CV", CVthr, out_suffix)))
 message("[INFO] Done.")
