@@ -145,8 +145,9 @@ fit_edge <- function(df, edge_col) {
   beta_age <- sm$coefficients["age", "Estimate"]
   t_age <- sm$coefficients["age", "t value"]
   re <- ranef(mod)$subID
-  rand_age_mean <- mean(re[,"age"], na.rm = TRUE)
-  list(ok = TRUE, beta = beta_age, t = t_age, rand_mean = rand_age_mean)
+  # Random slopes are centered at 0; use mean absolute slope to summarize magnitude.
+  rand_age_mean_abs <- mean(abs(re[, "age"]), na.rm = TRUE)
+  list(ok = TRUE, beta = beta_age, t = t_age, rand_mean = rand_age_mean_abs)
 }
 
 vec_to_mat <- function(vec, ds = 12) {

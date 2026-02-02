@@ -232,3 +232,4 @@
 - 2026-02-02: 新增 ABCD 年龄随机斜率 LMM 的容器 sbatch（`sbatch/run_abcd_age_lmm_random_slope_cognition_groups_container.sbatch`），并将该脚本的矩阵与 S-A 相关散点图风格对齐旧版输出（点/线宽与配色一致）。
 - 2026-02-02: age 随机斜率 LMM 的矩阵绘图加入 limthr 兜底，避免全 NA/全 0 时绘图为空。
 - 2026-02-02: 新增 ABCD p-factor 分组的年龄随机斜率 LMM 脚本与容器 sbatch（输出矩阵与 S-A 相关散点对齐旧版样式）。
+- 2026-02-02: 年龄随机斜率 LMM 的随机效应矩阵改为“平均绝对随机斜率”，避免随机效应均值≈0 导致矩阵全白。
