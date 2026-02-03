@@ -562,8 +562,8 @@ bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(d
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
     plot.title = element_text(size = 18, hjust = 0.5),
-    legend.position = c(0.02, 0.98),
-    legend.justification = c(0, 1),
+    legend.position = c(0.98, 0.98),
+    legend.justification = c(1, 1),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
   ) +
@@ -595,6 +595,8 @@ decile_df_rand <- data.frame(
   }, numeric(1)),
   stringsAsFactors = FALSE
 )
+decile_df_rand <- decile_df_rand %>%
+  filter(!(is.finite(random_low) & is.finite(random_high) & random_low == 0 & random_high == 0))
 decile_df_rand <- merge(decile_df_rand, SA12_10, by.x = "SC_label", by.y = "SC_label", all.x = TRUE)
 decile_summary_rand <- decile_df_rand %>%
   group_by(decile) %>%
