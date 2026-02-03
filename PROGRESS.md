@@ -265,3 +265,4 @@
 - 2026-02-02: age LMM 收敛检查阈值调整为 0.02 以减少轻微梯度警告。
 - 2026-02-02: 修复 `lmerControl` 参数名：使用 `check.conv.grad` 以避免参数未被使用的报错。
 - 2026-02-03: 新增 ABCD cognition 的 LGCM-style slope per year 脚本（不做离群点剔除），输出 per-edge 线性模型结果与 low/high 预测 slope 的 S-A decile 柱状图。
+- 2026-02-03: age LMM cognition 的 decile 柱状图新增 low/high 图注，并为 low 组添加黑色虚线阴影。

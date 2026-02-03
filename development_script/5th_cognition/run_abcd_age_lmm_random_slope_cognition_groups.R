@@ -536,11 +536,43 @@ plotdf_long$group <- factor(plotdf_long$group, levels = c("high", "low"))
 colorid <- rev(brewer.pal(10, "RdBu"))
 names(colorid) <- as.character(1:10)
 
+dodge_width <- 0.8
+bar_width <- 0.7
+stripe_count <- 6
+build_low_stripes <- function(df_long) {
+  low_df <- df_long[df_long$group == "low" & is.finite(df_long$mean), , drop = FALSE]
+  if (nrow(low_df) < 1) return(data.frame(x = numeric(0), xend = numeric(0), y = numeric(0), yend = numeric(0)))
+  low_df$x_center <- as.numeric(factor(low_df$decile)) + 0.2
+  low_df$x_start <- low_df$x_center - bar_width / 2 + 0.03
+  low_df$x_end <- low_df$x_center + bar_width / 2 - 0.03
+  stripes <- lapply(seq_len(nrow(low_df)), function(i) {
+    yi <- low_df$mean[i]
+    if (!is.finite(yi) || yi == 0) return(NULL)
+    ys <- seq(0, yi, length.out = stripe_count + 1)[-1]
+    data.frame(
+      x = rep(low_df$x_start[i], length(ys)),
+      xend = rep(low_df$x_end[i], length(ys)),
+      y = ys,
+      yend = ys
+    )
+  })
+  do.call(rbind, stripes)
+}
+low_stripes <- build_low_stripes(plotdf_long)
+
 bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(decile), group = group)) +
   geom_col(aes(alpha = group, linetype = group), color = "black", width = 0.7, position = position_dodge(width = 0.8)) +
+  geom_segment(
+    data = low_stripes,
+    aes(x = x, xend = xend, y = y, yend = yend),
+    inherit.aes = FALSE,
+    color = "black",
+    linetype = "dashed",
+    linewidth = 0.3
+  ) +
   scale_fill_manual(values = colorid) +
-  scale_alpha_manual(values = c(high = 1, low = 0.35)) +
-  scale_linetype_manual(values = c(high = "solid", low = "dashed")) +
+  scale_alpha_manual(values = c(high = 1, low = 0.35), name = "Group", labels = c(high = "High", low = "Low")) +
+  scale_linetype_manual(values = c(high = "solid", low = "dashed"), name = "Group", labels = c(high = "High", low = "Low")) +
   theme_classic() +
   theme(
     axis.text = element_text(size = 20, color = "black"),
@@ -548,9 +580,13 @@ bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(d
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
     plot.title = element_text(size = 18, hjust = 0.5),
-    legend.position = "none",
+    legend.position = "right",
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
+  ) +
+  guides(
+    alpha = guide_legend(override.aes = list(fill = "grey70", color = "black")),
+    linetype = guide_legend(override.aes = list(fill = "grey70", color = "black"))
   ) +
   labs(x = "S-A decile", y = "Mean personal age effect")
 
@@ -600,11 +636,21 @@ plotdf_r_long <- reshape(
 plotdf_r_long$decile <- as.integer(plotdf_r_long$decile)
 plotdf_r_long$group <- factor(plotdf_r_long$group, levels = c("high", "low"))
 
+low_stripes_rand <- build_low_stripes(plotdf_r_long)
+
 bar_fig_rand <- ggplot(plotdf_r_long, aes(x = factor(decile), y = mean, fill = factor(decile), group = group)) +
   geom_col(aes(alpha = group, linetype = group), color = "black", width = 0.7, position = position_dodge(width = 0.8)) +
+  geom_segment(
+    data = low_stripes_rand,
+    aes(x = x, xend = xend, y = y, yend = yend),
+    inherit.aes = FALSE,
+    color = "black",
+    linetype = "dashed",
+    linewidth = 0.3
+  ) +
   scale_fill_manual(values = colorid) +
-  scale_alpha_manual(values = c(high = 1, low = 0.35)) +
-  scale_linetype_manual(values = c(high = "solid", low = "dashed")) +
+  scale_alpha_manual(values = c(high = 1, low = 0.35), name = "Group", labels = c(high = "High", low = "Low")) +
+  scale_linetype_manual(values = c(high = "solid", low = "dashed"), name = "Group", labels = c(high = "High", low = "Low")) +
   theme_classic() +
   theme(
     axis.text = element_text(size = 20, color = "black"),
@@ -612,9 +658,13 @@ bar_fig_rand <- ggplot(plotdf_r_long, aes(x = factor(decile), y = mean, fill = f
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
     plot.title = element_text(size = 18, hjust = 0.5),
-    legend.position = "none",
+    legend.position = "right",
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
+  ) +
+  guides(
+    alpha = guide_legend(override.aes = list(fill = "grey70", color = "black")),
+    linetype = guide_legend(override.aes = list(fill = "grey70", color = "black"))
   ) +
   labs(x = "S-A decile", y = "Mean random age effect")
 
