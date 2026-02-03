@@ -517,7 +517,7 @@ plot_matrix(mat_personal_low, "Personal age effect (low10)", file.path(FigureFol
 plot_matrix(mat_personal_high, "Personal age effect (high10)", file.path(FigureFolder, paste0("matrix_personal_age_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
 plot_matrix_sig(mat_t_low_high, sig_low_high, "Personal slope t-value (low10 vs high10)", file.path(FigureFolder, paste0("matrix_personal_age_tvalue_low10_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
 
-# Decile bar plot (low vs high personal slope)
+# Decile bar plots (10 separate figures)
 plotdf <- data.frame(
   decile = decile_summary$decile,
   high = decile_summary$high_mean,
@@ -536,30 +536,33 @@ plotdf_long$group <- factor(plotdf_long$group, levels = c("high", "low"))
 colorid <- rev(brewer.pal(10, "RdBu"))
 names(colorid) <- as.character(1:10)
 
-bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(decile), group = group)) +
-  geom_col(aes(alpha = group, linetype = group), color = "black", width = 0.7, position = position_dodge(width = 0.8)) +
-  scale_fill_manual(values = colorid) +
-  scale_alpha_manual(values = c(high = 1, low = 0.35)) +
-  scale_linetype_manual(values = c(high = "solid", low = "dashed")) +
-  theme_classic() +
-  theme(
-    axis.text = element_text(size = 20, color = "black"),
-    axis.title = element_text(size = 20),
-    axis.line = element_line(linewidth = 0.6),
-    axis.ticks = element_line(linewidth = 0.6),
-    plot.title = element_text(size = 18, hjust = 0.5),
-    legend.position = "none",
-    plot.background = element_rect(fill = "transparent", color = NA),
-    panel.background = element_rect(fill = "transparent", color = NA)
-  ) +
-  labs(x = "S-A decile", y = "Mean personal age effect")
+for (i in 1:10) {
+  tmp <- plotdf_long[plotdf_long$decile == i, , drop = FALSE]
+  bar_fig <- ggplot(tmp, aes(x = group, y = mean, fill = factor(decile), group = group)) +
+    geom_col(aes(alpha = group, linetype = group), color = "black", width = 0.6) +
+    scale_fill_manual(values = colorid) +
+    scale_alpha_manual(values = c(high = 1, low = 0.35)) +
+    scale_linetype_manual(values = c(high = "solid", low = "dashed")) +
+    theme_classic() +
+    theme(
+      axis.text = element_text(size = 20, color = "black"),
+      axis.title = element_text(size = 20),
+      axis.line = element_line(linewidth = 0.6),
+      axis.ticks = element_line(linewidth = 0.6),
+      plot.title = element_text(size = 18, hjust = 0.5),
+      legend.position = "none",
+      plot.background = element_rect(fill = "transparent", color = NA),
+      panel.background = element_rect(fill = "transparent", color = NA)
+    ) +
+    labs(x = NULL, y = "Mean personal age effect", title = paste0("Decile ", i))
 
-ggsave(
-  file.path(FigureFolder, paste0("bar_personal_age_deciles_low_high_", Cogvar_base, "_CV", CVthr, out_suffix, ".tiff")),
-  bar_fig, width = 18, height = 12, units = "cm", bg = "transparent"
-)
-ggsave(
-  file.path(FigureFolder, paste0("bar_personal_age_deciles_low_high_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")),
-  bar_fig, width = 18, height = 12, units = "cm", bg = "transparent"
-)
+  ggsave(
+    file.path(FigureFolder, paste0("bar_personal_age_decile", i, "_low_high_", Cogvar_base, "_CV", CVthr, out_suffix, ".tiff")),
+    bar_fig, width = 10, height = 10, units = "cm", bg = "transparent"
+  )
+  ggsave(
+    file.path(FigureFolder, paste0("bar_personal_age_decile", i, "_low_high_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")),
+    bar_fig, width = 10, height = 10, units = "cm", bg = "transparent"
+  )
+}
 message("[INFO] Done.")
