@@ -218,6 +218,7 @@
      - S-A 相关：个人斜率均值（全样本 78 edges）
      - 散点图：不做 3 SD 异常值剔除。
      - 矩阵：全样本 fixed/random/personal；low10/high10 个人斜率矩阵；low10 vs high10 的 t-value 矩阵（FDR 显著标记，色标按 |value| 对称；t 检验常量/失败时置为 0）
+     - decile 柱状图：按 S-A decile 计算 low/high 个人斜率均值并绘制（与既有 10‑decile 配色一致）。
    - ABCD p-factor 年龄随机斜率 LMM（固定效应 + 随机效应矩阵）：
      - 脚本：`development_script/6th_pfactor/run_abcd_age_lmm_random_slope_pfactor_groups.R`
      - 模型（每条边）：`SC ~ age + sex + mean_fd + (1 + age || subID)`
@@ -234,6 +235,7 @@
      - S-A 相关：个人斜率均值（全样本 78 edges）
      - 散点图：不做 3 SD 异常值剔除。
      - 矩阵：全样本 fixed/random/personal；low10/high10 个人斜率矩阵；low10 vs high10 的 t-value 矩阵（FDR 显著标记，色标按 |value| 对称；t 检验常量/失败时置为 0）
+     - decile 柱状图：按 S-A decile 计算 low/high 个人斜率均值并绘制（与既有 10‑decile 配色一致）。
    - 临时对比脚本（LCMM vs LMM 参数差异，单边示例）：
      - 脚本：`development_script/5th_cognition/tmp_compare_lcmm_lmm_params.R`
      - 输入：`*combatgam_age_sex_meanfd.rds` 与 `ABCD_PLOTDATASUM_RDS`（ratio 缩放与 LMM 一致）

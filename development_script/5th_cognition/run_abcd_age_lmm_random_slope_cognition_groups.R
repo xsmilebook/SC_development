@@ -4,6 +4,7 @@ suppressPackageStartupMessages({
   library(lme4)
   library(dplyr)
   library(ggplot2)
+  library(RColorBrewer)
 })
 
 rm(list = ls())
@@ -50,6 +51,15 @@ if (!file.exists(plotdatasum_rds)) {
   stop("Missing ABCD_PLOTDATASUM_RDS: ", plotdatasum_rds)
 }
 plotdata <- readRDS(plotdatasum_rds)
+
+sa12_csv <- Sys.getenv(
+  "ABCD_SA12_CSV",
+  unset = file.path(project_root, "wd", "interdataFolder_ABCD", "SA12_10.csv")
+)
+if (!file.exists(sa12_csv)) {
+  stop("Missing ABCD_SA12_CSV: ", sa12_csv)
+}
+SA12_10 <- read.csv(sa12_csv, stringsAsFactors = FALSE)
 
 source(file.path(functionFolder, "SCrankcorr.R"))
 source(file.path(functionFolder, "lmm_age_random_slope.R"))
@@ -358,6 +368,29 @@ res_all$personal_t_low_high <- personal_t
 res_all$personal_p_low_high <- personal_p
 res_all$personal_p_low_high_fdr <- p.adjust(res_all$personal_p_low_high, method = "fdr")
 
+decile_df <- data.frame(
+  SC_label = sc_cols,
+  personal_low = res_all$personal_low10_mean,
+  personal_high = res_all$personal_high10_mean,
+  stringsAsFactors = FALSE
+)
+decile_df <- merge(decile_df, SA12_10, by.x = "SC_label", by.y = "SC_label", all.x = TRUE)
+if (any(is.na(decile_df$decile))) {
+  message("[WARN] Missing decile mapping for ", sum(is.na(decile_df$decile)), " edges in SA12_10.")
+}
+decile_summary <- decile_df %>%
+  group_by(decile) %>%
+  summarise(
+    low_mean = mean(personal_low, na.rm = TRUE),
+    high_mean = mean(personal_high, na.rm = TRUE),
+    .groups = "drop"
+  )
+write.csv(
+  decile_summary,
+  file.path(resultFolder, paste0("personal_slope_decile_low_high_", Cogvar_base, "_CV", CVthr, out_suffix, ".csv")),
+  row.names = FALSE
+)
+
 saveRDS(res_all,
         file.path(resultFolder, paste0("age_lmm_random_slope_results_", Cogvar_base, "_CV", CVthr, out_suffix, ".rds")))
 saveRDS(model_list,
@@ -483,4 +516,50 @@ plot_matrix(mat_personal_all, "Personal age effect (all)", file.path(FigureFolde
 plot_matrix(mat_personal_low, "Personal age effect (low10)", file.path(FigureFolder, paste0("matrix_personal_age_low10_", Cogvar_base, "_CV", CVthr, out_suffix)))
 plot_matrix(mat_personal_high, "Personal age effect (high10)", file.path(FigureFolder, paste0("matrix_personal_age_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
 plot_matrix_sig(mat_t_low_high, sig_low_high, "Personal slope t-value (low10 vs high10)", file.path(FigureFolder, paste0("matrix_personal_age_tvalue_low10_high10_", Cogvar_base, "_CV", CVthr, out_suffix)))
+
+# Decile bar plot (low vs high personal slope)
+plotdf <- data.frame(
+  decile = decile_summary$decile,
+  high = decile_summary$high_mean,
+  low = decile_summary$low_mean
+)
+plotdf_long <- reshape(
+  plotdf,
+  varying = c("high", "low"),
+  v.names = "mean",
+  timevar = "group",
+  times = c("high", "low"),
+  direction = "long"
+)
+plotdf_long$decile <- as.integer(plotdf_long$decile)
+plotdf_long$group <- factor(plotdf_long$group, levels = c("high", "low"))
+colorid <- rev(brewer.pal(10, "RdBu"))
+names(colorid) <- as.character(1:10)
+
+bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(decile), group = group)) +
+  geom_col(aes(alpha = group, linetype = group), color = "black", width = 0.7, position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = colorid) +
+  scale_alpha_manual(values = c(high = 1, low = 0.35)) +
+  scale_linetype_manual(values = c(high = "solid", low = "dashed")) +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 20, color = "black"),
+    axis.title = element_text(size = 20),
+    axis.line = element_line(linewidth = 0.6),
+    axis.ticks = element_line(linewidth = 0.6),
+    plot.title = element_text(size = 18, hjust = 0.5),
+    legend.position = "none",
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  ) +
+  labs(x = "S-A decile", y = "Mean personal age effect")
+
+ggsave(
+  file.path(FigureFolder, paste0("bar_personal_age_deciles_low_high_", Cogvar_base, "_CV", CVthr, out_suffix, ".tiff")),
+  bar_fig, width = 18, height = 12, units = "cm", bg = "transparent"
+)
+ggsave(
+  file.path(FigureFolder, paste0("bar_personal_age_deciles_low_high_", Cogvar_base, "_CV", CVthr, out_suffix, ".pdf")),
+  bar_fig, width = 18, height = 12, units = "cm", bg = "transparent"
+)
 message("[INFO] Done.")
