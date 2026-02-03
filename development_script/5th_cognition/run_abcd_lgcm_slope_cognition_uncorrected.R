@@ -55,6 +55,8 @@ sa12_csv <- Sys.getenv(
 if (!file.exists(sa12_csv)) stop("Missing ABCD_SA12_CSV: ", sa12_csv)
 SA12_10 <- read.csv(sa12_csv, stringsAsFactors = FALSE)
 
+source(file.path(project_root, "gamfunction", "SCrankcorr.R"))
+
 scanid_to_eventname <- function(scanID) {
   sess <- sub("^.*_ses-", "", as.character(scanID))
   sess <- gsub("([a-z])([A-Z])", "\\1_\\2", sess)
@@ -133,6 +135,83 @@ for (edge in sc_cols) {
   f0 <- as.numeric(plot_fit[[edge]])
   if (is.na(f0) || !is.finite(f0) || f0 == 0) stop("Invalid plotdata fit for edge: ", edge)
   SCdata[[edge]] <- as.numeric(SCdata[[edge]]) / f0
+}
+
+vec_to_mat <- function(vec, ds = 12) {
+  mat <- matrix(NA, ds, ds)
+  idx <- which(lower.tri(mat, diag = TRUE))
+  if (length(vec) > length(idx)) {
+    stop("vec length exceeds lower-triangle size: ", length(vec), " > ", length(idx))
+  }
+  mat[idx[seq_along(vec)]] <- vec
+  mat[upper.tri(mat)] <- t(mat)[upper.tri(mat)]
+  dimnames(mat) <- list(as.character(seq_len(ds)), as.character(seq_len(ds)))
+  mat
+}
+
+plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
+  df_melt <- as.data.frame(as.table(mat))
+  names(df_melt) <- c("nodeid", "variable", "value")
+  node_raw <- df_melt$nodeid
+  var_raw <- df_melt$variable
+  df_melt$nodeid <- suppressWarnings(as.numeric(as.character(node_raw)))
+  df_melt$variable <- suppressWarnings(as.numeric(as.character(var_raw)))
+  if (all(is.na(df_melt$nodeid))) df_melt$nodeid <- as.integer(node_raw)
+  if (all(is.na(df_melt$variable))) df_melt$variable <- as.integer(var_raw)
+  df_melt$nodeid <- -df_melt$nodeid
+  df_melt$value <- as.numeric(df_melt$value)
+
+  sig_df <- as.data.frame(as.table(sig_mat))
+  names(sig_df) <- c("nodeid", "variable", "sig")
+  sig_df$nodeid <- suppressWarnings(as.numeric(as.character(sig_df$nodeid)))
+  sig_df$variable <- suppressWarnings(as.numeric(as.character(sig_df$variable)))
+  if (all(is.na(sig_df$nodeid))) sig_df$nodeid <- as.integer(sig_df$nodeid)
+  if (all(is.na(sig_df$variable))) sig_df$variable <- as.integer(sig_df$variable)
+  sig_df$nodeid <- -sig_df$nodeid
+  sig_df <- sig_df[!is.na(sig_df$sig) & sig_df$sig, , drop = FALSE]
+
+  limthr <- max(abs(df_melt$value), na.rm = TRUE)
+  if (!is.finite(limthr) || limthr == 0) {
+    message("[WARN] Matrix values are all NA/0 for: ", title, "; set limthr=1 for plotting")
+    limthr <- 1
+  }
+
+  linerange_frame <- data.frame(
+    x = c(0.5, 12 + 0.5),
+    ymin = rep(-12 - 0.5, times = 2),
+    ymax = rep(-0.5, times = 2),
+    y = c(-0.5, -12 - 0.5),
+    xmin = rep(0.5, times = 2),
+    xmax = rep(12 + 0.5, times = 2)
+  )
+
+  p <- ggplot(data = df_melt) +
+    geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
+    scale_fill_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
+    scale_color_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
+    geom_text(data = sig_df, aes(x = variable, y = nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size = 8) +
+    geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
+    geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
+    geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+    ggtitle(label = title) +
+    labs(x = NULL, y = NULL) +
+    scale_y_continuous(breaks = NULL, labels = NULL) +
+    scale_x_continuous(breaks = NULL, labels = NULL) +
+    theme(
+      axis.line = element_blank(),
+      axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
+      axis.title = element_text(size = 18),
+      plot.title = element_text(size = 12, hjust = 0.5),
+      legend.title = element_text(size = 18),
+      legend.text = element_text(size = 18),
+      panel.background = element_rect(fill = NA),
+      panel.grid.major = element_line(linewidth = 0),
+      panel.grid.minor = element_line(linewidth = 1)
+    )
+
+  ggsave(paste0(out_base, ".tiff"), p, height = 18, width = 20, units = "cm", bg = "transparent")
+  ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
 }
 
 # Build per-subject t0/t1 rows
@@ -229,6 +308,38 @@ res_df <- do.call(rbind, res_rows)
 res_df$p_cog_fdr <- p.adjust(res_df$p_cog, method = "fdr")
 saveRDS(res_df, file.path(resultFolder, paste0("lgcm_slope_results_", Cogvar_base, "_CV", CVthr, ".rds")))
 write.csv(res_df, file.path(resultFolder, paste0("lgcm_slope_results_", Cogvar_base, "_CV", CVthr, ".csv")), row.names = FALSE)
+
+message("[INFO] Effect matrix + S-A axis correlation (beta_cog)")
+beta_mat <- vec_to_mat(res_df$beta_cog, ds = 12)
+sig_mat <- vec_to_mat(res_df$p_cog_fdr < 0.05, ds = 12)
+plot_matrix_sig(
+  beta_mat,
+  sig_mat,
+  "LGCM slope: cog_base effect (beta)",
+  file.path(FigureFolder, paste0("matrix_lgcm_slope_beta_", Cogvar_base, "_CV", CVthr))
+)
+
+SCrank.df.beta <- SCrankcorr(res_df, "beta_cog", 12, dsdata = FALSE)
+saveRDS(SCrank.df.beta, file.path(resultFolder, paste0("SCrankcorr_lgcm_slope_", Cogvar_base, "_CV", CVthr, "_beta.rds")))
+message("[INFO] SCrankcorr (beta) r=", round(SCrank.df.beta$r.spearman, 3), " p=", signif(SCrank.df.beta$p.spearman, 3))
+
+SCrank.data.beta <- SCrankcorr(res_df, "beta_cog", 12, dsdata = TRUE)
+limthr.beta <- max(abs(SCrank.data.beta$beta_cog), na.rm = TRUE)
+if (!is.finite(limthr.beta) || limthr.beta == 0) limthr.beta <- 1
+scatterFig.beta <- ggplot(data = SCrank.data.beta) +
+  geom_point(aes(x = SCrank, y = beta_cog, color = beta_cog), size = 3) +
+  geom_smooth(aes(x = SCrank, y = beta_cog), method = "lm", color = "black", linewidth = 0.9) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr.beta, limthr.beta)) +
+  theme_classic() +
+  labs(x = "S-A connectional axis rank", y = "LGCM slope beta (cog_base)")
+ggsave(
+  file.path(FigureFolder, paste0("scatter_beta_vs_SCrank_lgcm_slope_", Cogvar_base, "_CV", CVthr, ".pdf")),
+  scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent"
+)
+ggsave(
+  file.path(FigureFolder, paste0("scatter_beta_vs_SCrank_lgcm_slope_", Cogvar_base, "_CV", CVthr, ".tiff")),
+  scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600
+)
 
 # Decile summary for low/high predicted slopes
 decile_df <- data.frame(

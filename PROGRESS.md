@@ -269,3 +269,4 @@
 - 2026-02-03: age LMM cognition 的 decile 柱状图移除 decile 图注，仅保留 group 图注并置于右上角（High/Low level）。
 - 2026-02-03: age LMM cognition/pfactor 的 decile 柱状图改用 ggpattern 的 stripe 填充表示 low 组，并统一图注样式与位置。
 - 2026-02-03: mean random slope 柱状图在 decile 汇总前剔除 random slope 均为 0 的连接。
+- 2026-02-03: LGCM slope cognition 脚本新增 cog_base beta 的矩阵热图（FDR 标注）与 beta–S-A 相关散点图。

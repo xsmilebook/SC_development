@@ -287,7 +287,9 @@
      - 变化率定义：`slope_per_year = (SC_t1 - SC_t0) / delta_age`
      - 模型：`slope_per_year ~ age_t0 + SC_t0 + cog_base + sex + site + mean_fd_t0 + mean_fd_t1`
      - 结果：`outputs/results/5th_cognition/abcd/lgcm_slope/`（每条边 `beta/t/p` 与 FDR）
-     - 图像：`outputs/figures/5th_cognition/abcd/lgcm_slope/`，输出 low10/high90 cognition 组模型预测 slope 的 decile 柱状图（单图 10 组，颜色沿用 `RdBu` 反转配色）
+     - 图像：`outputs/figures/5th_cognition/abcd/lgcm_slope/`
+       - low10/high90 cognition 组模型预测 slope 的 decile 柱状图（单图 10 组，颜色沿用 `RdBu` 反转配色）
+       - cog_base 效应量（beta）矩阵热图（FDR 显著性标注）与 `beta`–S-A 相关散点图
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
