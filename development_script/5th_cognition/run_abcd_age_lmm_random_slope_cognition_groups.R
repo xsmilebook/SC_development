@@ -570,9 +570,9 @@ bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(d
     linetype = "dashed",
     linewidth = 0.3
   ) +
-  scale_fill_manual(values = colorid) +
-  scale_alpha_manual(values = c(high = 1, low = 0.35), name = "Group", labels = c(high = "High", low = "Low")) +
-  scale_linetype_manual(values = c(high = "solid", low = "dashed"), name = "Group", labels = c(high = "High", low = "Low")) +
+  scale_fill_manual(values = colorid, guide = "none") +
+  scale_alpha_manual(values = c(high = 1, low = 0.35), name = "Group", labels = c(high = "High level", low = "Low level")) +
+  scale_linetype_manual(values = c(high = "solid", low = "dashed"), name = "Group", labels = c(high = "High level", low = "Low level")) +
   theme_classic() +
   theme(
     axis.text = element_text(size = 20, color = "black"),
@@ -580,7 +580,8 @@ bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(d
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
     plot.title = element_text(size = 18, hjust = 0.5),
-    legend.position = "right",
+    legend.position = c(0.98, 0.98),
+    legend.justification = c(1, 1),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
   ) +
@@ -648,9 +649,9 @@ bar_fig_rand <- ggplot(plotdf_r_long, aes(x = factor(decile), y = mean, fill = f
     linetype = "dashed",
     linewidth = 0.3
   ) +
-  scale_fill_manual(values = colorid) +
-  scale_alpha_manual(values = c(high = 1, low = 0.35), name = "Group", labels = c(high = "High", low = "Low")) +
-  scale_linetype_manual(values = c(high = "solid", low = "dashed"), name = "Group", labels = c(high = "High", low = "Low")) +
+  scale_fill_manual(values = colorid, guide = "none") +
+  scale_alpha_manual(values = c(high = 1, low = 0.35), name = "Group", labels = c(high = "High level", low = "Low level")) +
+  scale_linetype_manual(values = c(high = "solid", low = "dashed"), name = "Group", labels = c(high = "High level", low = "Low level")) +
   theme_classic() +
   theme(
     axis.text = element_text(size = 20, color = "black"),
@@ -658,7 +659,8 @@ bar_fig_rand <- ggplot(plotdf_r_long, aes(x = factor(decile), y = mean, fill = f
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
     plot.title = element_text(size = 18, hjust = 0.5),
-    legend.position = "right",
+    legend.position = c(0.98, 0.98),
+    legend.justification = c(1, 1),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
   ) +
