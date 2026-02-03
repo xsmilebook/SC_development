@@ -317,9 +317,9 @@ scatterFig.beta <- ggplot(data = SCrank.data.beta) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr.beta, limthr.beta)) +
   theme_classic() +
   theme(
-    axis.text = element_text(size = 23.4, color = "black"),
-    axis.title = element_text(size = 23.4),
-    aspect.ratio = 1,
+    axis.text = element_text(size = 23, color = "black"),
+    axis.title = element_text(size = 23),
+    aspect.ratio = 0.9,
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
     plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
@@ -327,15 +327,59 @@ scatterFig.beta <- ggplot(data = SCrank.data.beta) +
     panel.background = element_rect(fill = "transparent", color = NA),
     legend.position = "none"
   ) +
-  labs(x = "S-A connectional axis rank", y = "LGCM slope beta (pfactor)")
+  labs(x = "S-A connectional axis rank", y = "slope beta (pfactor)")
 
 ggsave(
   file.path(FigureFolder, paste0("scatter_beta_vs_SCrank_lgcm_slope_pfactor_", Pvar, "_CV", CVthr, ".pdf")),
-  scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent"
+  scatterFig.beta, width = 13, height = 12, units = "cm", bg = "transparent"
 )
 ggsave(
   file.path(FigureFolder, paste0("scatter_beta_vs_SCrank_lgcm_slope_pfactor_", Pvar, "_CV", CVthr, ".tiff")),
-  scatterFig.beta, width = 12, height = 10, units = "cm", bg = "transparent", dpi = 600
+  scatterFig.beta, width = 13, height = 12, units = "cm", bg = "transparent", dpi = 600
+)
+
+message("[INFO] Effect matrix + S-A axis correlation (t_pfactor)")
+t_mat <- vec_to_mat(res_df$t_pfactor, ds = 12)
+sig_mat_t <- vec_to_mat(res_df$p_pfactor_fdr < 0.05, ds = 12)
+plot_matrix_sig(
+  t_mat,
+  sig_mat_t,
+  "LGCM slope: pfactor effect (t value)",
+  file.path(FigureFolder, paste0("matrix_lgcm_slope_tvalue_pfactor_", Pvar, "_CV", CVthr))
+)
+
+SCrank.df.t <- SCrankcorr(res_df, "t_pfactor", 12, dsdata = FALSE)
+saveRDS(SCrank.df.t, file.path(resultFolder, paste0("SCrankcorr_lgcm_slope_pfactor_", Pvar, "_CV", CVthr, "_tvalue.rds")))
+message("[INFO] SCrankcorr (t) r=", round(SCrank.df.t$r.spearman, 3), " p=", signif(SCrank.df.t$p.spearman, 3))
+
+SCrank.data.t <- SCrankcorr(res_df, "t_pfactor", 12, dsdata = TRUE)
+limthr.t <- max(abs(SCrank.data.t$t_pfactor), na.rm = TRUE)
+if (!is.finite(limthr.t) || limthr.t == 0) limthr.t <- 1
+scatterFig.t <- ggplot(data = SCrank.data.t) +
+  geom_point(aes(x = SCrank, y = t_pfactor, color = t_pfactor), size = 5) +
+  geom_smooth(aes(x = SCrank, y = t_pfactor), method = "lm", color = "black", linewidth = 1.4) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr.t, limthr.t)) +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 23, color = "black"),
+    axis.title = element_text(size = 23),
+    aspect.ratio = 0.9,
+    axis.line = element_line(linewidth = 0.6),
+    axis.ticks = element_line(linewidth = 0.6),
+    plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    legend.position = "none"
+  ) +
+  labs(x = "S-A connectional axis rank", y = "slope t value (pfactor)")
+
+ggsave(
+  file.path(FigureFolder, paste0("scatter_tvalue_vs_SCrank_lgcm_slope_pfactor_", Pvar, "_CV", CVthr, ".pdf")),
+  scatterFig.t, width = 13, height = 12, units = "cm", bg = "transparent"
+)
+ggsave(
+  file.path(FigureFolder, paste0("scatter_tvalue_vs_SCrank_lgcm_slope_pfactor_", Pvar, "_CV", CVthr, ".tiff")),
+  scatterFig.t, width = 13, height = 12, units = "cm", bg = "transparent", dpi = 600
 )
 
 # Decile summary for low/high predicted slopes
