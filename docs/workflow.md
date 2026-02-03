@@ -280,6 +280,14 @@
        - 统计：输出每条边 `beta_int` 与 FDR，并计算 `beta_int` 与 S-A rank 的相关
        - 图像：位于 `outputs/figures/6th_pfactor/abcd/change_score_lm/`：`scatter_beta_vs_SCrank_change_score_*`、`scatter_tvalue_vs_SCrank_change_score_*` 与 `delta_SC_deciles_vs_*`（含 r/p CSV）
      - 相关输出：`SCrankcorr_change_score_*`（RDS；Spearman r/p）
+   - ABCD cognition（uncorrected；LGCM-style slope per year，线性模型）：
+     - 入口脚本：`development_script/5th_cognition/run_abcd_lgcm_slope_cognition_uncorrected.R`
+     - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；baseline cognition 来自 `*combatgam_cognition.rds` 并按 `subID` 合并；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`
+     - 预处理：按每个被试选取最小/最大年龄两次观测，计算 `delta_age`；**不做离群点剔除**
+     - 变化率定义：`slope_per_year = (SC_t1 - SC_t0) / delta_age`
+     - 模型：`slope_per_year ~ age_t0 + SC_t0 + cog_base + sex + site + mean_fd_t0 + mean_fd_t1`
+     - 结果：`outputs/results/5th_cognition/abcd/lgcm_slope/`（每条边 `beta/t/p` 与 FDR）
+     - 图像：`outputs/figures/5th_cognition/abcd/lgcm_slope/`，输出 low10/high90 cognition 组模型预测 slope 的 decile 柱状图（单图 10 组，颜色沿用 `RdBu` 反转配色）
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
