@@ -5,6 +5,7 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
   library(RColorBrewer)
+  library(ggpattern)
 })
 
 rm(list = ls())
@@ -521,10 +522,22 @@ colorid <- rev(brewer.pal(10, "RdBu"))
 names(colorid) <- as.character(1:10)
 
 bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(decile), group = group)) +
-  geom_col(aes(alpha = group, linetype = group), color = "black", width = 0.7, position = position_dodge(width = 0.8)) +
-  scale_fill_manual(values = colorid) +
-  scale_alpha_manual(values = c(high = 1, low = 0.35)) +
-  scale_linetype_manual(values = c(high = "solid", low = "dashed")) +
+  geom_col_pattern(
+    aes(pattern = group, alpha = group, linetype = group),
+    color = "black",
+    pattern_color = "black",
+    pattern_fill = "transparent",
+    pattern_angle = 45,
+    pattern_density = 0.1,
+    pattern_spacing = 0.02,
+    pattern_key_scale_factor = 0.6,
+    width = 0.7,
+    position = position_dodge(width = 0.8)
+  ) +
+  scale_fill_manual(values = colorid, guide = "none") +
+  scale_pattern_manual(values = c(high = "none", low = "stripe"), guide = "none") +
+  scale_alpha_manual(values = c(high = 1, low = 0.35), name = "Group", labels = c(high = "High level", low = "Low level")) +
+  scale_linetype_manual(values = c(high = "solid", low = "dashed"), name = "Group", labels = c(high = "High level", low = "Low level")) +
   theme_classic() +
   theme(
     axis.text = element_text(size = 20, color = "black"),
@@ -532,9 +545,14 @@ bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(d
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
     plot.title = element_text(size = 18, hjust = 0.5),
-    legend.position = "none",
+    legend.position = c(0.02, 0.98),
+    legend.justification = c(0, 1),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
+  ) +
+  guides(
+    alpha = guide_legend(override.aes = list(fill = "grey70", color = "black", pattern = c("none", "stripe"))),
+    linetype = guide_legend(override.aes = list(fill = "grey70", color = "black"))
   ) +
   labs(x = "S-A decile", y = "Mean personal age effect")
 
@@ -585,10 +603,22 @@ plotdf_r_long$decile <- as.integer(plotdf_r_long$decile)
 plotdf_r_long$group <- factor(plotdf_r_long$group, levels = c("high", "low"))
 
 bar_fig_rand <- ggplot(plotdf_r_long, aes(x = factor(decile), y = mean, fill = factor(decile), group = group)) +
-  geom_col(aes(alpha = group, linetype = group), color = "black", width = 0.7, position = position_dodge(width = 0.8)) +
-  scale_fill_manual(values = colorid) +
-  scale_alpha_manual(values = c(high = 1, low = 0.35)) +
-  scale_linetype_manual(values = c(high = "solid", low = "dashed")) +
+  geom_col_pattern(
+    aes(pattern = group, alpha = group, linetype = group),
+    color = "black",
+    pattern_color = "black",
+    pattern_fill = "transparent",
+    pattern_angle = 45,
+    pattern_density = 0.1,
+    pattern_spacing = 0.02,
+    pattern_key_scale_factor = 0.6,
+    width = 0.7,
+    position = position_dodge(width = 0.8)
+  ) +
+  scale_fill_manual(values = colorid, guide = "none") +
+  scale_pattern_manual(values = c(high = "none", low = "stripe"), guide = "none") +
+  scale_alpha_manual(values = c(high = 1, low = 0.35), name = "Group", labels = c(high = "High level", low = "Low level")) +
+  scale_linetype_manual(values = c(high = "solid", low = "dashed"), name = "Group", labels = c(high = "High level", low = "Low level")) +
   theme_classic() +
   theme(
     axis.text = element_text(size = 20, color = "black"),
@@ -596,9 +626,14 @@ bar_fig_rand <- ggplot(plotdf_r_long, aes(x = factor(decile), y = mean, fill = f
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
     plot.title = element_text(size = 18, hjust = 0.5),
-    legend.position = "none",
+    legend.position = c(0.02, 0.98),
+    legend.justification = c(0, 1),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
+  ) +
+  guides(
+    alpha = guide_legend(override.aes = list(fill = "grey70", color = "black", pattern = c("none", "stripe"))),
+    linetype = guide_legend(override.aes = list(fill = "grey70", color = "black"))
   ) +
   labs(x = "S-A decile", y = "Mean random age effect")
 

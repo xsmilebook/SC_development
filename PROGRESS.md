@@ -267,3 +267,4 @@
 - 2026-02-03: 新增 ABCD cognition 的 LGCM-style slope per year 脚本（不做离群点剔除），输出 per-edge 线性模型结果与 low/high 预测 slope 的 S-A decile 柱状图。
 - 2026-02-03: age LMM cognition 的 decile 柱状图新增 low/high 图注，并为 low 组添加黑色虚线阴影。
 - 2026-02-03: age LMM cognition 的 decile 柱状图移除 decile 图注，仅保留 group 图注并置于右上角（High/Low level）。
+- 2026-02-03: age LMM cognition/pfactor 的 decile 柱状图改用 ggpattern 的 stripe 填充表示 low 组，并统一图注样式与位置。
