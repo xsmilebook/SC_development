@@ -100,8 +100,7 @@ if (length(missing) > 0) stop("Missing required columns in SCdata: ", paste(miss
 if (!("sex" %in% names(SCdata))) stop("Missing required column: sex")
 SCdata$sex <- as.factor(SCdata$sex)
 
-site_col <- if ("siteID" %in% names(SCdata)) "siteID" else if ("site" %in% names(SCdata)) "site" else NA_character_
-if (is.na(site_col)) stop("Missing site column (expected siteID or site).")
+
 
 SCcog <- readRDS(cog_rds)
 if (!("eventname" %in% names(SCcog)) && ("scanID" %in% names(SCcog))) {
@@ -152,7 +151,6 @@ for (k in seq_along(idx_by_sub)) {
     subID = SCdata$subID[i0],
     age_t0 = SCdata$age[i0],
     sex = SCdata$sex[i0],
-    site = SCdata[[site_col]][i0],
     mean_fd_t0 = SCdata$mean_fd[i0],
     mean_fd_t1 = SCdata$mean_fd[i1],
     cog_base = SCdata[[Cogvar_base]][i0],
@@ -170,7 +168,6 @@ for (k in seq_along(idx_by_sub)) {
 dat_sub <- dplyr::bind_rows(rows)
 if (nrow(dat_sub) < 10) stop("Too few subjects after two-timepoint selection: ", nrow(dat_sub))
 dat_sub$sex <- as.factor(dat_sub$sex)
-dat_sub$site <- as.factor(dat_sub$site)
 
 message("[INFO] Fitting per-edge LGCM-style slope LM (n_edges=78)")
 res_rows <- vector("list", length(sc_cols))
@@ -188,7 +185,6 @@ for (i in seq_along(sc_cols)) {
     SC_t0 = dat_sub[[t0_col]],
     cog_base = dat_sub$cog_base,
     sex = dat_sub$sex,
-    site = dat_sub$site,
     mean_fd_t0 = dat_sub$mean_fd_t0,
     mean_fd_t1 = dat_sub$mean_fd_t1
   )
@@ -207,7 +203,7 @@ for (i in seq_along(sc_cols)) {
     next
   }
 
-  lm_slope <- lm(slope_per_year ~ age_t0 + SC_t0 + cog_base + sex + site + mean_fd_t0 + mean_fd_t1, data = df)
+  lm_slope <- lm(slope_per_year ~ age_t0 + SC_t0 + cog_base + sex + mean_fd_t0 + mean_fd_t1, data = df)
   sm <- summary(lm_slope)
   beta_cog <- sm$coefficients["cog_base", "Estimate"]
   t_cog <- sm$coefficients["cog_base", "t value"]
