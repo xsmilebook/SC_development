@@ -291,7 +291,7 @@
      - Windows 并行：默认使用 16 核（`LGCM_CORES` 可覆盖）
      - 图像：`outputs/figures/5th_cognition/abcd/lgcm_slope/`
        - low10/high90 cognition 组模型预测 slope 的 decile 柱状图（单图 10 组，颜色沿用 `RdBu` 反转配色）
-       - cog_base 效应量（beta）与 t 值矩阵热图（FDR 显著性标注）及 `beta`/`t`–S-A 相关散点图
+       - cog_base t 值矩阵热图（FDR 显著性标注）及 `beta`/`t`–S-A 相关散点图
    - ABCD p-factor（GENERAL；LGCM-style slope per year，线性模型）：
      - 入口脚本：`development_script/6th_pfactor/run_abcd_lgcm_slope_pfactor_general.R`
      - 输入：纵向 SC 使用 `*combatgam_pfactor.rds`；baseline p-factor 从 `eventname` 中的 baseline 提取并按 `subID` 合并；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`

@@ -368,14 +368,14 @@ res_df$p_cog_fdr <- p.adjust(res_df$p_cog, method = "fdr")
 saveRDS(res_df, file.path(resultFolder, paste0("lgcm_slope_results_", Cogvar_base, "_CV", CVthr, ".rds")))
 write.csv(res_df, file.path(resultFolder, paste0("lgcm_slope_results_", Cogvar_base, "_CV", CVthr, ".csv")), row.names = FALSE)
 
-message("[INFO] Effect matrix + S-A axis correlation (beta_cog)")
-beta_mat <- vec_to_mat(res_df$beta_cog, ds = 12)
-sig_mat <- vec_to_mat(res_df$p_cog_fdr < 0.05, ds = 12)
+message("[INFO] Effect matrix + S-A axis correlation (t_cog)")
+t_mat <- vec_to_mat(res_df$t_cog, ds = 12)
+sig_mat_t <- vec_to_mat(res_df$p_cog_fdr < 0.05, ds = 12)
 plot_matrix_sig(
-  beta_mat,
-  sig_mat,
-  "LGCM slope: cog_base effect (beta)",
-  file.path(FigureFolder, paste0("matrix_lgcm_slope_beta_", Cogvar_base, "_CV", CVthr))
+  t_mat,
+  sig_mat_t,
+  "LGCM slope: cog_base effect (t value)",
+  file.path(FigureFolder, paste0("matrix_lgcm_slope_tvalue_", Cogvar_base, "_CV", CVthr))
 )
 
 SCrank.df.beta <- SCrankcorr(res_df, "beta_cog", 12, dsdata = FALSE)
@@ -409,16 +409,6 @@ ggsave(
 ggsave(
   file.path(FigureFolder, paste0("scatter_beta_vs_SCrank_lgcm_slope_", Cogvar_base, "_CV", CVthr, ".tiff")),
   scatterFig.beta, width = 13, height = 12, units = "cm", bg = "transparent", dpi = 600
-)
-
-message("[INFO] Effect matrix + S-A axis correlation (t_cog)")
-t_mat <- vec_to_mat(res_df$t_cog, ds = 12)
-sig_mat_t <- vec_to_mat(res_df$p_cog_fdr < 0.05, ds = 12)
-plot_matrix_sig(
-  t_mat,
-  sig_mat_t,
-  "LGCM slope: cog_base effect (t value)",
-  file.path(FigureFolder, paste0("matrix_lgcm_slope_tvalue_", Cogvar_base, "_CV", CVthr))
 )
 
 SCrank.df.t <- SCrankcorr(res_df, "t_cog", 12, dsdata = FALSE)

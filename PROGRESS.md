@@ -275,3 +275,4 @@
 - 2026-02-03: LGCM cognition/pfactor 新增 t 值矩阵热图与 t–S-A 相关散点图输出。
 - 2026-02-03: LGCM cognition/pfactor p 值改为 full vs null 的 parametric-bootstrap ANOVA，并据此进行 FDR 校正。
 - 2026-02-03: LGCM cognition/pfactor 在 Windows 下使用并行计算（默认 16 核，可用 `LGCM_CORES` 覆盖）。
+- 2026-02-03: LGCM cognition 矩阵图改为 t 值矩阵（不再输出 beta 矩阵）。
