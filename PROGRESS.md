@@ -280,3 +280,4 @@
 - 2026-02-04: age_bp partial R² 在绘图前进行 3-SD 过滤（SC/cognition/pfactor 三版本）。
 - 2026-02-04: 修复 age_wp personal slope 提取（兼容 `||` 随机斜率分组名），并抑制矩阵绘图的常见警告。
 - 2026-02-04: 修复 Windows 并行下 personal slope 全 NA：`ranef/fixef` 改为显式使用 `lme4::` 命名空间。
+- 2026-02-04: age LMM 与 age_wp/age_bp LMM 输出 ranef(age_wp/age) 全 0 的边清单与数量，并在结果表中新增随机斜率方差列。

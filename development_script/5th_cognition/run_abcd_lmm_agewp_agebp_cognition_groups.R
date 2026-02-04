@@ -231,7 +231,8 @@ fit_edge <- function(i, data_all, edges, base_by_sub, q10, q90, pb_nsim, pb_seed
                        t_wp = NA_real_, t_bp = NA_real_, partial_r2_bp = NA_real_, p_bp = NA_real_,
                        personal_t_low_high = NA_real_, personal_p_low_high = NA_real_,
                        personal_cor = NA_real_, personal_cor_p = NA_real_,
-                       personal_low_mean = NA_real_, personal_high_mean = NA_real_),
+                       personal_low_mean = NA_real_, personal_high_mean = NA_real_,
+                       rand_slope_var = NA_real_, rand_slope_all_zero = NA),
       edge = edge
     ))
   }
@@ -248,6 +249,13 @@ fit_edge <- function(i, data_all, edges, base_by_sub, q10, q90, pb_nsim, pb_seed
   sse_null <- sum(residuals(null)^2)
   partial_r2 <- if (is.finite(sse_null) && sse_null > 0) (sse_null - sse_full) / sse_null else NA_real_
   p_bp <- pb_lmm_anova(full, null, nsim = pb_nsim, seed = pb_seed + i)
+
+  vc_df <- tryCatch(as.data.frame(lme4::VarCorr(full)), error = function(e) NULL)
+  rand_slope_var <- NA_real_
+  if (is.data.frame(vc_df) && nrow(vc_df) > 0) {
+    idx <- which(vc_df$var1 == "age_wp" & (is.na(vc_df$var2) | vc_df$var2 == ""))
+    if (length(idx) > 0) rand_slope_var <- as.numeric(vc_df$vcov[idx[[1]]])
+  }
 
   re_list <- tryCatch(lme4::ranef(full), error = function(e) NULL)
   re_mat <- NULL
@@ -269,7 +277,8 @@ fit_edge <- function(i, data_all, edges, base_by_sub, q10, q90, pb_nsim, pb_seed
                        t_wp = as.numeric(t_wp), t_bp = as.numeric(t_bp), partial_r2_bp = as.numeric(partial_r2),
                        p_bp = as.numeric(p_bp), personal_t_low_high = NA_real_, personal_p_low_high = NA_real_,
                        personal_cor = NA_real_, personal_cor_p = NA_real_,
-                       personal_low_mean = NA_real_, personal_high_mean = NA_real_),
+                       personal_low_mean = NA_real_, personal_high_mean = NA_real_,
+                       rand_slope_var = as.numeric(rand_slope_var), rand_slope_all_zero = NA),
       edge = edge
     ))
   }
@@ -292,6 +301,9 @@ fit_edge <- function(i, data_all, edges, base_by_sub, q10, q90, pb_nsim, pb_seed
   cor_val <- if (is.null(cor_out) || !is.finite(cor_out$estimate)) NA_real_ else as.numeric(cor_out$estimate)
   cor_p <- if (is.null(cor_out) || !is.finite(cor_out$p.value)) NA_real_ else as.numeric(cor_out$p.value)
 
+  rs <- as.numeric(re_mat[, "age_wp"])
+  rand_all_zero <- isTRUE(all(is.finite(rs) & abs(rs) < 1e-12))
+
   list(
     row = data.frame(
       edge = edge,
@@ -308,6 +320,8 @@ fit_edge <- function(i, data_all, edges, base_by_sub, q10, q90, pb_nsim, pb_seed
       personal_cor_p = as.numeric(cor_p),
       personal_low_mean = as.numeric(low_mean),
       personal_high_mean = as.numeric(high_mean),
+      rand_slope_var = as.numeric(rand_slope_var),
+      rand_slope_all_zero = rand_all_zero,
       stringsAsFactors = FALSE
     ),
     edge = edge
@@ -351,6 +365,15 @@ out_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_cognition_", Cogvar_base
 out_csv <- sub("\\.rds$", ".csv", out_rds)
 saveRDS(res_df, out_rds)
 write.csv(res_df, out_csv, row.names = FALSE)
+
+zero_edges <- res_df$edge[!is.na(res_df$rand_slope_all_zero) & res_df$rand_slope_all_zero]
+message("[INFO] ranef_i(age_wp)==0 edges: ", length(zero_edges), "/", nrow(res_df))
+if (length(zero_edges) > 0) {
+  writeLines(
+    zero_edges,
+    con = file.path(resultFolder, paste0("edges_rand_agewp_all_zero_", Cogvar_base, "_CV", CVthr, ".txt"))
+  )
+}
 
 message("[INFO] age_bp partial R2 matrix + S-A axis correlation")
 mat_bp <- vec_to_mat(res_df$partial_r2_bp_3sd, ds = 12)
@@ -498,8 +521,8 @@ bar_fig <- ggplot(plotdf_long, aes(x = factor(decile), y = mean, fill = factor(d
     axis.line = element_line(linewidth = 0.6),
     axis.ticks = element_line(linewidth = 0.6),
     plot.title = element_text(size = 18, hjust = 0.5),
-    legend.position = c(0.02, 0.98),
-    legend.justification = c(0, 1),
+    legend.position = c(0.98, 0.98),
+    legend.justification = c(1, 1),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
   ) +

@@ -298,6 +298,26 @@ res_all <- res_all_out$stats
 model_list <- res_all_out$models
 slopes_list <- res_all_out$slopes
 
+rand_slope_var <- vapply(slopes_list, function(df) {
+  if (!is.data.frame(df) || nrow(df) == 0 || !"random_slope" %in% names(df)) return(NA_real_)
+  stats::var(df$random_slope, na.rm = TRUE)
+}, numeric(1))
+rand_slope_all_zero <- vapply(slopes_list, function(df) {
+  if (!is.data.frame(df) || nrow(df) == 0 || !"random_slope" %in% names(df)) return(NA)
+  rs <- as.numeric(df$random_slope)
+  isTRUE(all(is.finite(rs) & abs(rs) < 1e-12))
+}, logical(1))
+res_all$rand_slope_var <- rand_slope_var
+res_all$rand_slope_all_zero <- rand_slope_all_zero
+zero_edges <- sc_cols[!is.na(rand_slope_all_zero) & rand_slope_all_zero]
+message("[INFO] ranef_i(age)==0 edges: ", length(zero_edges), "/", length(sc_cols))
+if (length(zero_edges) > 0) {
+  writeLines(
+    zero_edges,
+    con = file.path(resultFolder, paste0("edges_rand_age_all_zero_", Cogvar_base, "_CV", CVthr, out_suffix, ".txt"))
+  )
+}
+
 personal_slope <- vapply(slopes_list, function(df) {
   if (!is.data.frame(df) || nrow(df) == 0) return(NA_real_)
   mean(df$fixed_slope + df$random_slope, na.rm = TRUE)
