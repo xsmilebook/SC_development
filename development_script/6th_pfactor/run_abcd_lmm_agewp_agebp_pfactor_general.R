@@ -233,7 +233,7 @@ fit_edge <- function(i, data_all, edges, base_by_sub, q10, q90, pb_nsim, pb_seed
   partial_r2 <- if (is.finite(sse_null) && sse_null > 0) (sse_null - sse_full) / sse_null else NA_real_
   p_bp <- pb_lmm_anova(full, null, nsim = pb_nsim, seed = pb_seed + i)
 
-  re_list <- tryCatch(ranef(full), error = function(e) NULL)
+  re_list <- tryCatch(lme4::ranef(full), error = function(e) NULL)
   re_mat <- NULL
   if (!is.null(re_list)) {
     if ("subID" %in% names(re_list) && "age_wp" %in% colnames(re_list[["subID"]])) {
@@ -258,7 +258,7 @@ fit_edge <- function(i, data_all, edges, base_by_sub, q10, q90, pb_nsim, pb_seed
     ))
   }
 
-  personal <- as.numeric(fixef(full)["age_wp"]) + as.numeric(re_mat[, "age_wp"])
+  personal <- as.numeric(lme4::fixef(full)["age_wp"]) + as.numeric(re_mat[, "age_wp"])
   slope_df <- data.frame(subID = rownames(re_mat), personal = personal, stringsAsFactors = FALSE)
   base_df <- data.frame(subID = names(base_by_sub), base = as.numeric(base_by_sub), stringsAsFactors = FALSE)
   slope_df <- merge(slope_df, base_df, by = "subID")
