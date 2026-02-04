@@ -47,10 +47,8 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-ds.resolution <- 12
-elementnum <- ds.resolution * (ds.resolution + 1) / 2
-n_edges <- as.integer(if (!is.null(args$n_edges)) args$n_edges else elementnum)
-n_edges <- min(elementnum, max(1L, n_edges))
+ds.resolution_arg <- if (!is.null(args$ds_res)) as.integer(args$ds_res) else NA_integer_
+n_edges_arg <- if (!is.null(args$n_edges)) as.integer(args$n_edges) else NA_integer_
 
 dataset <- "abcd"
 
@@ -70,14 +68,6 @@ input_rds <- if (!is.null(args$input_rds)) {
 }
 if (!file.exists(input_rds)) stop("Missing input_rds: ", input_rds)
 
-out_gamresults_raw <- file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_siteall_CV", CVthr, ".rds"))
-out_gammodel_raw <- file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_siteall_CV", CVthr, ".rds"))
-out_plotdatasum_df <- file.path(interfileFolder, paste0("plotdatasum.df_SA", ds.resolution, "_sumSCinvnode_siteall_CV", CVthr, ".rds"))
-out_scdata_diw <- file.path(interfileFolder, paste0("SCdata.diw_SA", ds.resolution, "CV", CVthr, ".rds"))
-out_gamresults_scaled <- file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
-out_gammodel_scaled <- file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
-out_baseline_csv <- file.path(interfileFolder, paste0("baseline_fits_sumSCinvnode_CV", CVthr, ".csv"))
-
 should_run <- function(path) force || !file.exists(path)
 
 has_required_cols <- function(path, required_cols) {
@@ -91,19 +81,21 @@ n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = NA))
 if (is.na(n_cores) || n_cores < 1) n_cores <- parallel::detectCores()
 n_cores <- max(1L, n_cores)
 
-message("[INFO] project_root=", project_root)
-message("[INFO] dataset=", dataset)
-message("[INFO] CVthr=", CVthr)
-message("[INFO] input_rds=", input_rds)
-message("[INFO] interfileFolder=", interfileFolder)
-message("[INFO] n_edges=", n_edges, " n_cores=", n_cores)
-
 functionFolder <- file.path(project_root, "gamfunction")
 source(file.path(functionFolder, "gammsmooth.R"))
 source(file.path(functionFolder, "plotdata_generate.R"))
 
 SCdata <- readRDS(input_rds)
 if (!is.data.frame(SCdata)) stop("Expected a data.frame in input_rds: ", input_rds)
+
+infer_resolution_from_edges <- function(n_edges) {
+  n <- (sqrt(8 * n_edges + 1) - 1) / 2
+  n_int <- as.integer(round(n))
+  if (n_int < 1 || n_int * (n_int + 1) / 2 != n_edges) {
+    stop("Cannot infer resolution from n_edges=", n_edges, " (expected triangular number).")
+  }
+  n_int
+}
 
 required <- c("age", "sex", "mean_fd")
 missing_required <- setdiff(required, names(SCdata))
@@ -133,9 +125,33 @@ SCdata$mean_fd <- as.numeric(SCdata$mean_fd)
 
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
 sc_cols <- sc_cols[str_detect(sc_cols, "_h$")]
-if (length(sc_cols) != elementnum) {
-  stop("Expected ", elementnum, " SC edge columns (SC.*_h), got ", length(sc_cols))
+if (length(sc_cols) == 0) stop("No SC.*_h columns found in input_rds: ", input_rds)
+
+elementnum <- length(sc_cols)
+ds.resolution <- if (is.finite(ds.resolution_arg)) ds.resolution_arg else infer_resolution_from_edges(elementnum)
+expected_elementnum <- as.integer(ds.resolution * (ds.resolution + 1) / 2)
+if (expected_elementnum != elementnum) {
+  stop("SC edge column count mismatch: expected ", expected_elementnum, " for ds_res=", ds.resolution, " but got ", elementnum)
 }
+
+n_edges <- if (is.finite(n_edges_arg)) n_edges_arg else elementnum
+n_edges <- min(elementnum, max(1L, n_edges))
+
+out_gamresults_raw <- file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_siteall_CV", CVthr, ".rds"))
+out_gammodel_raw <- file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_siteall_CV", CVthr, ".rds"))
+out_plotdatasum_df <- file.path(interfileFolder, paste0("plotdatasum.df_SA", ds.resolution, "_sumSCinvnode_siteall_CV", CVthr, ".rds"))
+out_scdata_diw <- file.path(interfileFolder, paste0("SCdata.diw_SA", ds.resolution, "CV", CVthr, ".rds"))
+out_gamresults_scaled <- file.path(interfileFolder, paste0("gamresults", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
+out_gammodel_scaled <- file.path(interfileFolder, paste0("gammodel", elementnum, "_sumSCinvnode_over8_CV", CVthr, "_scale_TRUE.rds"))
+out_baseline_csv <- file.path(interfileFolder, paste0("baseline_fits_sumSCinvnode_CV", CVthr, ".csv"))
+
+message("[INFO] project_root=", project_root)
+message("[INFO] dataset=", dataset)
+message("[INFO] CVthr=", CVthr)
+message("[INFO] input_rds=", input_rds)
+message("[INFO] interfileFolder=", interfileFolder)
+message("[INFO] ds.resolution=", ds.resolution, " elementnum=", elementnum)
+message("[INFO] n_edges=", n_edges, " n_cores=", n_cores)
 
 keep_cols <- c("age", "sex", "mean_fd", "subID", sc_cols)
 SCdata <- SCdata[, keep_cols, drop = FALSE]

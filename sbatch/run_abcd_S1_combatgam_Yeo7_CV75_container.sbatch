@@ -1,22 +1,23 @@
 #!/bin/bash
-# ABCD | Developmental model | S2 (derivatives) | Yeo7 | CV75
+# ABCD | Developmental model | S1 (fit GAMM models) | Yeo7 | CV75
 #
 # Note:
-# - DS_RES is the number of nodes used to build the lower-triangle edge list.
-#   For Yeo7 variants, confirm SC edge count matches DS_RES*(DS_RES+1)/2.
+# - Some Yeo7 variants remove the limbic network -> effective node count=6 (edges=21).
+# - This script passes DS_RES by default, but you can override DS_RES to match your SC edge list.
 #
 # Prerequisite:
-# - S1 outputs under: outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/
+# - ComBat-GAM output exists:
+#   outputs/results/combat_gam/abcd/SCdata_Yeo7_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds
 #
 # Submit:
-#   sbatch sbatch/run_abcd_S2_combatgam_Yeo7_CV75_container.sbatch
+#   sbatch sbatch/run_abcd_S1_combatgam_Yeo7_CV75_container.sbatch
 
-#SBATCH -J abcd_S2_yeo7_cg_cv75
+#SBATCH -J abcd_S1_yeo7_cg_cv75
 #SBATCH -p q_fat_c,q_fat,q_fat_l
 #SBATCH -c 50
 #SBATCH --mem=120G
 #SBATCH -t 24:00:00
-#SBATCH -o outputs/logs/abcd_S2_combatgam_Yeo7_CV75_%j.log
+#SBATCH -o outputs/logs/abcd_S1_combatgam_Yeo7_CV75_%j.log
 
 set -euo pipefail
 
@@ -25,8 +26,8 @@ sif="${SIF_PATH:-${project_root}/outputs/containers/scdevelopment_r41.sif}"
 
 CVTHR="${CVTHR:-75}"
 DS_RES="${DS_RES:-6}"
+INPUT_RDS="${INPUT_RDS:-${project_root}/outputs/results/combat_gam/abcd/SCdata_Yeo7_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds}"
 N_EDGES="${N_EDGES:-}"
-SKIP_POSTERIOR="${SKIP_POSTERIOR:-0}"
 FORCE="${FORCE:-0}"
 
 cd "${project_root}"
@@ -40,12 +41,18 @@ if [ ! -f "${sif}" ]; then
   exit 1
 fi
 
+if [[ "${INPUT_RDS}" == "${project_root}/"* ]]; then
+  INPUT_RDS_ARG="/work/${INPUT_RDS#${project_root}/}"
+else
+  INPUT_RDS_ARG="${INPUT_RDS}"
+fi
+
 echo "[INFO] project_root=${project_root}"
 echo "[INFO] sif=${sif}"
 echo "[INFO] CVTHR=${CVTHR}"
 echo "[INFO] DS_RES=${DS_RES}"
+echo "[INFO] INPUT_RDS=${INPUT_RDS}"
 echo "[INFO] N_EDGES=${N_EDGES:-<unset>}"
-echo "[INFO] SKIP_POSTERIOR=${SKIP_POSTERIOR}"
 echo "[INFO] FORCE=${FORCE}"
 
 exec_sif() {
@@ -55,10 +62,11 @@ exec_sif() {
 }
 
 exec_sif Rscript --version
-exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S2nd_calculatederivative_ABCD_combatgam.R \
+exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S1st_fitgammodels_SA_ds_sumSCinvnode_ABCD_combatgam.R \
   --project_root=/work \
   --cvthr="${CVTHR}" \
   --ds_res="${DS_RES}" \
+  --input_rds="${INPUT_RDS_ARG}" \
   ${N_EDGES:+--n_edges=${N_EDGES}} \
-  --skip_posterior="${SKIP_POSTERIOR}" \
   --force="${FORCE}"
+

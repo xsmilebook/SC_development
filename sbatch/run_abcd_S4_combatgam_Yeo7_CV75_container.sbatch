@@ -24,7 +24,7 @@ project_root="/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment"
 sif="${SIF_PATH:-${project_root}/outputs/containers/scdevelopment_r41.sif}"
 
 CVTHR="${CVTHR:-75}"
-DS_RES="${DS_RES:-7}"
+DS_RES="${DS_RES:-6}"
 OUT_TAG="${OUT_TAG:-Yeo7}"
 INPUT_RDS="${INPUT_RDS:-${project_root}/outputs/results/combat_gam/abcd/SCdata_Yeo7_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds}"
 MAKE_MATRIX_GRAPHS="${MAKE_MATRIX_GRAPHS:-0}"
@@ -90,4 +90,3 @@ if [ -n "${EUCLID_ARG}" ]; then
 fi
 
 exec_sif "${cmd[@]}"
-

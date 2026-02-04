@@ -183,14 +183,18 @@
          - SA7：`sbatch sbatch/run_abcd_combatgam_SA7_CV75_container.sbatch`
          - SA17：`sbatch sbatch/run_abcd_combatgam_SA17_CV75_container.sbatch`
          - Yeo7：`sbatch sbatch/run_abcd_combatgam_Yeo7_CV75_container.sbatch`
+       - S1（fit GAMM models；生成 `gammodel*/gamresults*_*scale_TRUE.rds`，为 S2/S4 的前置）：
+         - SA7：`sbatch sbatch/run_abcd_S1_combatgam_SA7_CV75_container.sbatch`
+         - SA17：`sbatch sbatch/run_abcd_S1_combatgam_SA17_CV75_container.sbatch`
+         - Yeo7：`sbatch sbatch/run_abcd_S1_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`；如你的边数为 28 则改为 `DS_RES=7`）
        - S2（derivatives；需已完成对应分辨率的 S1 输出 `gammodel*/gamresults*_*scale_TRUE.rds`）：
          - SA7：`sbatch sbatch/run_abcd_S2_combatgam_SA7_CV75_container.sbatch`
          - SA17：`sbatch sbatch/run_abcd_S2_combatgam_SA17_CV75_container.sbatch`
-         - Yeo7：`sbatch sbatch/run_abcd_S2_combatgam_Yeo7_CV75_container.sbatch`
+         - Yeo7：`sbatch sbatch/run_abcd_S2_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`）
        - S4（SCrank correlation + scatter；summary 默认写入 `SCrank_correlation_summary_<OUT_TAG>.csv`，避免覆盖 SA12 结果；EUCLID_CSV 未提供时会自动跳过控制距离残差化）：
          - SA7：`sbatch sbatch/run_abcd_S4_combatgam_SA7_CV75_container.sbatch`
          - SA17：`sbatch sbatch/run_abcd_S4_combatgam_SA17_CV75_container.sbatch`
-         - Yeo7：`sbatch sbatch/run_abcd_S4_combatgam_Yeo7_CV75_container.sbatch`
+         - Yeo7：`sbatch sbatch/run_abcd_S4_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`）
    - 产物目录：
      - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
      - results：`outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
