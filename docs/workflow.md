@@ -288,6 +288,7 @@
      - 模型：`slope_per_year ~ age_t0 + SC_t0 + cog_base + sex + site + mean_fd_t0 + mean_fd_t1`
      - p 值：full vs null（去除 cog_base）使用 parametric-bootstrap ANOVA；对 edge 做 FDR 校正
      - 结果：`outputs/results/5th_cognition/abcd/lgcm_slope/`（每条边 `beta/t/p` 与 FDR）
+     - Windows 并行：默认使用 16 核（`LGCM_CORES` 可覆盖）
      - 图像：`outputs/figures/5th_cognition/abcd/lgcm_slope/`
        - low10/high90 cognition 组模型预测 slope 的 decile 柱状图（单图 10 组，颜色沿用 `RdBu` 反转配色）
        - cog_base 效应量（beta）与 t 值矩阵热图（FDR 显著性标注）及 `beta`/`t`–S-A 相关散点图
@@ -299,6 +300,7 @@
      - 模型：`slope_per_year ~ age_t0 + SC_t0 + pfactor_base + sex + mean_fd_t0 + mean_fd_t1`
      - p 值：full vs null（去除 pfactor_base）使用 parametric-bootstrap ANOVA；对 edge 做 FDR 校正
      - 结果：`outputs/results/6th_pfactor/abcd/lgcm_slope/`（每条边 `beta/t/p` 与 FDR）
+     - Windows 并行：默认使用 16 核（`LGCM_CORES` 可覆盖）
      - 图像：`outputs/figures/6th_pfactor/abcd/lgcm_slope/`
        - low10/high90 p-factor 组模型预测 slope 的 decile 柱状图（单图 10 组，颜色沿用 `RdBu` 反转配色）
        - p-factor 效应量（beta）与 t 值矩阵热图（FDR 显著性标注）及 `beta`/`t`–S-A 相关散点图

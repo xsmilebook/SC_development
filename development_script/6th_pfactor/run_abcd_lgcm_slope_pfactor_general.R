@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
+  library(parallel)
   library(dplyr)
   library(ggplot2)
   library(RColorBrewer)
@@ -273,38 +274,32 @@ pb_nsim <- as.integer(Sys.getenv("PB_NSIM", unset = "1000"))
 if (is.na(pb_nsim) || pb_nsim < 1) pb_nsim <- 1000
 pb_seed <- as.integer(Sys.getenv("PB_SEED", unset = "925"))
 if (is.na(pb_seed) || pb_seed < 1) pb_seed <- 925
+num_cores <- as.integer(Sys.getenv("LGCM_CORES", unset = "16"))
+if (is.na(num_cores) || num_cores < 1) num_cores <- 16
+num_cores <- min(num_cores, parallel::detectCores())
 
-res_rows <- vector("list", length(sc_cols))
-pred_low <- numeric(length(sc_cols))
-pred_high <- numeric(length(sc_cols))
-for (i in seq_along(sc_cols)) {
-  edge <- sc_cols[[i]]
+fit_edge <- function(i, data_sub, edges, pb_nsim, pb_seed) {
+  edge <- edges[[i]]
   t0_col <- paste0(edge, "_t0")
   t1_col <- paste0(edge, "_t1")
-  slope <- (dat_sub[[t1_col]] - dat_sub[[t0_col]]) / dat_sub$delta_age
+  slope <- (data_sub[[t1_col]] - data_sub[[t0_col]]) / data_sub$delta_age
 
   df <- data.frame(
     slope_per_year = slope,
-    age_t0 = dat_sub$age_t0,
-    SC_t0 = dat_sub[[t0_col]],
-    pfactor_base = dat_sub$pfactor_base,
-    sex = dat_sub$sex,
-    mean_fd_t0 = dat_sub$mean_fd_t0,
-    mean_fd_t1 = dat_sub$mean_fd_t1
+    age_t0 = data_sub$age_t0,
+    SC_t0 = data_sub[[t0_col]],
+    pfactor_base = data_sub$pfactor_base,
+    sex = data_sub$sex,
+    mean_fd_t0 = data_sub$mean_fd_t0,
+    mean_fd_t1 = data_sub$mean_fd_t1
   )
   df <- df[complete.cases(df), , drop = FALSE]
   if (nrow(df) < 10) {
-    res_rows[[i]] <- data.frame(
-      edge = edge,
-      n_sub = nrow(df),
-      beta_pfactor = NA_real_,
-      t_pfactor = NA_real_,
-      p_pfactor = NA_real_,
-      stringsAsFactors = FALSE
-    )
-    pred_low[i] <- NA_real_
-    pred_high[i] <- NA_real_
-    next
+    return(list(
+      row = data.frame(edge = edge, n_sub = nrow(df), beta_pfactor = NA_real_, t_pfactor = NA_real_, p_pfactor = NA_real_),
+      pred_low = NA_real_,
+      pred_high = NA_real_
+    ))
   }
 
   lm_slope <- lm(slope_per_year ~ age_t0 + SC_t0 + pfactor_base + sex + mean_fd_t0 + mean_fd_t1, data = df)
@@ -312,23 +307,45 @@ for (i in seq_along(sc_cols)) {
   sm <- summary(lm_slope)
   beta_pf <- sm$coefficients["pfactor_base", "Estimate"]
   t_pf <- sm$coefficients["pfactor_base", "t value"]
-  p_pf <- pb_anova_lm(lm_slope, lm_null, nsim = pb_nsim, seed = pb_seed)
-
-  res_rows[[i]] <- data.frame(
-    edge = edge,
-    n_sub = nrow(df),
-    beta_pfactor = as.numeric(beta_pf),
-    t_pfactor = as.numeric(t_pf),
-    p_pfactor = as.numeric(p_pf),
-    stringsAsFactors = FALSE
-  )
+  p_pf <- pb_anova_lm(lm_slope, lm_null, nsim = pb_nsim, seed = pb_seed + i)
 
   q10 <- quantile(df$pfactor_base, 0.1, na.rm = TRUE)
   q90 <- quantile(df$pfactor_base, 0.9, na.rm = TRUE)
   pred <- predict(lm_slope, newdata = df)
-  pred_low[i] <- mean(pred[df$pfactor_base <= q10], na.rm = TRUE)
-  pred_high[i] <- mean(pred[df$pfactor_base >= q90], na.rm = TRUE)
+  pred_low <- mean(pred[df$pfactor_base <= q10], na.rm = TRUE)
+  pred_high <- mean(pred[df$pfactor_base >= q90], na.rm = TRUE)
+
+  list(
+    row = data.frame(
+      edge = edge,
+      n_sub = nrow(df),
+      beta_pfactor = as.numeric(beta_pf),
+      t_pfactor = as.numeric(t_pf),
+      p_pfactor = as.numeric(p_pf),
+      stringsAsFactors = FALSE
+    ),
+    pred_low = pred_low,
+    pred_high = pred_high
+  )
 }
+
+if (.Platform$OS.type == "windows") {
+  message("[INFO] Windows parallel: ", num_cores, " workers")
+  cl <- parallel::makeCluster(num_cores)
+  on.exit(parallel::stopCluster(cl), add = TRUE)
+  parallel::clusterExport(
+    cl,
+    varlist = c("dat_sub", "sc_cols", "pb_nsim", "pb_seed", "pb_anova_lm", "fit_edge"),
+    envir = environment()
+  )
+  res_list <- parallel::parLapply(cl, seq_along(sc_cols), fit_edge, data_sub = dat_sub, edges = sc_cols, pb_nsim = pb_nsim, pb_seed = pb_seed)
+} else {
+  res_list <- lapply(seq_along(sc_cols), fit_edge, data_sub = dat_sub, edges = sc_cols, pb_nsim = pb_nsim, pb_seed = pb_seed)
+}
+
+res_rows <- lapply(res_list, `[[`, "row")
+pred_low <- vapply(res_list, `[[`, numeric(1), "pred_low")
+pred_high <- vapply(res_list, `[[`, numeric(1), "pred_high")
 
 res_df <- do.call(rbind, res_rows)
 res_df$p_pfactor_fdr <- p.adjust(res_df$p_pfactor, method = "fdr")
