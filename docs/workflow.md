@@ -304,6 +304,19 @@
      - 图像：`outputs/figures/6th_pfactor/abcd/lgcm_slope/`
        - low10/high90 p-factor 组模型预测 slope 的 decile 柱状图（单图 10 组，颜色沿用 `RdBu` 反转配色）
        - p-factor 效应量（beta）与 t 值矩阵热图（FDR 显著性标注）及 `beta`/`t`–S-A 相关散点图
+   - ABCD age_wp/age_bp LMM（SC 版本；不剔除单时间点被试）：
+     - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC.R`
+     - 输入：`*combatgam_age_sex_meanfd.rds`（SC + age/sex/mean_fd）
+     - 模型：`SC ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID)`；`age_wp = age_ij - mean(age)_i`，`age_bp = mean(age)_i`
+     - 统计：age_bp partial R²（full vs null，parametric-bootstrap ANOVA）并做 FDR；输出矩阵与 S-A 相关散点图
+   - ABCD age_wp/age_bp LMM（cognition 版本；过滤单时间点）：
+     - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_cognition_groups.R`
+     - 输入：纵向 SC `*combatgam_age_sex_meanfd.rds` + baseline cognition `*combatgam_cognition.rds`
+     - 统计：age_bp partial R² 矩阵 + S-A 相关；age_wp personal slope 的低/高组 t 值矩阵（FDR 标注）与 decile 柱状图；personal slope 与 cognition 相关矩阵及其 S-A 相关散点图
+   - ABCD age_wp/age_bp LMM（p-factor 版本；过滤单时间点）：
+     - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_pfactor_general.R`
+     - 输入：纵向 SC `*combatgam_pfactor.rds`（含 `GENERAL`）；baseline pfactor 从 baseline `eventname` 提取
+     - 统计：age_bp partial R² 矩阵 + S-A 相关；age_wp personal slope 的低/高组 t 值矩阵（FDR 标注）与 decile 柱状图；personal slope 与 pfactor 相关矩阵及其 S-A 相关散点图
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`

@@ -276,3 +276,4 @@
 - 2026-02-03: LGCM cognition/pfactor p 值改为 full vs null 的 parametric-bootstrap ANOVA，并据此进行 FDR 校正。
 - 2026-02-03: LGCM cognition/pfactor 在 Windows 下使用并行计算（默认 16 核，可用 `LGCM_CORES` 覆盖）。
 - 2026-02-03: 移除 5th_cognition/6th_pfactor 脚本中的 age_to_years 逻辑，假定 ABCD 年龄输入为 year。
+- 2026-02-04: 新增 age_wp/age_bp LMM 脚本（SC、cognition、pfactor 三版本）与可复用的 parametric-bootstrap ANOVA 函数文件。
