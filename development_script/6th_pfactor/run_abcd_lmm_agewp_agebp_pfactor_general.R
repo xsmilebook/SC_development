@@ -306,6 +306,13 @@ res_df <- do.call(rbind, lapply(res_list, `[[`, "row"))
 res_df$p_bp_fdr <- p.adjust(res_df$p_bp, method = "fdr")
 res_df$personal_p_low_high_fdr <- p.adjust(res_df$personal_p_low_high, method = "fdr")
 res_df$personal_cor_p_fdr <- p.adjust(res_df$personal_cor_p, method = "fdr")
+res_df$partial_r2_bp_3sd <- res_df$partial_r2_bp
+pr_mean <- mean(res_df$partial_r2_bp, na.rm = TRUE)
+pr_sd <- stats::sd(res_df$partial_r2_bp, na.rm = TRUE)
+if (is.finite(pr_mean) && is.finite(pr_sd) && pr_sd > 0) {
+  out_idx <- res_df$partial_r2_bp > pr_mean + 3 * pr_sd | res_df$partial_r2_bp < pr_mean - 3 * pr_sd
+  res_df$partial_r2_bp_3sd[out_idx] <- NA_real_
+}
 
 out_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_pfactor_", Pvar, "_CV", CVthr, ".rds"))
 out_csv <- sub("\\.rds$", ".csv", out_rds)
@@ -313,7 +320,7 @@ saveRDS(res_df, out_rds)
 write.csv(res_df, out_csv, row.names = FALSE)
 
 message("[INFO] age_bp partial R2 matrix + S-A axis correlation")
-mat_bp <- vec_to_mat(res_df$partial_r2_bp, ds = 12)
+mat_bp <- vec_to_mat(res_df$partial_r2_bp_3sd, ds = 12)
 sig_bp <- vec_to_mat(res_df$p_bp_fdr < 0.05, ds = 12)
 plot_matrix_sig(
   mat_bp,
@@ -322,16 +329,16 @@ plot_matrix_sig(
   file.path(FigureFolder, paste0("matrix_age_bp_partialR2_", Pvar, "_CV", CVthr))
 )
 
-SCrank.df.bp <- SCrankcorr(res_df, "partial_r2_bp", 12, dsdata = FALSE)
+SCrank.df.bp <- SCrankcorr(res_df, "partial_r2_bp_3sd", 12, dsdata = FALSE)
 saveRDS(SCrank.df.bp, file.path(resultFolder, paste0("SCrankcorr_age_bp_partialR2_", Pvar, "_CV", CVthr, ".rds")))
 message("[INFO] SCrankcorr (age_bp partial R2) r=", round(SCrank.df.bp$r.spearman, 3), " p=", signif(SCrank.df.bp$p.spearman, 3))
 
-SCrank.data.bp <- SCrankcorr(res_df, "partial_r2_bp", 12, dsdata = TRUE)
-limthr <- max(abs(SCrank.data.bp$partial_r2_bp), na.rm = TRUE)
+SCrank.data.bp <- SCrankcorr(res_df, "partial_r2_bp_3sd", 12, dsdata = TRUE)
+limthr <- max(abs(SCrank.data.bp$partial_r2_bp_3sd), na.rm = TRUE)
 if (!is.finite(limthr) || limthr == 0) limthr <- 1
 scatterFig.bp <- ggplot(SCrank.data.bp) +
-  geom_point(aes(x = SCrank, y = partial_r2_bp, color = partial_r2_bp), size = 5) +
-  geom_smooth(aes(x = SCrank, y = partial_r2_bp), method = "lm", color = "black", linewidth = 1.4) +
+  geom_point(aes(x = SCrank, y = partial_r2_bp_3sd, color = partial_r2_bp_3sd), size = 5) +
+  geom_smooth(aes(x = SCrank, y = partial_r2_bp_3sd), method = "lm", color = "black", linewidth = 1.4) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr, limthr)) +
   theme_classic() +
   theme(
