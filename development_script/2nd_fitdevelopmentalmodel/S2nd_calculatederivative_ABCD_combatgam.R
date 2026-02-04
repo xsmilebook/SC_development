@@ -34,8 +34,29 @@ force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
 dataset <- "abcd"
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-ds.resolution <- 12
-elementnum <- ds.resolution * (ds.resolution + 1) / 2
+
+infer_resolution_from_edges <- function(n_edges) {
+  n <- (sqrt(8 * n_edges + 1) - 1) / 2
+  n_int <- as.integer(round(n))
+  if (n_int < 1 || n_int * (n_int + 1) / 2 != n_edges) {
+    stop("Cannot infer resolution from n_edges=", n_edges, " (expected triangular number).")
+  }
+  n_int
+}
+
+ds.resolution_arg <- if (!is.null(args$ds_res)) as.integer(args$ds_res) else 12L
+elementnum_arg <- if (!is.null(args$elementnum)) as.integer(args$elementnum) else NA_integer_
+
+elementnum <- if (is.finite(elementnum_arg)) {
+  elementnum_arg
+} else if (is.finite(ds.resolution_arg)) {
+  as.integer(ds.resolution_arg * (ds.resolution_arg + 1) / 2)
+} else {
+  NA_integer_
+}
+
+ds.resolution <- if (is.finite(ds.resolution_arg)) ds.resolution_arg else infer_resolution_from_edges(elementnum)
+
 n_edges <- as.integer(if (!is.null(args$n_edges)) args$n_edges else elementnum)
 n_edges <- min(elementnum, max(1L, n_edges))
 skip_posterior <- as.integer(if (!is.null(args$skip_posterior)) args$skip_posterior else 0L) == 1L
@@ -77,7 +98,7 @@ if (length(parcels) != length(gammodelsum)) {
   }
 }
 
-# S-A axis value mapping for SC.1_h ... SC.78_h (lower triangle incl diag)
+# S-A axis value mapping for SC.1_h ... SC.<elementnum>_h (lower triangle incl diag)
 SCrank_mat <- matrix(NA_real_, nrow = ds.resolution, ncol = ds.resolution)
 for (x in 1:ds.resolution) for (y in 1:ds.resolution) SCrank_mat[x, y] <- x^2 + y^2
 SCrank_vec <- SCrank_mat[lower.tri(SCrank_mat, diag = TRUE)]

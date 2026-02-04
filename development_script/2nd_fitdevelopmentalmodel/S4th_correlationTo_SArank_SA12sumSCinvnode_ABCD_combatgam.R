@@ -45,9 +45,11 @@ skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)
 skip_compute <- is_windows && skip_compute_on_windows
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-ds.resolution <- 12
+ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
 make_matrix_graphs <- as.integer(if (!is.null(args$make_matrix_graphs)) args$make_matrix_graphs else 0L) == 1L
+out_tag <- if (!is.null(args$out_tag)) as.character(args$out_tag) else ""
+tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
 
 interfileFolder <- file.path(
   project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
@@ -94,14 +96,14 @@ SCdata <- readRDS(input_rds)
 euclid_csv <- if (!is.null(args$euclid_csv)) {
   args$euclid_csv
 } else {
-  file.path(project_root, "wd", "interdataFolder_ABCD", "average_EuclideanDistance_12.csv")
+  file.path(project_root, "wd", "interdataFolder_ABCD", paste0("average_EuclideanDistance_", ds.resolution, ".csv"))
 }
-if (!file.exists(euclid_csv)) stop("Missing euclid_csv: ", euclid_csv)
-EucDistance <- read.csv(euclid_csv)
+do_euclid <- is.character(euclid_csv) && nzchar(euclid_csv) && file.exists(euclid_csv)
+EucDistance <- if (do_euclid) read.csv(euclid_csv) else NULL
 
 message(sum(gamresult$sig), " edges have significant developmental effects.")
 
-out_summary <- file.path(resultFolder, "SCrank_correlation_summary.csv")
+out_summary <- file.path(resultFolder, paste0("SCrank_correlation_summary", tag_suffix, ".csv"))
 if (!force && file.exists(out_summary) && !skip_compute) {
   message("[INFO] S4 summary exists, skipping: ", out_summary, " (set --force=1 to re-run)")
   quit(save = "no", status = 0)
@@ -112,19 +114,30 @@ if (length(sc_cols) == 0) stop("No SC.* columns found in input_rds: ", input_rds
 meanSC <- colMeans(SCdata[, sc_cols, drop = FALSE], na.rm = TRUE)
 
 parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
-meanSC_map <- setNames(meanSC, parcel_all)
+meanSC_map <- setNames(meanSC, sc_cols)
 
-if (!"Edistance" %in% names(EucDistance)) stop("Euclidean distance CSV missing column 'Edistance': ", euclid_csv)
-if (nrow(EucDistance) == elementnum) {
-  Edist_map <- setNames(EucDistance$Edistance, parcel_all)
-} else if ("parcel" %in% names(EucDistance)) {
-  Edist_map <- setNames(EucDistance$Edistance, as.character(EucDistance$parcel))
-} else {
-  stop("Euclidean distance rows do not match elementnum and no 'parcel' column to align: ", euclid_csv)
+Edist_map <- NULL
+if (do_euclid) {
+  if (!"Edistance" %in% names(EucDistance)) stop("Euclidean distance CSV missing column 'Edistance': ", euclid_csv)
+  if (nrow(EucDistance) == elementnum) {
+    Edist_map <- setNames(EucDistance$Edistance, parcel_all)
+  } else if ("parcel" %in% names(EucDistance)) {
+    Edist_map <- setNames(EucDistance$Edistance, as.character(EucDistance$parcel))
+  } else if ("SC_label" %in% names(EucDistance)) {
+    Edist_map <- setNames(EucDistance$Edistance, as.character(EucDistance$SC_label))
+  } else {
+    stop("Euclidean distance CSV cannot be aligned (need parcel/SC_label or rows==elementnum): ", euclid_csv)
+  }
 }
 
-meanSC_aligned <- meanSC_map[gamresult$parcel]
-corr.test(meanSC_aligned, gamresult$partialRsq)
+if (!skip_compute) {
+  meanSC_aligned <- meanSC_map[gamresult$parcel]
+  if (sum(!is.na(meanSC_aligned)) > 3) {
+    corr.test(meanSC_aligned, gamresult$partialRsq)
+  } else {
+    message("[WARN] meanSC coverage too low; skip meanSC correlation check.")
+  }
+}
 
 gamresult <- within(gamresult, {
   partialRsq2 <- partialRsq
@@ -132,12 +145,16 @@ gamresult <- within(gamresult, {
     partialRsq2 < mean(partialRsq2, na.rm = TRUE) - 3 * sd(partialRsq2, na.rm = TRUE)] <- NA
 })
 
-## Validation: Control for Euclidean distance (needed for plots)
-gamresult$EucDistance <- unname(Edist_map[gamresult$parcel])
-fit_pr <- lm(partialRsq2 ~ EucDistance, data = gamresult, na.action = na.exclude)
-fit_md <- lm(meanderv2 ~ EucDistance, data = gamresult, na.action = na.exclude)
-gamresult$partialRsq_control_distance <- as.numeric(residuals(fit_pr))
-gamresult$meanderv2_control_distance <- as.numeric(residuals(fit_md))
+## Optional: Control for Euclidean distance
+if (do_euclid) {
+  gamresult$EucDistance <- unname(Edist_map[gamresult$parcel])
+  fit_pr <- lm(partialRsq2 ~ EucDistance, data = gamresult, na.action = na.exclude)
+  fit_md <- lm(meanderv2 ~ EucDistance, data = gamresult, na.action = na.exclude)
+  gamresult$partialRsq_control_distance <- as.numeric(residuals(fit_pr))
+  gamresult$meanderv2_control_distance <- as.numeric(residuals(fit_md))
+} else {
+  message("[INFO] Euclidean distance not provided/found; skip control-distance residualization.")
+}
 
 if (!skip_compute) {
   ## compute correlations to SC rank
@@ -147,11 +164,13 @@ if (!skip_compute) {
     lapply(computevar.list, function(computevar) SCrankcorr(gamresult, computevar, ds.resolution, dsdata = FALSE))
   )
 
-  SCrank_correlation <- rbind(
-    SCrank_correlation,
-    SCrankcorr(gamresult, "partialRsq_control_distance", ds.resolution, dsdata = FALSE),
-    SCrankcorr(gamresult, "meanderv2_control_distance", ds.resolution, dsdata = FALSE)
-  )
+  if (do_euclid) {
+    SCrank_correlation <- rbind(
+      SCrank_correlation,
+      SCrankcorr(gamresult, "partialRsq_control_distance", ds.resolution, dsdata = FALSE),
+      SCrankcorr(gamresult, "meanderv2_control_distance", ds.resolution, dsdata = FALSE)
+    )
+  }
   write.csv(SCrank_correlation, out_summary, row.names = FALSE)
 } else {
   if (!file.exists(out_summary)) {
@@ -285,12 +304,14 @@ for (nm in names(scatter_targets)) {
 
 ## matrix graphs (optional; heavy)
 if (make_matrix_graphs) {
-  Matrix.tmp <- matrix(NA, nrow = 12, ncol = 12)
-  computevar.list2 <- c("partialRsq2", "meanderv2", "partialRsq_control_distance", "meanderv2_control_distance")
+  ds <- ds.resolution
+  Matrix.tmp <- matrix(NA, nrow = ds, ncol = ds)
+  computevar.list2 <- c("partialRsq2", "meanderv2")
+  if (do_euclid) computevar.list2 <- c(computevar.list2, "partialRsq_control_distance", "meanderv2_control_distance")
 
   linerange_frame <- data.frame(
-    x = c(0.5, 12 + 0.5), ymin = rep(-12 - 0.5, times = 2), ymax = rep(-0.5, times = 2),
-    y = c(-0.5, -12 - 0.5), xmin = rep(0.5, times = 2), xmax = rep(12 + 0.5, times = 2)
+    x = c(0.5, ds + 0.5), ymin = rep(-ds - 0.5, times = 2), ymax = rep(-0.5, times = 2),
+    y = c(-0.5, -ds - 0.5), xmin = rep(0.5, times = 2), xmax = rep(ds + 0.5, times = 2)
   )
 
   SCrank_correlation.df <- mclapply(seq_along(computevar.list2), function(i) {
@@ -298,25 +319,33 @@ if (make_matrix_graphs) {
     SCrankcorr(gamresult, computevar, ds.resolution, dsdata = TRUE)
   }, mc.cores = min(6L, n_cores))
 
-  colorbar.prob <- c(
-    0.5,
-    abs(min(gamresult$meanderv2, na.rm = TRUE)) / (max(gamresult$meanderv2, na.rm = TRUE) - min(gamresult$meanderv2, na.rm = TRUE)),
-    0.5,
-    abs(min(gamresult$meanderv2_control_distance, na.rm = TRUE)) /
-      (max(gamresult$meanderv2_control_distance, na.rm = TRUE) - min(gamresult$meanderv2_control_distance, na.rm = TRUE))
-  )
+  # Keep for backward-compatibility with historical plotting code paths.
+  colorbar.prob <- if (do_euclid) {
+    c(
+      0.5,
+      abs(min(gamresult$meanderv2, na.rm = TRUE)) / (max(gamresult$meanderv2, na.rm = TRUE) - min(gamresult$meanderv2, na.rm = TRUE)),
+      0.5,
+      abs(min(gamresult$meanderv2_control_distance, na.rm = TRUE)) /
+        (max(gamresult$meanderv2_control_distance, na.rm = TRUE) - min(gamresult$meanderv2_control_distance, na.rm = TRUE))
+    )
+  } else {
+    c(
+      0.5,
+      abs(min(gamresult$meanderv2, na.rm = TRUE)) / (max(gamresult$meanderv2, na.rm = TRUE) - min(gamresult$meanderv2, na.rm = TRUE))
+    )
+  }
 
-  FigMatrixFolder <- file.path(FigureRoot, "Matrix12_sumSCinvnode_gamstats_Age8_22")
+  FigMatrixFolder <- file.path(FigureRoot, paste0("Matrix", ds, "_sumSCinvnode_gamstats_Age8_22"))
   dir.create(FigMatrixFolder, showWarnings = FALSE, recursive = TRUE)
 
   for (i in seq_along(computevar.list2)) {
     computevar <- computevar.list2[[i]]
     Matrix.tmp[lower.tri(Matrix.tmp, diag = TRUE)] <- SCrank_correlation.df[[i]][, 2]
     Matrix.tmp[upper.tri(Matrix.tmp)] <- t(Matrix.tmp)[upper.tri(Matrix.tmp)]
-    colnames(Matrix.tmp) <- seq(1, 12)
-    rownames(Matrix.tmp) <- seq(1, 12)
+    colnames(Matrix.tmp) <- seq(1, ds)
+    rownames(Matrix.tmp) <- seq(1, ds)
 
     corrplot(Matrix.tmp, method = "color", type = "lower", tl.col = "black", tl.cex = 0.8)
-    ggsave(file.path(FigMatrixFolder, paste0("Matrix12_sumSCinvnode_", computevar, ".tiff")), width = 12, height = 10, units = "cm", dpi = 600)
+    ggsave(file.path(FigMatrixFolder, paste0("Matrix", ds, "_sumSCinvnode_", computevar, ".tiff")), width = 12, height = 10, units = "cm", dpi = 600)
   }
 }

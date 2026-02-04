@@ -282,3 +282,4 @@
 - 2026-02-04: 修复 Windows 并行下 personal slope 全 NA：`ranef/fixef` 改为显式使用 `lme4::` 命名空间。
 - 2026-02-04: age LMM 与 age_wp/age_bp LMM 输出 ranef(age_wp/age) 全 0 的边清单与数量，并在结果表中新增随机斜率方差列。
 - 2026-02-04: age LMM 的随机斜率方差列改为使用 `VarCorr(lmer)` 的参数估计（不再使用 BLUP 方差）。
+- 2026-02-04: 新增 ABCD SA7/SA17/Yeo7 的 Nonlinear ComBat-GAM（combat）、S2 与 S4 的容器版 `sbatch` 提交脚本，并使 combat 输出文件名随输入分辨率自动匹配；S4 支持 `--out_tag` 防止 summary 覆盖且欧氏距离控制项改为可选。

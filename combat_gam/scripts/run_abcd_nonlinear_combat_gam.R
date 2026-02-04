@@ -87,7 +87,12 @@ run_variant <- function(df, variant, extra_covars, baseline_only = FALSE) {
   }
   out <- cbind(out, harmonized)
 
-  out_path <- file.path(output_dir, paste0("SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_", variant, ".rds"))
+  in_base <- basename(input_rds)
+  in_base <- sub("\\.rds$", "", in_base, ignore.case = TRUE)
+  in_base <- sub("\\.merge$", "", in_base, ignore.case = TRUE)
+  # e.g. SCdata_SA7_CV75_sumSCinvnode.sum.msmtcsd.merge.rds
+  #   -> SCdata_SA7_CV75_sumSCinvnode.sum.msmtcsd.combatgam_<variant>.rds
+  out_path <- file.path(output_dir, paste0(in_base, ".combatgam_", variant, ".rds"))
   saveRDS(out, out_path)
 }
 

@@ -178,6 +178,19 @@
    - ABCD（基于 ComBat-GAM 输出）的可复现运行入口：
      - 输入默认：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
      - sbatch（容器版，50 核）：`sbatch sbatch/run_abcd_devmodel_combatgam_CV75_container.sbatch`
+     - SA7/SA17/Yeo7（ABCD；Nonlinear ComBat-GAM）提交入口：
+       - combat（容器版，72 核；输入为外部 merge RDS；输出写入本仓库 `outputs/results/combat_gam/abcd/`）：
+         - SA7：`sbatch sbatch/run_abcd_combatgam_SA7_CV75_container.sbatch`
+         - SA17：`sbatch sbatch/run_abcd_combatgam_SA17_CV75_container.sbatch`
+         - Yeo7：`sbatch sbatch/run_abcd_combatgam_Yeo7_CV75_container.sbatch`
+       - S2（derivatives；需已完成对应分辨率的 S1 输出 `gammodel*/gamresults*_*scale_TRUE.rds`）：
+         - SA7：`sbatch sbatch/run_abcd_S2_combatgam_SA7_CV75_container.sbatch`
+         - SA17：`sbatch sbatch/run_abcd_S2_combatgam_SA17_CV75_container.sbatch`
+         - Yeo7：`sbatch sbatch/run_abcd_S2_combatgam_Yeo7_CV75_container.sbatch`
+       - S4（SCrank correlation + scatter；summary 默认写入 `SCrank_correlation_summary_<OUT_TAG>.csv`，避免覆盖 SA12 结果；EUCLID_CSV 未提供时会自动跳过控制距离残差化）：
+         - SA7：`sbatch sbatch/run_abcd_S4_combatgam_SA7_CV75_container.sbatch`
+         - SA17：`sbatch sbatch/run_abcd_S4_combatgam_SA17_CV75_container.sbatch`
+         - Yeo7：`sbatch sbatch/run_abcd_S4_combatgam_Yeo7_CV75_container.sbatch`
    - 产物目录：
      - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
      - results：`outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
