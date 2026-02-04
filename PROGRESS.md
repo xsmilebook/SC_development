@@ -278,3 +278,4 @@
 - 2026-02-03: 移除 5th_cognition/6th_pfactor 脚本中的 age_to_years 逻辑，假定 ABCD 年龄输入为 year。
 - 2026-02-04: 新增 age_wp/age_bp LMM 脚本（SC、cognition、pfactor 三版本）与可复用的 parametric-bootstrap ANOVA 函数文件。
 - 2026-02-04: age_bp partial R² 在绘图前进行 3-SD 过滤（SC/cognition/pfactor 三版本）。
+- 2026-02-04: 修复 age_wp personal slope 提取（兼容 `||` 随机斜率分组名），并抑制矩阵绘图的常见警告。

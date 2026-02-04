@@ -115,7 +115,11 @@ plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
   sig_df$nodeid <- -sig_df$nodeid
   sig_df <- sig_df[!is.na(sig_df$sig) & sig_df$sig, , drop = FALSE]
 
-  limthr <- max(abs(df_melt$value), na.rm = TRUE)
+  if (all(is.na(df_melt$value))) {
+    limthr <- 1
+  } else {
+    limthr <- max(abs(df_melt$value), na.rm = TRUE)
+  }
   if (!is.finite(limthr) || limthr == 0) {
     message("[WARN] Matrix values are all NA/0 for: ", title, "; set limthr=1 for plotting")
     limthr <- 1
@@ -137,7 +141,7 @@ plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
     geom_text(data = sig_df, aes(x = variable, y = nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size = 8) +
     geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
     geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
-    geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+    annotate("segment", x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5, color = "black", linewidth = 0.5) +
     ggtitle(label = title) +
     labs(x = NULL, y = NULL) +
     scale_y_continuous(breaks = NULL, labels = NULL) +

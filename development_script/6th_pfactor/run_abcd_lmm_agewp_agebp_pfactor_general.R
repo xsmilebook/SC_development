@@ -148,7 +148,11 @@ plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
   sig_df$nodeid <- -sig_df$nodeid
   sig_df <- sig_df[!is.na(sig_df$sig) & sig_df$sig, , drop = FALSE]
 
-  limthr <- max(abs(df_melt$value), na.rm = TRUE)
+  if (all(is.na(df_melt$value))) {
+    limthr <- 1
+  } else {
+    limthr <- max(abs(df_melt$value), na.rm = TRUE)
+  }
   if (!is.finite(limthr) || limthr == 0) {
     message("[WARN] Matrix values are all NA/0 for: ", title, "; set limthr=1 for plotting")
     limthr <- 1
@@ -170,7 +174,7 @@ plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
     geom_text(data = sig_df, aes(x = variable, y = nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size = 8) +
     geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
     geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
-    geom_segment(aes(x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5), color = "black", linewidth = 0.5) +
+    annotate("segment", x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5, color = "black", linewidth = 0.5) +
     ggtitle(label = title) +
     labs(x = NULL, y = NULL) +
     scale_y_continuous(breaks = NULL, labels = NULL) +
@@ -229,8 +233,21 @@ fit_edge <- function(i, data_all, edges, base_by_sub, q10, q90, pb_nsim, pb_seed
   partial_r2 <- if (is.finite(sse_null) && sse_null > 0) (sse_null - sse_full) / sse_null else NA_real_
   p_bp <- pb_lmm_anova(full, null, nsim = pb_nsim, seed = pb_seed + i)
 
-  re <- tryCatch(ranef(full)[["subID"]], error = function(e) NULL)
-  if (is.null(re) || !"age_wp" %in% names(re)) {
+  re_list <- tryCatch(ranef(full), error = function(e) NULL)
+  re_mat <- NULL
+  if (!is.null(re_list)) {
+    if ("subID" %in% names(re_list) && "age_wp" %in% colnames(re_list[["subID"]])) {
+      re_mat <- re_list[["subID"]]
+    } else {
+      for (nm in names(re_list)) {
+        if ("age_wp" %in% colnames(re_list[[nm]])) {
+          re_mat <- re_list[[nm]]
+          break
+        }
+      }
+    }
+  }
+  if (is.null(re_mat) || !"age_wp" %in% colnames(re_mat)) {
     return(list(
       row = data.frame(edge = edge, n_sub = nrow(df), beta_wp = as.numeric(beta_wp), beta_bp = as.numeric(beta_bp),
                        t_wp = as.numeric(t_wp), t_bp = as.numeric(t_bp), partial_r2_bp = as.numeric(partial_r2),
@@ -241,8 +258,8 @@ fit_edge <- function(i, data_all, edges, base_by_sub, q10, q90, pb_nsim, pb_seed
     ))
   }
 
-  personal <- as.numeric(fixef(full)["age_wp"]) + as.numeric(re[,"age_wp"])
-  slope_df <- data.frame(subID = rownames(re), personal = personal, stringsAsFactors = FALSE)
+  personal <- as.numeric(fixef(full)["age_wp"]) + as.numeric(re_mat[, "age_wp"])
+  slope_df <- data.frame(subID = rownames(re_mat), personal = personal, stringsAsFactors = FALSE)
   base_df <- data.frame(subID = names(base_by_sub), base = as.numeric(base_by_sub), stringsAsFactors = FALSE)
   slope_df <- merge(slope_df, base_df, by = "subID")
 
