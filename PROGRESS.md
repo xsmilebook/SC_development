@@ -281,3 +281,4 @@
 - 2026-02-04: 修复 age_wp personal slope 提取（兼容 `||` 随机斜率分组名），并抑制矩阵绘图的常见警告。
 - 2026-02-04: 修复 Windows 并行下 personal slope 全 NA：`ranef/fixef` 改为显式使用 `lme4::` 命名空间。
 - 2026-02-04: age LMM 与 age_wp/age_bp LMM 输出 ranef(age_wp/age) 全 0 的边清单与数量，并在结果表中新增随机斜率方差列。
+- 2026-02-04: age LMM 的随机斜率方差列改为使用 `VarCorr(lmer)` 的参数估计（不再使用 BLUP 方差）。

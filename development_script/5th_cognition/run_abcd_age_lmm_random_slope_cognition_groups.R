@@ -298,9 +298,14 @@ res_all <- res_all_out$stats
 model_list <- res_all_out$models
 slopes_list <- res_all_out$slopes
 
-rand_slope_var <- vapply(slopes_list, function(df) {
-  if (!is.data.frame(df) || nrow(df) == 0 || !"random_slope" %in% names(df)) return(NA_real_)
-  stats::var(df$random_slope, na.rm = TRUE)
+rand_slope_var <- vapply(seq_along(sc_cols), function(i) {
+  m <- model_list[[i]]
+  if (is.null(m) || !inherits(m, "lmerMod")) return(NA_real_)
+  vc_df <- tryCatch(as.data.frame(lme4::VarCorr(m)), error = function(e) NULL)
+  if (!is.data.frame(vc_df) || nrow(vc_df) < 1) return(NA_real_)
+  idx <- which(vc_df$grp != "Residual" & vc_df$var1 == "age" & (is.na(vc_df$var2) | vc_df$var2 == ""))
+  if (length(idx) < 1) return(NA_real_)
+  as.numeric(vc_df$vcov[idx[[1]]])
 }, numeric(1))
 rand_slope_all_zero <- vapply(slopes_list, function(df) {
   if (!is.data.frame(df) || nrow(df) == 0 || !"random_slope" %in% names(df)) return(NA)
