@@ -198,7 +198,7 @@ for (d in deciles) {
 }
 
 base_age <- get_baseline_age(SCdata_dec, subid_var = "subID", age_var = "age", event_var = "eventname")
-age_years <- age_to_years(SCdata_dec$age)
+age_years <- as.numeric(SCdata_dec$age)
 SCdata_dec$time <- age_years - base_age[match(as.character(SCdata_dec$subID), names(base_age))]
 
 decile_cols <- paste0("SC_decile", deciles)

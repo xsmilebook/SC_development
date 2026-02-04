@@ -169,7 +169,7 @@ SCdata$totalstrength <- rowMeans(SCdata[, sc_cols[seq_len(78)], drop = FALSE], n
 
 SCdata_time <- SCdata
 base_age <- get_baseline_age(SCdata_time, subid_var = "subID", age_var = "age", event_var = "eventname")
-age_years <- age_to_years(SCdata_time$age)
+age_years <- as.numeric(SCdata_time$age)
 SCdata_time$time <- age_years - base_age[match(as.character(SCdata_time$subID), names(base_age))]
 
 delta_df <- SCdata_time %>%

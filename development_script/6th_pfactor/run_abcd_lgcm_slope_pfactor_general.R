@@ -59,23 +59,6 @@ scanid_to_eventname <- function(scanID) {
   tolower(sess)
 }
 
-age_to_years <- function(age_raw) {
-  age_num <- as.numeric(age_raw)
-  mx <- suppressWarnings(max(age_num, na.rm = TRUE))
-  if (is.finite(mx) && mx > 24) {
-    return(age_num / 12)
-  }
-  if (is.finite(mx) && mx > 0 && mx <= 2) {
-    mx12 <- mx * 12
-    mn <- suppressWarnings(min(age_num, na.rm = TRUE))
-    mn12 <- mn * 12
-    if (is.finite(mx12) && mx12 >= 6 && mx12 <= 30 && is.finite(mn12) && mn12 >= 4) {
-      return(age_num * 12)
-    }
-  }
-  age_num
-}
-
 pb_anova_lm <- function(full_model, null_model, nsim = 1000, seed = 925) {
   obs <- tryCatch(anova(null_model, full_model), error = function(e) NULL)
   if (is.null(obs) || nrow(obs) < 2) return(NA_real_)
@@ -119,7 +102,7 @@ if (!("eventname" %in% names(SCdata))) {
   stop("Missing eventname (required to define baseline timepoint): input has no eventname/scanID")
 }
 
-SCdata$age <- age_to_years(SCdata$age)
+SCdata$age <- as.numeric(SCdata$age)
 message(
   "[INFO] SCdata age range (years): ",
   round(min(SCdata$age, na.rm = TRUE), 3), "–", round(max(SCdata$age, na.rm = TRUE), 3)

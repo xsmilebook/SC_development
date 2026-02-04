@@ -68,26 +68,7 @@ source(file.path(functionFolder, "SCrankcorr.R"))
 source(file.path(functionFolder, "gamminteraction.R"))
 
 SCdata <- readRDS(input_rds)
-age_to_years <- function(age_raw) {
-  age_num <- as.numeric(age_raw)
-  mx <- suppressWarnings(max(age_num, na.rm = TRUE))
-  if (is.finite(mx) && mx > 24) {
-    return(age_num / 12)
-  }
-  # Heuristic: some legacy pipelines stored age in "years/12" (i.e., divided twice).
-  # If the range is unrealistically small (<=2) but becomes plausible after *12, rescale back.
-  if (is.finite(mx) && mx > 0 && mx <= 2) {
-    mx12 <- mx * 12
-    mn <- suppressWarnings(min(age_num, na.rm = TRUE))
-    mn12 <- mn * 12
-    if (is.finite(mx12) && mx12 >= 6 && mx12 <= 30 && is.finite(mn12) && mn12 >= 4) {
-      return(age_num * 12)
-    }
-  } else {
-    return(age_num)
-  }
-}
-SCdata$age <- age_to_years(SCdata$age)
+SCdata$age <- as.numeric(SCdata$age)
 message(
   "[INFO] SCdata age range (years): ",
   round(min(SCdata$age, na.rm = TRUE), 3), "–", round(max(SCdata$age, na.rm = TRUE), 3)
