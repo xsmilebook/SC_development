@@ -183,18 +183,14 @@
          - SA7：`sbatch sbatch/run_abcd_combatgam_SA7_CV75_container.sbatch`
          - SA17：`sbatch sbatch/run_abcd_combatgam_SA17_CV75_container.sbatch`
          - Yeo7：`sbatch sbatch/run_abcd_combatgam_Yeo7_CV75_container.sbatch`
-       - S1（fit GAMM models；生成 `gammodel*/gamresults*_*scale_TRUE.rds`，为 S2/S4 的前置）：
-         - SA7：`sbatch sbatch/run_abcd_S1_combatgam_SA7_CV75_container.sbatch`
-         - SA17：`sbatch sbatch/run_abcd_S1_combatgam_SA17_CV75_container.sbatch`
-         - Yeo7：`sbatch sbatch/run_abcd_S1_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`；如你的边数为 28 则改为 `DS_RES=7`）
-       - S2（derivatives；需已完成对应分辨率的 S1 输出 `gammodel*/gamresults*_*scale_TRUE.rds`）：
-         - SA7：`sbatch sbatch/run_abcd_S2_combatgam_SA7_CV75_container.sbatch`
-         - SA17：`sbatch sbatch/run_abcd_S2_combatgam_SA17_CV75_container.sbatch`
-         - Yeo7：`sbatch sbatch/run_abcd_S2_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`）
-       - S4（SCrank correlation + scatter；summary 默认写入 `SCrank_correlation_summary_<OUT_TAG>.csv`，避免覆盖 SA12 结果；EUCLID_CSV 未提供时会自动跳过控制距离残差化）：
-         - SA7：`sbatch sbatch/run_abcd_S4_combatgam_SA7_CV75_container.sbatch`
-         - SA17：`sbatch sbatch/run_abcd_S4_combatgam_SA17_CV75_container.sbatch`
-         - Yeo7：`sbatch sbatch/run_abcd_S4_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`）
+       - devmodel（S1–S4；容器版，50 核；默认仅依赖 combat 输出；summary 用 `OUT_TAG` 后缀避免覆盖不同分辨率结果）：
+         - SA7：`sbatch sbatch/run_abcd_devmodel_combatgam_SA7_CV75_container.sbatch`
+         - SA17：`sbatch sbatch/run_abcd_devmodel_combatgam_SA17_CV75_container.sbatch`
+         - Yeo7：`sbatch sbatch/run_abcd_devmodel_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`；如你的边数为 28 则改为 `DS_RES=7`）
+       - changerate S-A corr（沿年龄的 alignment；容器版，50 核；脚本会在缺失 derivative 产物时自动补跑上游 S1/S2）：
+         - SA7：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_SA7_CV75_container.sbatch`
+         - SA17：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_SA17_CV75_container.sbatch`
+         - Yeo7：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`；如你的边数为 28 则改为 `DS_RES=7`）
    - 产物目录：
      - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
      - results：`outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`

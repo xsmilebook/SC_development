@@ -11,8 +11,8 @@
 ## - outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/derivative.df78_CV75.rds
 ##
 ## Outputs (project-relative):
-## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum_scale_TRUE_SA12.rds
-## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/SA12_10.csv
+## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum_scale_TRUE_<out_tag>.rds
+## - outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/<out_tag>_10.csv
 ## - outputs/figures/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/** (tiff+pdf)
 
 rm(list = ls())
@@ -43,8 +43,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-ds.resolution <- 12
+ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
+out_tag <- if (!is.null(args$out_tag)) as.character(args$out_tag) else paste0("SA", ds.resolution)
 
 interfileFolder <- file.path(
   project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
@@ -114,13 +115,13 @@ ensure_sig_derivative_fdr <- function(derivative_df) {
 derivative <- ensure_sig_derivative_fdr(derivative)
 
 FigureFolder <- file.path(FigureRoot, paste0("CV", CVthr))
-FigureFolder_SCfit <- file.path(FigureFolder, "SA12_sumSCinvnode_fit")
-FigureFolder_SCdecile <- file.path(FigureFolder, "SA12_decile_sumSCinvnode_fit")
+FigureFolder_SCfit <- file.path(FigureFolder, paste0(out_tag, "_sumSCinvnode_fit"))
+FigureFolder_SCdecile <- file.path(FigureFolder, paste0(out_tag, "_decile_sumSCinvnode_fit"))
 dir.create(FigureFolder_SCfit, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder_SCdecile, showWarnings = FALSE, recursive = TRUE)
 
-out_plotdatasum_list <- file.path(interfileFolder, "plotdatasum_scale_TRUE_SA12.rds")
-out_sa12_csv <- file.path(interfileFolder, "SA12_10.csv")
+out_plotdatasum_list <- file.path(interfileFolder, paste0("plotdatasum_scale_TRUE_", out_tag, ".rds"))
+out_decile_csv <- file.path(interfileFolder, paste0(out_tag, "_10.csv"))
 out_fig1 <- file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff")
 out_fig2 <- file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff")
 
@@ -157,21 +158,21 @@ plot_one <- function(idx) {
 plotdatasum <- mclapply(seq_len(n_edges), plot_one, mc.cores = n_cores)
 saveRDS(plotdatasum, out_plotdatasum_list)
 
-## SA12 index & SC rank
-Matrix12 <- matrix(NA, nrow = 12, ncol = 12)
-indexup12 <- upper.tri(Matrix12)
-indexsave12 <- !indexup12
-Matrix12.SCrank <- Matrix12
-for (x in 1:12) {
-  for (y in 1:12) {
-    Matrix12.SCrank[x, y] <- x^2 + y^2
+## S-A index & SC rank (generic resolution)
+Matrix.ds <- matrix(NA, nrow = ds.resolution, ncol = ds.resolution)
+indexup.ds <- upper.tri(Matrix.ds)
+indexsave.ds <- !indexup.ds
+Matrix.ds.SCrank <- Matrix.ds
+for (x in 1:ds.resolution) {
+  for (y in 1:ds.resolution) {
+    Matrix.ds.SCrank[x, y] <- x^2 + y^2
   }
 }
-Matrix12.SCrank[indexup12] <- NA
-Matrix12.SCrank[indexsave12] <- rank(Matrix12.SCrank[indexsave12], ties.method = "average")
+Matrix.ds.SCrank[indexup.ds] <- NA
+Matrix.ds.SCrank[indexsave.ds] <- rank(Matrix.ds.SCrank[indexsave.ds], ties.method = "average")
 
 parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
-SCrank_map <- setNames(Matrix12.SCrank[indexsave12], parcel_all)
+SCrank_map <- setNames(Matrix.ds.SCrank[indexsave.ds], parcel_all)
 
 ok_plot_idx <- which(!vapply(plotdatasum, is.null, logical(1)))
 if (length(ok_plot_idx) == 0) stop("All plotdata_generate() calls failed; see warnings above.")
@@ -193,11 +194,11 @@ plotdatasum.df <- dplyr::bind_rows(lapply(ok_plot_idx, function(i) {
   tmp
 }))
 
-## Save SA12 decile labels
-SA12_10 <- data.frame(SCrank = Matrix12.SCrank[indexsave12]) %>%
+## Save decile labels
+decile_df <- data.frame(SCrank = Matrix.ds.SCrank[indexsave.ds]) %>%
   mutate(decile = ntile(SCrank, 10))
-SA12_10$SC_label <- parcel_all
-write.csv(SA12_10, out_sa12_csv, row.names = FALSE)
+decile_df$SC_label <- parcel_all
+write.csv(decile_df, out_decile_csv, row.names = FALSE)
 
 ## Plots: 78 developmental trajectories (fit.ratio colored by partial R^2)
 lmthr <- max(abs(gamresultsum.SAorder.delLM$partialRsq), na.rm = TRUE)
@@ -246,7 +247,7 @@ ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff"), p2, width
 ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.pdf"), p2, dpi = 600, width = 16, height = 16, units = "cm", bg = "transparent")
 
 ## Decile trajectories
-plotdatasum.df.label <- merge(plotdatasum.df, SA12_10, by = "SC_label", all.x = TRUE)
+plotdatasum.df.label <- merge(plotdatasum.df, decile_df, by = "SC_label", all.x = TRUE)
 plotdatasum.df.decile <- plotdatasum.df.label %>%
   group_by(decile, age) %>%
   summarise(fit.avg = mean(fit), SCranktype_order = mean(decile), .groups = "drop")

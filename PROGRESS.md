@@ -285,3 +285,4 @@
 - 2026-02-04: 新增 ABCD SA7/SA17/Yeo7 的 Nonlinear ComBat-GAM（combat）、S2 与 S4 的容器版 `sbatch` 提交脚本，并使 combat 输出文件名随输入分辨率自动匹配；S4 支持 `--out_tag` 防止 summary 覆盖且欧氏距离控制项改为可选。
 - 2026-02-04: 修复 ABCD Nonlinear ComBat-GAM 运行时缺包报错：移除 `combat_gam/longitudinal/nonlinearlongcombat.R` 中未使用的 `library(invgamma)` 依赖。
 - 2026-02-04: 修复 ABCD SA7/SA17/Yeo7 的 S2 缺失 `gammodel*_scale_TRUE.rds`：ABCD 的 S1（fit GAMM models）改为从输入 `SC.*_h` 列数自动推断分辨率（或用 `--ds_res` 显式指定），并新增对应的 S1 `sbatch` 提交脚本。
+- 2026-02-04: ABCD SA7/SA17/Yeo7 将 devmodel 与 changerate 提交脚本整合为完整流水线（不再使用 S1/S2/S4 单步脚本）；ABCD changerate 脚本支持 `DS_RES/OUT_TAG` 以避免不同分辨率结果相互覆盖。
