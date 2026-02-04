@@ -273,3 +273,4 @@
 - 2026-02-03: 新增 ABCD p-factor 的 LGCM slope 脚本，输出 beta 矩阵热图（FDR 标注）与 beta–S-A 相关散点图及 decile 柱状图。
 - 2026-02-03: LGCM cognition/pfactor 的散点图与柱状图风格对齐 LMM（点大小/线宽/主题与 stripe 低组标记）。
 - 2026-02-03: LGCM cognition/pfactor 新增 t 值矩阵热图与 t–S-A 相关散点图输出。
+- 2026-02-03: LGCM cognition/pfactor p 值改为 full vs null 的 parametric-bootstrap ANOVA，并据此进行 FDR 校正。

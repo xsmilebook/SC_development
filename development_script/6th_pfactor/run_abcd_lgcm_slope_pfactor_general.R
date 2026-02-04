@@ -75,6 +75,41 @@ age_to_years <- function(age_raw) {
   age_num
 }
 
+pb_anova_lm <- function(full_model, null_model, nsim = 1000, seed = 925) {
+  obs <- tryCatch(anova(null_model, full_model), error = function(e) NULL)
+  if (is.null(obs) || nrow(obs) < 2) return(NA_real_)
+  f_obs <- suppressWarnings(as.numeric(obs$`F`[2]))
+  if (!is.finite(f_obs)) return(NA_real_)
+
+  df_full <- model.frame(full_model)
+  resp <- as.character(formula(full_model))[2]
+  mu <- fitted(null_model)
+  sig <- summary(null_model)$sigma
+  if (!is.finite(sig) || sig <= 0) return(NA_real_)
+
+  set.seed(seed)
+  f_sim <- numeric(nsim)
+  for (i in seq_len(nsim)) {
+    df_sim <- df_full
+    df_sim[[resp]] <- rnorm(nrow(df_sim), mean = mu, sd = sig)
+    full_sim <- tryCatch(lm(formula(full_model), data = df_sim), error = function(e) NULL)
+    null_sim <- tryCatch(lm(formula(null_model), data = df_sim), error = function(e) NULL)
+    if (is.null(full_sim) || is.null(null_sim)) {
+      f_sim[i] <- NA_real_
+      next
+    }
+    a_sim <- tryCatch(anova(null_sim, full_sim), error = function(e) NULL)
+    if (is.null(a_sim) || nrow(a_sim) < 2) {
+      f_sim[i] <- NA_real_
+      next
+    }
+    f_sim[i] <- suppressWarnings(as.numeric(a_sim$`F`[2]))
+  }
+  f_sim <- f_sim[is.finite(f_sim)]
+  if (length(f_sim) < 1) return(NA_real_)
+  mean(f_sim >= f_obs)
+}
+
 SCdata <- readRDS(input_rds)
 if (!("eventname" %in% names(SCdata)) && ("scanID" %in% names(SCdata))) {
   SCdata$eventname <- scanid_to_eventname(SCdata$scanID)
@@ -234,6 +269,11 @@ if (nrow(dat_sub) < 10) stop("Too few subjects after two-timepoint selection: ",
 dat_sub$sex <- as.factor(dat_sub$sex)
 
 message("[INFO] Fitting per-edge LGCM-style slope LM (n_edges=78)")
+pb_nsim <- as.integer(Sys.getenv("PB_NSIM", unset = "1000"))
+if (is.na(pb_nsim) || pb_nsim < 1) pb_nsim <- 1000
+pb_seed <- as.integer(Sys.getenv("PB_SEED", unset = "925"))
+if (is.na(pb_seed) || pb_seed < 1) pb_seed <- 925
+
 res_rows <- vector("list", length(sc_cols))
 pred_low <- numeric(length(sc_cols))
 pred_high <- numeric(length(sc_cols))
@@ -268,10 +308,11 @@ for (i in seq_along(sc_cols)) {
   }
 
   lm_slope <- lm(slope_per_year ~ age_t0 + SC_t0 + pfactor_base + sex + mean_fd_t0 + mean_fd_t1, data = df)
+  lm_null <- lm(slope_per_year ~ age_t0 + SC_t0 + sex + mean_fd_t0 + mean_fd_t1, data = df)
   sm <- summary(lm_slope)
   beta_pf <- sm$coefficients["pfactor_base", "Estimate"]
   t_pf <- sm$coefficients["pfactor_base", "t value"]
-  p_pf <- sm$coefficients["pfactor_base", "Pr(>|t|)"]
+  p_pf <- pb_anova_lm(lm_slope, lm_null, nsim = pb_nsim, seed = pb_seed)
 
   res_rows[[i]] <- data.frame(
     edge = edge,
