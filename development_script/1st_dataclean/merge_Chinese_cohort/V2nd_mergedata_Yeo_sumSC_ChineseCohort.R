@@ -191,14 +191,30 @@ ensure_cols <- function(df, cols) {
   df[, cols]
 }
 
+safe_rename <- function(df, mapping) {
+  for (target in names(mapping)) {
+    source <- mapping[[target]]
+    if (target %in% names(df)) {
+      if (source %in% names(df) && source != target) df[[source]] <- NULL
+      next
+    }
+    if (source %in% names(df)) {
+      names(df)[names(df) == source] <- target
+    }
+  }
+  df
+}
+
 # rbind demographic data
 behavior_cols <- c("subID", "Age", "Sex", "Handedness", "CBCLtotalproblem", "EFPCA", "ICV", "mean_fd")
 Behavior <- ensure_cols(Behavior_Cui, behavior_cols)
 Behavior$study <- "CuiBP"
 Behavior2 <- ensure_cols(Behavior_SNU, behavior_cols)
 Behavior2$study <- "SNU"
-Behavior3 <- Behavior_CCNP %>%
-  dplyr::rename(all_of(c(subID = "scanID", Handedness = "handedness", CBCLtotalproblem = "Total_Problems_Total", Age = "ScanAge")))
+Behavior3 <- safe_rename(
+  Behavior_CCNP,
+  c(subID = "scanID", Handedness = "handedness", CBCLtotalproblem = "Total_Problems_Total", Age = "ScanAge")
+)
 Behavior3 <- ensure_cols(Behavior3, behavior_cols)
 Behavior3$study <- "CCNP"
 
