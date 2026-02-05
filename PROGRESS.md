@@ -291,3 +291,5 @@
 - 2026-02-05: 修复中国队列 merge 脚本 `rename` 重复列名（`subID`）报错：对 CCNP 表使用安全重命名逻辑。
 - 2026-02-05: 修复中国队列 merge 的 node volume 读取：忽略 `missing label` 等非数值行，仅使用前 400 个数值；缺失 volume 文件或长度不足时 warning 并跳过被试。
 - 2026-02-05: 中国队列 CuiBP demopath 改为项目内 `demopath/basic_demo_merge_screen.xlsx`。
+- 2026-02-05: 中国队列 devmodel/changerate 脚本新增 `ds_res/out_tag` 支持，SA7/SA17 输出独立命名与目录。
+- 2026-02-05: 新增中国队列 Yeo7 ComBat-GAM devmodel/changerate 脚本与 SA7/SA17/Yeo7 的容器版 sbatch 提交脚本。

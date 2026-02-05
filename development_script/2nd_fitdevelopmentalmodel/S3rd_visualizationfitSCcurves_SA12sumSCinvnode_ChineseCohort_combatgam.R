@@ -43,8 +43,9 @@ force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 make_examples <- as.integer(if (!is.null(args$make_examples)) args$make_examples else 0L) == 1L
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-ds.resolution <- 12
+ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
+out_tag <- if (!is.null(args$out_tag)) as.character(args$out_tag) else paste0("SA", ds.resolution)
 
 interfileFolder <- file.path(
   project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
@@ -110,12 +111,12 @@ ensure_sig_derivative_fdr <- function(derivative_df) {
 derivative <- ensure_sig_derivative_fdr(derivative)
 
 FigureFolder <- file.path(FigureRoot, paste0("CV", CVthr))
-FigureFolder_SCfit <- file.path(FigureFolder, "SA12_sumSCinvnode_fit")
-FigureFolder_SCdecile <- file.path(FigureFolder, "SA12_decile_sumSCinvnode_fit")
+FigureFolder_SCfit <- file.path(FigureFolder, paste0(out_tag, "_sumSCinvnode_fit"))
+FigureFolder_SCdecile <- file.path(FigureFolder, paste0(out_tag, "_decile_sumSCinvnode_fit"))
 dir.create(FigureFolder_SCfit, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder_SCdecile, showWarnings = FALSE, recursive = TRUE)
 
-out_plotdatasum_list <- file.path(interfileFolder, "plotdatasum_scale_TRUE_SA12.rds")
+out_plotdatasum_list <- file.path(interfileFolder, paste0("plotdatasum_scale_TRUE_", out_tag, ".rds"))
 out_fig1 <- file.path(FigureFolder_SCfit, "devcurve_Rsq_fit.ratio.tiff")
 out_fig2 <- file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff")
 

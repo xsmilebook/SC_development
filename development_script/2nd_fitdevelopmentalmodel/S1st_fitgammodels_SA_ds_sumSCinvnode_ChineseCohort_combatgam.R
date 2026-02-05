@@ -45,12 +45,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
-ds.resolution <- 12
-elementnum <- ds.resolution * (ds.resolution + 1) / 2
-
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-n_edges <- as.integer(if (!is.null(args$n_edges)) args$n_edges else elementnum)
-n_edges <- min(elementnum, max(1L, n_edges))
+ds.resolution_arg <- if (!is.null(args$ds_res)) as.integer(args$ds_res) else NA_integer_
+n_edges_arg <- if (!is.null(args$n_edges)) as.integer(args$n_edges) else NA_integer_
 
 dataset <- "chinese"
 
@@ -80,10 +77,19 @@ message("[INFO] dataset=", dataset)
 message("[INFO] CVthr=", CVthr)
 message("[INFO] input_rds=", input_rds)
 message("[INFO] interfileFolder=", interfileFolder)
-message("[INFO] n_edges=", n_edges, " n_cores=", n_cores)
+message("[INFO] n_cores=", n_cores)
 
 SCdata.sum.merge <- readRDS(input_rds)
 if (!is.data.frame(SCdata.sum.merge)) stop("Expected a data.frame in input_rds: ", input_rds)
+
+infer_resolution_from_edges <- function(n_edges) {
+  n <- (sqrt(8 * n_edges + 1) - 1) / 2
+  n_int <- as.integer(round(n))
+  if (n_int < 1 || n_int * (n_int + 1) / 2 != n_edges) {
+    stop("Cannot infer resolution from n_edges=", n_edges, " (expected triangular number).")
+  }
+  n_int
+}
 
 # Normalize covariate column names (Chinese output preserves original names from ComBat-GAM):
 # Age/Sex -> age/sex for downstream functions.
@@ -110,9 +116,24 @@ if (length(sc_cols_all) == 0) stop("No SC.* columns found in input_rds: ", input
 sc_cols <- sc_cols_all
 sc_cols_h <- sc_cols_all[grepl("_h$", sc_cols_all)]
 if (length(sc_cols_h) > 0) sc_cols <- sc_cols_h
-if (length(sc_cols) != elementnum) {
-  stop("Expected ", elementnum, " SC edge columns, got ", length(sc_cols), ". Example cols: ", paste(head(sc_cols, 3), collapse = ", "))
+
+elementnum <- length(sc_cols)
+if (!is.na(ds.resolution_arg)) {
+  expected_elementnum <- ds.resolution_arg * (ds.resolution_arg + 1) / 2
+  if (elementnum != expected_elementnum) {
+    stop("SC edge column count mismatch: expected ", expected_elementnum, " for ds_res=", ds.resolution_arg, " but got ", elementnum)
+  }
+  ds.resolution <- ds.resolution_arg
+  elementnum <- expected_elementnum
+} else {
+  ds.resolution <- infer_resolution_from_edges(elementnum)
 }
+
+n_edges <- if (!is.na(n_edges_arg)) n_edges_arg else elementnum
+n_edges <- min(elementnum, max(1L, n_edges))
+
+message("[INFO] ds.resolution=", ds.resolution, " elementnum=", elementnum)
+message("[INFO] n_edges=", n_edges)
 
 keep_cols <- c(required_covars, sc_cols)
 SCdata.sum.merge <- SCdata.sum.merge[, keep_cols, drop = FALSE]
@@ -267,4 +288,3 @@ if (should_run(out_gammodel_scaled) || should_run(out_gamresults_scaled)) {
   saveRDS(gamresultsum.df, out_gamresults_scaled)
   saveRDS(scaled_models, out_gammodel_scaled)
 }
-

@@ -12,7 +12,7 @@
 ## Outputs:
 ## - outputs/results/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/SCrank_correlation_summary.csv
 ## - outputs/figures/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/correlation_sumSCinvnode_SCrank/*.tiff (+ one *.pdf)
-## - (optional) outputs/figures/.../Matrix12_sumSCinvnode_gamstats_Age8_22/*.tiff
+## - (optional) outputs/figures/.../Matrix{ds}_sumSCinvnode_gamstats_Age8_22/*.tiff
 
 rm(list = ls())
 
@@ -70,8 +70,10 @@ skip_compute_on_windows <- as.integer(if (!is.null(args$skip_compute_on_windows)
 skip_compute <- is_windows && skip_compute_on_windows
 
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
-ds.resolution <- 12
+ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
+out_tag <- if (!is.null(args$out_tag)) as.character(args$out_tag) else ""
+tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
 make_matrix_graphs <- as.integer(if (!is.null(args$make_matrix_graphs)) args$make_matrix_graphs else 0L) == 1L
 
 interfileFolder <- file.path(
@@ -119,14 +121,14 @@ SCdata <- readRDS(input_rds)
 euclid_csv <- if (!is.null(args$euclid_csv)) {
   args$euclid_csv
 } else {
-  file.path(project_root, "wd", "interdataFolder_HCPD", "average_EuclideanDistance_12.csv")
+  file.path(project_root, "wd", "interdataFolder_HCPD", paste0("average_EuclideanDistance_", ds.resolution, ".csv"))
 }
 if (!file.exists(euclid_csv)) stop("Missing euclid_csv: ", euclid_csv)
 EucDistance <- read.csv(euclid_csv)
 
 message(sum(gamresult$sig), " edges have significant developmental effects.")
 
-out_summary <- file.path(resultFolder, "SCrank_correlation_summary.csv")
+out_summary <- file.path(resultFolder, paste0("SCrank_correlation_summary", tag_suffix, ".csv"))
 FigCorrFolder <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank")
 dir.create(FigCorrFolder, showWarnings = FALSE, recursive = TRUE)
 
@@ -315,7 +317,7 @@ if (make_matrix_graphs) {
   Matrix.tmp <- matrix(NA, nrow = 12, ncol = 12)
   computevar.list2 <- c("partialRsq", "increase.onset", "increase.offset", "peak.increase.change", "meanderv2_c")
 
-  FigMatrixFolder <- file.path(FigureRoot, "Matrix12_sumSCinvnode_gamstats_Age8_22")
+  FigMatrixFolder <- file.path(FigureRoot, paste0("Matrix", ds.resolution, "_sumSCinvnode_gamstats_Age8_22"))
   dir.create(FigMatrixFolder, showWarnings = FALSE, recursive = TRUE)
 
   linerange_frame <- data.frame(

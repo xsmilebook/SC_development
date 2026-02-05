@@ -36,10 +36,9 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 force <- as.integer(if (!is.null(args$force)) args$force else 0L) == 1L
 
-ds.resolution <- 12
-elementnum <- ds.resolution * (ds.resolution + 1) / 2
-
 CVthr <- as.numeric(if (!is.null(args$cvthr)) args$cvthr else 75)
+ds.resolution <- as.integer(if (!is.null(args$ds_res)) args$ds_res else 12L)
+elementnum <- ds.resolution * (ds.resolution + 1) / 2
 n_edges <- as.integer(if (!is.null(args$n_edges)) args$n_edges else elementnum)
 n_edges <- min(elementnum, max(1L, n_edges))
 skip_posterior <- as.integer(if (!is.null(args$skip_posterior)) args$skip_posterior else 0L) == 1L
@@ -119,4 +118,3 @@ if (!skip_posterior) {
     saveRDS(derivative.posterior.sum, out_derivative_posterior)
   }
 }
-
