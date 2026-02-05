@@ -282,7 +282,7 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
   if (nrow(df) < 10) {
     return(list(
       row = data.frame(edge = edge, n_sub = nrow(df), t_pfactor = NA_real_,
-                       p_pfactor = NA_real_, bootstrap.P.pfactor = NA_real_,
+                       bootstrap.P.pfactor = NA_real_,
                        bootstrap_pvalue = NA_real_),
       pred_low = NULL,
       pred_high = NULL
@@ -293,7 +293,6 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
   df$sex <- as.factor(df$sex)
 
   t_pfactor <- NA_real_
-  p_pfactor <- NA_real_
   p_boot_main <- NA_real_
   p_boot_int <- NA_real_
   main_fit <- tryCatch(
@@ -308,7 +307,6 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
     sm <- summary(main_fit)
     if ("pfactor_base" %in% rownames(sm$coefficients)) {
       t_pfactor <- sm$coefficients["pfactor_base", "t value"]
-      p_pfactor <- sm$coefficients["pfactor_base", "Pr(>|t|)"]
     }
     if (!is.null(null_main)) {
       p_boot_main <- pb_lmm_anova(main_fit, null_main, nsim = pb_nsim, seed = pb_seed + i)
@@ -352,7 +350,6 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
   list(
     row = data.frame(edge = edge, n_sub = nrow(df),
                      t_pfactor = as.numeric(t_pfactor),
-                     p_pfactor = as.numeric(p_pfactor),
                      bootstrap.P.pfactor = as.numeric(p_boot_main),
                      bootstrap_pvalue = as.numeric(p_boot_int)),
     pred_low = pred_low,
@@ -369,7 +366,7 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
   message("[INFO] Found existing results, loading (set FORCE=1 to recompute)")
   res_df <- readRDS(out_rds)
   pred_list <- readRDS(pred_rds)
-  need_cols <- c("t_pfactor", "p_pfactor", "bootstrap.P.pfactor", "bootstrap_pvalue")
+  need_cols <- c("t_pfactor", "bootstrap.P.pfactor", "bootstrap_pvalue")
   missing_cols <- setdiff(need_cols, names(res_df))
   if (length(missing_cols) > 0) {
     stop(
