@@ -327,7 +327,7 @@ scatterFig <- ggplot(data = SCrank.data) +
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
   ) +
-  labs(x = "S-A axis rank", y = "Covariate-adjusted mean slope (per year)")
+  labs(x = "S-A axis rank", y = "mean slope")
 
 ggsave(
   file.path(FigureFolder, paste0("scatter_personal_slope_mean_adj_vs_SCrank_SC_CV", CVthr, "_sct0.tiff")),
