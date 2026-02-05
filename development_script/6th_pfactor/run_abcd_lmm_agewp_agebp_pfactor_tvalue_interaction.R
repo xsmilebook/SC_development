@@ -5,6 +5,7 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
   library(RColorBrewer)
+  library(patchwork)
   library(parallel)
 })
 
@@ -282,6 +283,7 @@ colorid <- rev(brewer.pal(10, "RdBu"))
 interactionFolder <- file.path(FigureFolder, "Interaction")
 dir.create(interactionFolder, showWarnings = FALSE, recursive = TRUE)
 
+plot_list <- vector("list", length = 10)
 for (i in 1:10) {
   plotdf.tmp <- plotdf.decile[plotdf.decile$decile == i, , drop = FALSE]
   colorindex <- colorid[i]
@@ -329,6 +331,12 @@ for (i in 1:10) {
   out_base <- file.path(interactionFolder, paste0("developmentcurve_decile", i))
   ggsave(paste0(out_base, ".tiff"), Fig, width = 10, height = 10, units = "cm", bg = "transparent")
   ggsave(paste0(out_base, ".pdf"), Fig, width = 10, height = 10, units = "cm", bg = "transparent")
+  plot_list[[i]] <- Fig
 }
+
+combined_fig <- patchwork::wrap_plots(plot_list, nrow = 2, ncol = 5)
+combined_base <- file.path(interactionFolder, "developmentcurve_decile_all_2x5")
+ggsave(paste0(combined_base, ".tiff"), combined_fig, width = 50, height = 20, units = "cm", bg = "transparent")
+ggsave(paste0(combined_base, ".pdf"), combined_fig, width = 50, height = 20, units = "cm", bg = "transparent")
 
 message("[INFO] Done.")
