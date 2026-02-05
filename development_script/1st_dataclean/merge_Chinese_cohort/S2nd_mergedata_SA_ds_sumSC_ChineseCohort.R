@@ -61,7 +61,7 @@ dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
 
 # CuiBP
-Behavior_Cui <- read.csv(paste0(demopath_Cui, "/basic_demo_merge_screen.csv")) # 152 subjects with complete dMRI & normal anat
+Behavior_Cui <- read.xlsx(file.path(project_root, "demopath", "basic_demo_merge_screen.xlsx")) # 152 subjects with complete dMRI & normal anat
 if ("MRI_ID" %in% names(Behavior_Cui) && !"subID" %in% names(Behavior_Cui)) Behavior_Cui <- dplyr::rename(Behavior_Cui, subID = MRI_ID)
 Behavior_Cui$Sex <- as.factor(as.character(Behavior_Cui$Sex))
 # SNU
