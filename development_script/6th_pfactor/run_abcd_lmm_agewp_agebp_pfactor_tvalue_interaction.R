@@ -13,7 +13,6 @@ rm(list = ls())
 
 CVthr <- 75
 Pvar <- "GENERAL"
-Pvar_base <- "GENERAL_base"
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -51,39 +50,14 @@ sa12_csv <- Sys.getenv(
 if (!file.exists(sa12_csv)) stop("Missing ABCD_SA12_CSV: ", sa12_csv)
 SA12_10 <- read.csv(sa12_csv, stringsAsFactors = FALSE)
 
-scanid_to_eventname <- function(scanID) {
-  sess <- sub("^.*_ses-", "", as.character(scanID))
-  sess <- gsub("([a-z])([A-Z])", "\\1_\\2", sess)
-  sess <- gsub("([A-Za-z])([0-9])", "\\1_\\2", sess)
-  sess <- gsub("([0-9])([A-Za-z])", "\\1_\\2", sess)
-  tolower(sess)
-}
-
 SCdata <- readRDS(input_rds)
-if (!("eventname" %in% names(SCdata)) && ("scanID" %in% names(SCdata))) {
-  SCdata$eventname <- scanid_to_eventname(SCdata$scanID)
-}
-if (!("eventname" %in% names(SCdata))) {
-  stop("Missing eventname (required to construct baseline pfactor): input has no eventname/scanID")
-}
-
 needed <- c("subID", "age", "sex", "mean_fd", Pvar)
 missing <- setdiff(needed, names(SCdata))
 if (length(missing) > 0) stop("Missing required columns in SCdata: ", paste(missing, collapse = ", "))
 SCdata$age <- as.numeric(SCdata$age)
 SCdata$sex <- as.factor(SCdata$sex)
 
-Pvardf <- SCdata %>%
-  select(subID, eventname, all_of(Pvar)) %>%
-  filter(!is.na(.data[[Pvar]])) %>%
-  filter(grepl("base", eventname, ignore.case = TRUE)) %>%
-  select(subID, !!Pvar_base := all_of(Pvar)) %>%
-  distinct()
-if (nrow(Pvardf) < 1) stop("No baseline p-factor rows found in: ", input_rds)
-
-SCdata <- SCdata %>% left_join(Pvardf, by = "subID")
-if (!Pvar_base %in% names(SCdata)) stop("Baseline p-factor join failed, missing: ", Pvar_base)
-SCdata <- SCdata[!is.na(SCdata[[Pvar_base]]), , drop = FALSE]
+SCdata <- SCdata[!is.na(SCdata[[Pvar]]), , drop = FALSE]
 
 sub_n <- table(SCdata$subID)
 keep_sub <- names(sub_n[sub_n >= 2])
@@ -108,10 +82,8 @@ for (edge in sc_cols) {
 SCdata$age_bp <- ave(SCdata$age, SCdata$subID, FUN = mean)
 SCdata$age_wp <- SCdata$age - SCdata$age_bp
 
-base_by_sub <- tapply(SCdata[[Pvar_base]], SCdata$subID, function(x) x[which.max(!is.na(x))][1])
-base_by_sub <- base_by_sub[!is.na(base_by_sub)]
-q10 <- as.numeric(quantile(base_by_sub, 0.1, na.rm = TRUE))
-q90 <- as.numeric(quantile(base_by_sub, 0.9, na.rm = TRUE))
+q10 <- as.numeric(quantile(SCdata[[Pvar]], 0.1, na.rm = TRUE))
+q90 <- as.numeric(quantile(SCdata[[Pvar]], 0.9, na.rm = TRUE))
 
 age_min <- min(SCdata$age, na.rm = TRUE)
 age_max <- max(SCdata$age, na.rm = TRUE)
@@ -197,9 +169,9 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
 }
 
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
-out_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_pfactor_tvalue_", Pvar_base, "_CV", CVthr, ".rds"))
+out_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_pfactor_tvalue_", Pvar, "_CV", CVthr, ".rds"))
 out_csv <- sub("\\.rds$", ".csv", out_rds)
-pred_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_pfactor_pred_", Pvar_base, "_CV", CVthr, ".rds"))
+pred_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_pfactor_pred_", Pvar, "_CV", CVthr, ".rds"))
 
 if (!force && file.exists(pred_rds)) {
   message("[INFO] Found existing prediction results, loading (set FORCE=1 to recompute)")
@@ -220,7 +192,7 @@ if (!force && file.exists(pred_rds)) {
       cl, seq_along(sc_cols), fit_edge,
       data_all = SCdata,
       edges = sc_cols,
-      cov_name = Pvar_base,
+      cov_name = Pvar,
       q10 = q10,
       q90 = q90,
       age_seq = age_seq,
@@ -234,7 +206,7 @@ if (!force && file.exists(pred_rds)) {
       seq_along(sc_cols), fit_edge,
       data_all = SCdata,
       edges = sc_cols,
-      cov_name = Pvar_base,
+      cov_name = Pvar,
       q10 = q10,
       q90 = q90,
       age_seq = age_seq,
@@ -324,7 +296,7 @@ for (i in 1:10) {
     geom_line(aes(x = age, y = fit.avg, group = label, linetype = label), linewidth = 1.2, color = colorindex) +
     scale_x_continuous(labels = function(x) x * age_label_mult) +
     scale_y_continuous(breaks = c(0.9, 1.0, 1.1), limits = c(0.85, 1.15)) +
-    scale_linetype_manual(values = c(low = "solid", high = "dashed")) +
+    scale_linetype_manual(values = c(low = "dashed", high = "solid")) +
     labs(x = NULL, y = "SC strength (ratio)") +
     mytheme
 
