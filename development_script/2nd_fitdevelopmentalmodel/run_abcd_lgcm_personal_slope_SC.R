@@ -21,7 +21,9 @@ FigureFolder <- file.path(project_root, "outputs", "figures", "2nd_fitdevelopmen
 dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
-out_rds <- file.path(resultFolder, paste0("lgcm_personal_slope_SC_CV", CVthr, ".rds"))
+# Keep the original "mean slope_per_year" outputs (no covariate control) separate from
+# the covariate-controlled (residual) personal slope results.
+out_rds <- file.path(resultFolder, paste0("lgcm_personal_slope_SC_CV", CVthr, "_covresid.rds"))
 out_csv <- sub("\\.rds$", ".csv", out_rds)
 force <- identical(Sys.getenv("FORCE", unset = "0"), "1")
 
@@ -179,6 +181,9 @@ if (!force && file.exists(out_rds)) {
     out <- data.frame(
       subID = SCdata$subID[i0],
       age_t0 = SCdata$age[i0],
+      sex = SCdata$sex[i0],
+      mean_fd_t0 = SCdata$mean_fd[i0],
+      mean_fd_t1 = SCdata$mean_fd[i1],
       delta_age = dt,
       stringsAsFactors = FALSE
     )
@@ -190,6 +195,7 @@ if (!force && file.exists(out_rds)) {
   }
   dat_sub <- dplyr::bind_rows(rows)
   if (nrow(dat_sub) < 10) stop("Too few subjects after two-timepoint selection: ", nrow(dat_sub))
+  dat_sub$sex <- as.factor(dat_sub$sex)
 
   num_cores <- as.integer(Sys.getenv("SLOPE_CORES", unset = "16"))
   if (is.na(num_cores) || num_cores < 1) num_cores <- 16
@@ -200,17 +206,58 @@ if (!force && file.exists(out_rds)) {
     t0_col <- paste0(edge, "_t0")
     t1_col <- paste0(edge, "_t1")
     slope <- (data_sub[[t1_col]] - data_sub[[t0_col]]) / data_sub$delta_age
-    slope <- slope[is.finite(slope)]
+
+    df <- data.frame(
+      slope_per_year = slope,
+      age_t0 = data_sub$age_t0,
+      sex = data_sub$sex,
+      mean_fd_t0 = data_sub$mean_fd_t0,
+      mean_fd_t1 = data_sub$mean_fd_t1
+    )
+    df <- df[complete.cases(df), , drop = FALSE]
+    if (nrow(df) < 10) {
+      return(data.frame(
+        edge = edge,
+        n_sub = nrow(df),
+        personal_slope_mean_raw = NA_real_,
+        personal_slope_sd_raw = NA_real_,
+        personal_slope_mean_resid = NA_real_,
+        personal_slope_sd_resid = NA_real_,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    # Covariate-controlled personal slope: regress slope_per_year on covariates at subject level,
+    # then use mean residual as the edge-level indicator.
+    lm_fit <- tryCatch(
+      stats::lm(slope_per_year ~ age_t0 + sex + mean_fd_t0 + mean_fd_t1, data = df),
+      error = function(e) NULL
+    )
+    if (is.null(lm_fit)) {
+      return(data.frame(
+        edge = edge,
+        n_sub = nrow(df),
+        personal_slope_mean_raw = mean(df$slope_per_year, na.rm = TRUE),
+        personal_slope_sd_raw = stats::sd(df$slope_per_year, na.rm = TRUE),
+        personal_slope_mean_resid = NA_real_,
+        personal_slope_sd_resid = NA_real_,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    resid <- residuals(lm_fit)
     data.frame(
       edge = edge,
-      n_sub = length(slope),
-      personal_slope_mean = if (length(slope) > 0) mean(slope) else NA_real_,
-      personal_slope_sd = if (length(slope) > 1) stats::sd(slope) else NA_real_,
+      n_sub = nrow(df),
+      personal_slope_mean_raw = mean(df$slope_per_year, na.rm = TRUE),
+      personal_slope_sd_raw = stats::sd(df$slope_per_year, na.rm = TRUE),
+      personal_slope_mean_resid = mean(resid, na.rm = TRUE),
+      personal_slope_sd_resid = stats::sd(resid, na.rm = TRUE),
       stringsAsFactors = FALSE
     )
   }
 
-  message("[INFO] Computing SC personal slope per edge (LGCM-style slope_per_year; n_edges=78)")
+  message("[INFO] Computing SC personal slope per edge (LGCM-style slope_per_year; covariate-controlled residual mean; n_edges=78)")
   if (.Platform$OS.type == "windows") {
     message("[INFO] Windows parallel: ", num_cores, " workers")
     cl <- parallel::makeCluster(num_cores)
@@ -230,29 +277,29 @@ if (!force && file.exists(out_rds)) {
   write.csv(res_df, out_csv, row.names = FALSE)
 }
 
-if (!all(c("edge", "personal_slope_mean") %in% names(res_df))) {
+if (!all(c("edge", "personal_slope_mean_resid") %in% names(res_df))) {
   stop("Invalid res_df loaded from: ", out_rds, "\nMissing required columns.")
 }
 
-message("[INFO] Matrix + S-A axis correlation (personal_slope_mean)")
-slope_mat <- vec_to_mat(res_df$personal_slope_mean, ds = 12)
+message("[INFO] Matrix + S-A axis correlation (personal_slope_mean_resid)")
+slope_mat <- vec_to_mat(res_df$personal_slope_mean_resid, ds = 12)
 plot_matrix(
   slope_mat,
-  "SC personal slope (mean slope_per_year)",
-  file.path(FigureFolder, paste0("matrix_personal_slope_mean_SC_CV", CVthr))
+  "SC personal slope (covariate-controlled mean residual)",
+  file.path(FigureFolder, paste0("matrix_personal_slope_mean_resid_SC_CV", CVthr))
 )
 
-SCrank.df <- SCrankcorr(res_df, "personal_slope_mean", 12, dsdata = FALSE)
-saveRDS(SCrank.df, file.path(resultFolder, paste0("SCrankcorr_personal_slope_mean_SC_CV", CVthr, ".rds")))
+SCrank.df <- SCrankcorr(res_df, "personal_slope_mean_resid", 12, dsdata = FALSE)
+saveRDS(SCrank.df, file.path(resultFolder, paste0("SCrankcorr_personal_slope_mean_resid_SC_CV", CVthr, ".rds")))
 message("[INFO] SCrankcorr (personal slope mean) r=", round(SCrank.df$r.spearman, 3), " p=", signif(SCrank.df$p.spearman, 3))
 
-SCrank.data <- SCrankcorr(res_df, "personal_slope_mean", 12, dsdata = TRUE)
-limthr <- max(abs(SCrank.data$personal_slope_mean), na.rm = TRUE)
+SCrank.data <- SCrankcorr(res_df, "personal_slope_mean_resid", 12, dsdata = TRUE)
+limthr <- max(abs(SCrank.data$personal_slope_mean_resid), na.rm = TRUE)
 if (!is.finite(limthr) || limthr == 0) limthr <- 1
 
 scatterFig <- ggplot(data = SCrank.data) +
-  geom_point(aes(x = SCrank, y = personal_slope_mean, color = personal_slope_mean), size = 5) +
-  geom_smooth(aes(x = SCrank, y = personal_slope_mean), method = "lm", color = "black", linewidth = 1.4) +
+  geom_point(aes(x = SCrank, y = personal_slope_mean_resid, color = personal_slope_mean_resid), size = 5) +
+  geom_smooth(aes(x = SCrank, y = personal_slope_mean_resid), method = "lm", color = "black", linewidth = 1.4) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr, limthr)) +
   theme_classic() +
   theme(
@@ -266,14 +313,13 @@ scatterFig <- ggplot(data = SCrank.data) +
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
   ) +
-  labs(x = "S-A axis rank", y = "Mean personal slope (per year)")
+  labs(x = "S-A axis rank", y = "Mean personal slope residual (per year)")
 
 ggsave(
-  file.path(FigureFolder, paste0("scatter_personal_slope_mean_vs_SCrank_SC_CV", CVthr, ".tiff")),
+  file.path(FigureFolder, paste0("scatter_personal_slope_mean_resid_vs_SCrank_SC_CV", CVthr, ".tiff")),
   scatterFig, height = 13, width = 13, units = "cm", bg = "transparent"
 )
 ggsave(
-  file.path(FigureFolder, paste0("scatter_personal_slope_mean_vs_SCrank_SC_CV", CVthr, ".pdf")),
+  file.path(FigureFolder, paste0("scatter_personal_slope_mean_resid_vs_SCrank_SC_CV", CVthr, ".pdf")),
   scatterFig, height = 13, width = 13, units = "cm", bg = "transparent"
 )
-

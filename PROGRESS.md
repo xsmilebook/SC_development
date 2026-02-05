@@ -285,3 +285,4 @@
 - 2026-02-05: age_wp/age_bp SC 脚本：结果存在时默认直接读取；新增 age_wp 固定效应（beta）矩阵与 S-A 散点；partial R² 的 3-SD 过滤仅用于散点图。
 - 2026-02-05: age_wp/age_bp SC 脚本补齐 age_wp/age_bp 的 partial R² 与 beta 的矩阵/散点图输出。
 - 2026-02-05: 新增 `development_script/2nd_fitdevelopmentalmodel/run_abcd_lgcm_personal_slope_SC.R`：按 LGCM-style slope_per_year 计算 SC personal slope（edge 级 mean），输出均值矩阵与 S-A axis 相关散点图（不做显著性标注）。
+- 2026-02-05: SC personal slope 脚本更新：在被试层面控制 `age_t0/sex/mean_fd_t0/mean_fd_t1`，使用 `slope_per_year` 回归残差的均值作为 edge 指标，并据此绘制矩阵与 S-A axis 相关散点图（同时保留 raw mean/sd）。

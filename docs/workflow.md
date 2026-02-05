@@ -314,10 +314,11 @@
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lgcm_personal_slope_SC.R`
      - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`
      - 预处理：按每个被试选取最小/最大年龄两次观测，计算 `delta_age`；**不做离群点剔除**
-     - 变化率定义：`slope_per_year = (SC_t1 - SC_t0) / delta_age`；对每条 edge 取被试均值 `mean(slope_per_year)` 作为 personal slope
-     - 结果：`outputs/results/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（每条边 mean/sd）
+     - 变化率定义：`slope_per_year = (SC_t1 - SC_t0) / delta_age`
+     - 协变量控制：对每条 edge 做 `slope_per_year ~ age_t0 + sex + mean_fd_t0 + mean_fd_t1`，以 **残差均值** `mean(residuals)` 作为 personal slope 指标（同时保存 raw mean/sd 供对照）
+     - 结果：`outputs/results/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（每条边 raw mean/sd + residual mean/sd）
      - Windows 并行：默认使用 16 核（`SLOPE_CORES` 可覆盖）
-     - 图像：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（personal slope 均值矩阵 + 与 S-A axis 的相关散点图）
+     - 图像：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（personal slope 残差均值矩阵 + 与 S-A axis 的相关散点图）
    - ABCD age_wp/age_bp LMM（cognition 版本；过滤单时间点）：
      - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_cognition_groups.R`
      - 输入：纵向 SC `*combatgam_age_sex_meanfd.rds` + baseline cognition `*combatgam_cognition.rds`
