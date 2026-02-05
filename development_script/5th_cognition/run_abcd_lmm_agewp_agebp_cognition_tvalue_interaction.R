@@ -211,6 +211,74 @@ plot_matrix <- function(mat, title, out_base) {
   ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
 }
 
+plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
+  df_melt <- as.data.frame(as.table(mat))
+  names(df_melt) <- c("nodeid", "variable", "value")
+  node_raw <- df_melt$nodeid
+  var_raw <- df_melt$variable
+  df_melt$nodeid <- suppressWarnings(as.numeric(as.character(node_raw)))
+  df_melt$variable <- suppressWarnings(as.numeric(as.character(var_raw)))
+  if (all(is.na(df_melt$nodeid))) df_melt$nodeid <- as.integer(node_raw)
+  if (all(is.na(df_melt$variable))) df_melt$variable <- as.integer(var_raw)
+  df_melt$nodeid <- -df_melt$nodeid
+  df_melt$value <- as.numeric(df_melt$value)
+
+  sig_df <- as.data.frame(as.table(sig_mat))
+  names(sig_df) <- c("nodeid", "variable", "sig")
+  sig_df$nodeid <- suppressWarnings(as.numeric(as.character(sig_df$nodeid)))
+  sig_df$variable <- suppressWarnings(as.numeric(as.character(sig_df$variable)))
+  if (all(is.na(sig_df$nodeid))) sig_df$nodeid <- as.integer(sig_df$nodeid)
+  if (all(is.na(sig_df$variable))) sig_df$variable <- as.integer(sig_df$variable)
+  sig_df$nodeid <- -sig_df$nodeid
+  sig_df <- sig_df[!is.na(sig_df$sig) & sig_df$sig, , drop = FALSE]
+
+  if (all(is.na(df_melt$value))) {
+    limthr <- 1
+  } else {
+    limthr <- max(abs(df_melt$value), na.rm = TRUE)
+  }
+  if (!is.finite(limthr) || limthr == 0) {
+    message("[WARN] Matrix values are all NA/0 for: ", title, "; set limthr=1 for plotting")
+    limthr <- 1
+  }
+
+  linerange_frame <- data.frame(
+    x = c(0.5, 12 + 0.5),
+    ymin = rep(-12 - 0.5, times = 2),
+    ymax = rep(-0.5, times = 2),
+    y = c(-0.5, -12 - 0.5),
+    xmin = rep(0.5, times = 2),
+    xmax = rep(12 + 0.5, times = 2)
+  )
+
+  p <- ggplot(data = df_melt) +
+    geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
+    scale_fill_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
+    scale_color_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
+    geom_text(data = sig_df, aes(x = variable, y = nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size = 8) +
+    geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
+    geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
+    annotate("segment", x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5, color = "black", linewidth = 0.5) +
+    ggtitle(label = title) +
+    labs(x = NULL, y = NULL) +
+    scale_y_continuous(breaks = NULL, labels = NULL) +
+    scale_x_continuous(breaks = NULL, labels = NULL) +
+    theme(
+      axis.line = element_blank(),
+      axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
+      axis.title = element_text(size = 18),
+      plot.title = element_text(size = 12, hjust = 0.5),
+      legend.title = element_text(size = 18),
+      legend.text = element_text(size = 18),
+      panel.background = element_rect(fill = NA),
+      panel.grid.major = element_line(linewidth = 0),
+      panel.grid.minor = element_line(linewidth = 1)
+    )
+
+  ggsave(paste0(out_base, ".tiff"), p, height = 18, width = 20, units = "cm", bg = "transparent")
+  ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
+}
 num_cores <- as.integer(Sys.getenv("LMM_CORES", unset = "16"))
 if (is.na(num_cores) || num_cores < 1) num_cores <- 16
 num_cores <- min(num_cores, parallel::detectCores())
@@ -394,8 +462,10 @@ if (!("bootstrap.P.cognition.fdr" %in% names(res_df))) {
 
 message("[INFO] cognition t value matrix + S-A axis correlation")
 mat_cog_t <- vec_to_mat(res_df$t_cog, ds = 12)
-plot_matrix(
+sig_cog <- vec_to_mat(res_df$bootstrap.P.cognition.fdr < 0.05, ds = 12)
+plot_matrix_sig(
   mat_cog_t,
+  sig_cog,
   "Cognition t value (age_wp/bp LMM)",
   file.path(FigureFolder, paste0("matrix_cognition_tvalue_", Cogvar_base, "_CV", CVthr))
 )

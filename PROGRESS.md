@@ -291,3 +291,4 @@
 - 2026-02-05: age_wp/age_bp SC 脚本改为输出 t 值矩阵与 S-A 相关散点图（不再计算 partial R²）；新增仅保留两次及以上扫描被试的 2tp 版本脚本。
 - 2026-02-05: 新增 cognition/pfactor 的 age_wp/age_bp t 值脚本与 interaction 预测脚本（10%/90% 分位，按 SA decile 输出 10 组发育曲线图）。
 - 2026-02-05: cognition/pfactor t 值脚本补齐 parametric-bootstrap p 值与 FDR 校正流程（与 `run_abcd_pfactor_effect_continuous_S1.R` 一致）。
+- 2026-02-05: cognition/pfactor t 值矩阵加入 FDR 显著性标注（仅主效应矩阵；交互仅用于高低组轨迹）。
