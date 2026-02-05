@@ -141,7 +141,7 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
   }
 
   df$cov <- df[[cov_name]]
-  form <- stats::as.formula("y ~ age_wp * cov + age_bp + sex + mean_fd + (1 + age_wp || subID)")
+  form <- stats::as.formula("y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)")
   fit <- tryCatch(lme4::lmer(form, data = df, REML = FALSE), error = function(e) NULL)
   if (is.null(fit)) {
     return(list(
@@ -323,7 +323,7 @@ for (i in 1:10) {
   Fig <- ggplot(data = plotdf.tmp) +
     geom_line(aes(x = age, y = fit.avg, group = label, linetype = label), linewidth = 1.2, color = colorindex) +
     scale_x_continuous(labels = function(x) x * age_label_mult) +
-    scale_y_continuous(breaks = c(0.9, 1.0, 1.1), limits = c(0.90, 1.1)) +
+    scale_y_continuous(breaks = c(0.9, 1.0, 1.1), limits = c(0.85, 1.15)) +
     scale_linetype_manual(values = c(low = "solid", high = "dashed")) +
     labs(x = NULL, y = "SC strength (ratio)") +
     mytheme

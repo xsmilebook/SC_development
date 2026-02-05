@@ -307,7 +307,7 @@
    - ABCD age_wp/age_bp LMM（SC 版本；不剔除单时间点被试）：
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC.R`
      - 输入：`*combatgam_age_sex_meanfd.rds`（SC + age/sex/mean_fd）
-     - 模型：`SC ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID)`；`age_wp = age_ij - mean(age)_i`，`age_bp = mean(age)_i`
+     - 模型：`SC ~ age_wp + age_bp + sex + mean_fd + (1 | subID)`；`age_wp = age_ij - mean(age)_i`，`age_bp = mean(age)_i`
      - 统计：输出 age_wp/age_bp 的 **t 值矩阵**与 S-A 相关散点图（不标注显著性）
      - 固定效应：输出 age_wp/age_bp 的 fixed effect（beta）矩阵与 S-A 相关散点图（不标注显著性）
    - ABCD age_wp/age_bp LMM（SC 版本；仅保留至少两次扫描被试）：
@@ -333,12 +333,12 @@
      - 统计：age_bp partial R² 矩阵 + S-A 相关；age_wp personal slope 的低/高组 t 值矩阵（FDR 标注）与 decile 柱状图；personal slope 与 pfactor 相关矩阵及其 S-A 相关散点图
   - ABCD age_wp/age_bp LMM（cognition 版本；interaction 预测）：
     - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_cognition_tvalue_interaction.R`
-    - 模型：`SC ~ age_wp * cognition + age_bp + sex + mean_fd + (1 + age_wp || subID)`
+    - 模型：`SC ~ age_wp * cognition + age_bp + sex + mean_fd + (1 | subID)`
     - 预测：取 cognition 的 10%/90% 分位预测 `.fitted`
     - 图像：按 SA decile（10 组）汇总预测轨迹（低/高两条线），输出 `developmentcurve_decile*`；同时拼接为 2×5 的总图 `developmentcurve_decile_all_2x5`（参考 `run_abcd_pfactor_effect_continuous_S1.R` 风格；不再计算 t 值矩阵或 S-A 相关散点图）
   - ABCD age_wp/age_bp LMM（p-factor 版本；interaction 预测）：
     - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_pfactor_tvalue_interaction.R`
-    - 模型：`SC ~ age_wp * pfactor + age_bp + sex + mean_fd + (1 + age_wp || subID)`
+    - 模型：`SC ~ age_wp * pfactor + age_bp + sex + mean_fd + (1 | subID)`
     - 预测：取 pfactor 的 10%/90% 分位预测 `.fitted`
     - 图像：按 SA decile（10 组）汇总预测轨迹（低/高两条线），输出 `developmentcurve_decile*`；同时拼接为 2×5 的总图 `developmentcurve_decile_all_2x5`（参考 `run_abcd_pfactor_effect_continuous_S1.R` 风格；不再计算 t 值矩阵或 S-A 相关散点图）
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：

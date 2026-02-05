@@ -296,3 +296,4 @@
 - 2026-02-05: cognition/pfactor 交互 decile 曲线图固定 low/high 线型映射（low=虚线，high=实线），避免因标签顺序导致显示反向。
 - 2026-02-05: cognition/pfactor 交互 decile 曲线新增 2×5 拼接总图（developmentcurve_decile_all_2x5）。
 - 2026-02-05: p-factor 交互 decile 曲线线型调整为 high=虚线（severe）、low=实线（mild）。
+- 2026-02-05: SC age_wp/age_bp 与 cognition/pfactor 交互脚本移除随机斜率，统一为随机截距 (1 | subID)。

@@ -167,7 +167,7 @@ fit_edge <- function(i, data_all, edges) {
                       t_wp = NA_real_, t_bp = NA_real_))
   }
 
-  full <- lme4::lmer(y ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID), data = df, REML = FALSE)
+  full <- lme4::lmer(y ~ age_wp + age_bp + sex + mean_fd + (1 | subID), data = df, REML = FALSE)
   sm <- summary(full)
   beta_wp <- sm$coefficients["age_wp", "Estimate"]
   beta_bp <- sm$coefficients["age_bp", "Estimate"]
