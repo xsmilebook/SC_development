@@ -308,7 +308,8 @@
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC.R`
      - 输入：`*combatgam_age_sex_meanfd.rds`（SC + age/sex/mean_fd）
      - 模型：`SC ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID)`；`age_wp = age_ij - mean(age)_i`，`age_bp = mean(age)_i`
-     - 统计：age_bp partial R²（full vs null，parametric-bootstrap ANOVA）并做 FDR；输出矩阵与 S-A 相关散点图
+     - 统计：age_bp partial R²（full vs null，parametric-bootstrap ANOVA）并做 FDR；输出矩阵与 S-A 相关散点图（散点绘制时对 partial R² 做 3-SD 过滤）
+     - 固定效应：输出 age_wp 的 fixed effect（beta）矩阵与 S-A 相关散点图
    - ABCD age_wp/age_bp LMM（cognition 版本；过滤单时间点）：
      - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_cognition_groups.R`
      - 输入：纵向 SC `*combatgam_age_sex_meanfd.rds` + baseline cognition `*combatgam_cognition.rds`

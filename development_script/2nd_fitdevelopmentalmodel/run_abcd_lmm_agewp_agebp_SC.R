@@ -23,6 +23,10 @@ FigureFolder <- file.path(project_root, "outputs", "figures", "2nd_fitdevelopmen
 dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
+force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
+out_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_SC_CV", CVthr, ".rds"))
+out_csv <- sub("\\.rds$", ".csv", out_rds)
+
 input_rds <- file.path(
   project_root, "outputs", "results", "combat_gam", "abcd",
   "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"
@@ -207,37 +211,33 @@ fit_edge <- function(i, data_all, edges, pb_nsim, pb_seed) {
   )
 }
 
-message("[INFO] Fitting LMM (SC) with age_wp + age_bp")
-if (.Platform$OS.type == "windows") {
-  message("[INFO] Windows parallel: ", num_cores, " workers")
-  cl <- parallel::makeCluster(num_cores)
-  on.exit(parallel::stopCluster(cl), add = TRUE)
-  parallel::clusterExport(
-    cl,
-    varlist = c("SCdata", "sc_cols", "pb_nsim", "pb_seed", "fit_edge", "pb_lmm_anova"),
-    envir = environment()
-  )
-  res_list <- parallel::parLapply(cl, seq_along(sc_cols), fit_edge, data_all = SCdata, edges = sc_cols, pb_nsim = pb_nsim, pb_seed = pb_seed)
+if (!force && file.exists(out_rds)) {
+  message("[INFO] Found existing results, loading (set FORCE=1 to recompute): ", out_rds)
+  res_df <- readRDS(out_rds)
 } else {
-  res_list <- lapply(seq_along(sc_cols), fit_edge, data_all = SCdata, edges = sc_cols, pb_nsim = pb_nsim, pb_seed = pb_seed)
-}
+  message("[INFO] Fitting LMM (SC) with age_wp + age_bp")
+  if (.Platform$OS.type == "windows") {
+    message("[INFO] Windows parallel: ", num_cores, " workers")
+    cl <- parallel::makeCluster(num_cores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    parallel::clusterExport(
+      cl,
+      varlist = c("SCdata", "sc_cols", "pb_nsim", "pb_seed", "fit_edge", "pb_lmm_anova"),
+      envir = environment()
+    )
+    res_list <- parallel::parLapply(cl, seq_along(sc_cols), fit_edge, data_all = SCdata, edges = sc_cols, pb_nsim = pb_nsim, pb_seed = pb_seed)
+  } else {
+    res_list <- lapply(seq_along(sc_cols), fit_edge, data_all = SCdata, edges = sc_cols, pb_nsim = pb_nsim, pb_seed = pb_seed)
+  }
 
-res_df <- do.call(rbind, res_list)
-res_df$p_bp_fdr <- p.adjust(res_df$p_bp, method = "fdr")
-res_df$partial_r2_bp_3sd <- res_df$partial_r2_bp
-pr_mean <- mean(res_df$partial_r2_bp, na.rm = TRUE)
-pr_sd <- stats::sd(res_df$partial_r2_bp, na.rm = TRUE)
-if (is.finite(pr_mean) && is.finite(pr_sd) && pr_sd > 0) {
-  out_idx <- res_df$partial_r2_bp > pr_mean + 3 * pr_sd | res_df$partial_r2_bp < pr_mean - 3 * pr_sd
-  res_df$partial_r2_bp_3sd[out_idx] <- NA_real_
+  res_df <- do.call(rbind, res_list)
+  res_df$p_bp_fdr <- p.adjust(res_df$p_bp, method = "fdr")
+  saveRDS(res_df, out_rds)
+  write.csv(res_df, out_csv, row.names = FALSE)
 }
-out_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_SC_CV", CVthr, ".rds"))
-out_csv <- sub("\\.rds$", ".csv", out_rds)
-saveRDS(res_df, out_rds)
-write.csv(res_df, out_csv, row.names = FALSE)
 
 message("[INFO] age_bp partial R2 matrix + S-A axis correlation")
-mat_bp <- vec_to_mat(res_df$partial_r2_bp_3sd, ds = 12)
+mat_bp <- vec_to_mat(res_df$partial_r2_bp, ds = 12)
 sig_bp <- vec_to_mat(res_df$p_bp_fdr < 0.05, ds = 12)
 plot_matrix_sig(
   mat_bp,
@@ -246,16 +246,24 @@ plot_matrix_sig(
   file.path(FigureFolder, paste0("matrix_age_bp_partialR2_SC_CV", CVthr))
 )
 
-SCrank.df.bp <- SCrankcorr(res_df, "partial_r2_bp_3sd", 12, dsdata = FALSE)
+res_df$partial_r2_bp_scatter <- res_df$partial_r2_bp
+pr_mean <- mean(res_df$partial_r2_bp_scatter, na.rm = TRUE)
+pr_sd <- stats::sd(res_df$partial_r2_bp_scatter, na.rm = TRUE)
+if (is.finite(pr_mean) && is.finite(pr_sd) && pr_sd > 0) {
+  out_idx <- res_df$partial_r2_bp_scatter > pr_mean + 3 * pr_sd | res_df$partial_r2_bp_scatter < pr_mean - 3 * pr_sd
+  res_df$partial_r2_bp_scatter[out_idx] <- NA_real_
+}
+
+SCrank.df.bp <- SCrankcorr(res_df, "partial_r2_bp_scatter", 12, dsdata = FALSE)
 saveRDS(SCrank.df.bp, file.path(resultFolder, paste0("SCrankcorr_age_bp_partialR2_SC_CV", CVthr, ".rds")))
 message("[INFO] SCrankcorr (age_bp partial R2) r=", round(SCrank.df.bp$r.spearman, 3), " p=", signif(SCrank.df.bp$p.spearman, 3))
 
-SCrank.data.bp <- SCrankcorr(res_df, "partial_r2_bp_3sd", 12, dsdata = TRUE)
-limthr <- max(abs(SCrank.data.bp$partial_r2_bp_3sd), na.rm = TRUE)
+SCrank.data.bp <- SCrankcorr(res_df, "partial_r2_bp_scatter", 12, dsdata = TRUE)
+limthr <- max(abs(SCrank.data.bp$partial_r2_bp_scatter), na.rm = TRUE)
 if (!is.finite(limthr) || limthr == 0) limthr <- 1
 scatterFig <- ggplot(SCrank.data.bp) +
-  geom_point(aes(x = SCrank, y = partial_r2_bp_3sd, color = partial_r2_bp_3sd), size = 5) +
-  geom_smooth(aes(x = SCrank, y = partial_r2_bp_3sd), method = "lm", color = "black", linewidth = 1.4) +
+  geom_point(aes(x = SCrank, y = partial_r2_bp_scatter, color = partial_r2_bp_scatter), size = 5) +
+  geom_smooth(aes(x = SCrank, y = partial_r2_bp_scatter), method = "lm", color = "black", linewidth = 1.4) +
   scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr, limthr)) +
   theme_classic() +
   theme(
@@ -274,5 +282,45 @@ ggsave(file.path(FigureFolder, paste0("scatter_age_bp_partialR2_vs_SCrank_SC_CV"
        scatterFig, width = 15, height = 15, units = "cm", bg = "transparent")
 ggsave(file.path(FigureFolder, paste0("scatter_age_bp_partialR2_vs_SCrank_SC_CV", CVthr, ".pdf")),
        scatterFig, width = 15, height = 15, units = "cm", bg = "transparent")
+
+message("[INFO] age_wp fixed effect (beta_wp) matrix + S-A axis correlation")
+mat_wp <- vec_to_mat(res_df$beta_wp, ds = 12)
+sig_none <- matrix(FALSE, nrow(mat_wp), ncol(mat_wp))
+dimnames(sig_none) <- dimnames(mat_wp)
+plot_matrix_sig(
+  mat_wp,
+  sig_none,
+  "SC age_wp fixed effect (beta)",
+  file.path(FigureFolder, paste0("matrix_age_wp_beta_SC_CV", CVthr))
+)
+
+SCrank.df.wp <- SCrankcorr(res_df, "beta_wp", 12, dsdata = FALSE)
+saveRDS(SCrank.df.wp, file.path(resultFolder, paste0("SCrankcorr_age_wp_beta_SC_CV", CVthr, ".rds")))
+message("[INFO] SCrankcorr (age_wp beta) r=", round(SCrank.df.wp$r.spearman, 3), " p=", signif(SCrank.df.wp$p.spearman, 3))
+
+SCrank.data.wp <- SCrankcorr(res_df, "beta_wp", 12, dsdata = TRUE)
+limthr_wp <- max(abs(SCrank.data.wp$beta_wp), na.rm = TRUE)
+if (!is.finite(limthr_wp) || limthr_wp == 0) limthr_wp <- 1
+scatterFig.wp <- ggplot(SCrank.data.wp) +
+  geom_point(aes(x = SCrank, y = beta_wp, color = beta_wp), size = 5) +
+  geom_smooth(aes(x = SCrank, y = beta_wp), method = "lm", color = "black", linewidth = 1.4) +
+  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr_wp, limthr_wp)) +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 23, color = "black"),
+    axis.title = element_text(size = 23),
+    aspect.ratio = 0.9,
+    axis.line = element_line(linewidth = 0.6),
+    axis.ticks = element_line(linewidth = 0.6),
+    plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    legend.position = "none"
+  ) +
+  labs(x = "S-A connectional axis rank", y = "age_wp fixed effect (beta)")
+ggsave(file.path(FigureFolder, paste0("scatter_age_wp_beta_vs_SCrank_SC_CV", CVthr, ".tiff")),
+       scatterFig.wp, width = 15, height = 15, units = "cm", bg = "transparent")
+ggsave(file.path(FigureFolder, paste0("scatter_age_wp_beta_vs_SCrank_SC_CV", CVthr, ".pdf")),
+       scatterFig.wp, width = 15, height = 15, units = "cm", bg = "transparent")
 
 message("[INFO] Done.")
