@@ -287,3 +287,4 @@
 - 2026-02-04: 修复 ABCD SA7/SA17/Yeo7 的 S2 缺失 `gammodel*_scale_TRUE.rds`：ABCD 的 S1（fit GAMM models）改为从输入 `SC.*_h` 列数自动推断分辨率（或用 `--ds_res` 显式指定），并新增对应的 S1 `sbatch` 提交脚本。
 - 2026-02-04: ABCD SA7/SA17/Yeo7 将 devmodel 与 changerate 提交脚本整合为完整流水线（不再使用 S1/S2/S4 单步脚本）；ABCD changerate 脚本支持 `DS_RES/OUT_TAG` 以避免不同分辨率结果相互覆盖。
 - 2026-02-05: 中国队列 merge 脚本支持生成 SA7/SA17/Yeo7，并将输出写入本项目 `outputs/intermediate/1st_dataclean/chinese_cohort/`；新增一键生成三种结果的容器版 `sbatch` 脚本。
+- 2026-02-05: 修复中国队列 merge 脚本 `rbind` 列数不一致：统一 phenotype 合并列并对缺失列补 NA。
