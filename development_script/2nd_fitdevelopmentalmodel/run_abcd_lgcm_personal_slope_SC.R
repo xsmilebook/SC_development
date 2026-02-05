@@ -23,7 +23,7 @@ dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
 # Keep the original "mean slope_per_year" outputs (no covariate control) separate from
 # the covariate-controlled personal slope results.
-out_rds <- file.path(resultFolder, paste0("lgcm_personal_slope_SC_CV", CVthr, "_covresid.rds"))
+out_rds <- file.path(resultFolder, paste0("lgcm_personal_slope_SC_CV", CVthr, "_covadj_sct0.rds"))
 out_csv <- sub("\\.rds$", ".csv", out_rds)
 force <- identical(Sys.getenv("FORCE", unset = "0"), "1")
 
@@ -210,6 +210,7 @@ if (!force && file.exists(out_rds)) {
     df <- data.frame(
       slope_per_year = slope,
       age_t0 = data_sub$age_t0,
+      SC_t0 = data_sub[[t0_col]],
       sex = data_sub$sex,
       mean_fd_t0 = data_sub$mean_fd_t0,
       mean_fd_t1 = data_sub$mean_fd_t1
@@ -233,6 +234,7 @@ if (!force && file.exists(out_rds)) {
     # to the sample mean, use sum-to-zero contrasts for sex, then take the model intercept as the
     # adjusted mean slope at average covariates.
     df$age_t0_c <- as.numeric(scale(df$age_t0, center = TRUE, scale = FALSE))
+    df$SC_t0_c <- as.numeric(scale(df$SC_t0, center = TRUE, scale = FALSE))
     df$mean_fd_t0_c <- as.numeric(scale(df$mean_fd_t0, center = TRUE, scale = FALSE))
     df$mean_fd_t1_c <- as.numeric(scale(df$mean_fd_t1, center = TRUE, scale = FALSE))
     df$sex <- as.factor(df$sex)
@@ -241,7 +243,7 @@ if (!force && file.exists(out_rds)) {
     }
 
     lm_fit <- tryCatch(
-      stats::lm(slope_per_year ~ age_t0_c + sex + mean_fd_t0_c + mean_fd_t1_c, data = df),
+      stats::lm(slope_per_year ~ age_t0_c + SC_t0_c + sex + mean_fd_t0_c + mean_fd_t1_c, data = df),
       error = function(e) NULL
     )
     if (is.null(lm_fit)) {
@@ -298,11 +300,11 @@ slope_mat <- vec_to_mat(res_df$personal_slope_mean_adj, ds = 12)
 plot_matrix(
   slope_mat,
   "SC personal slope (covariate-controlled adjusted mean)",
-  file.path(FigureFolder, paste0("matrix_personal_slope_mean_adj_SC_CV", CVthr))
+  file.path(FigureFolder, paste0("matrix_personal_slope_mean_adj_SC_CV", CVthr, "_sct0"))
 )
 
 SCrank.df <- SCrankcorr(res_df, "personal_slope_mean_adj", 12, dsdata = FALSE)
-saveRDS(SCrank.df, file.path(resultFolder, paste0("SCrankcorr_personal_slope_mean_adj_SC_CV", CVthr, ".rds")))
+saveRDS(SCrank.df, file.path(resultFolder, paste0("SCrankcorr_personal_slope_mean_adj_SC_CV", CVthr, "_sct0.rds")))
 message("[INFO] SCrankcorr (personal slope mean) r=", round(SCrank.df$r.spearman, 3), " p=", signif(SCrank.df$p.spearman, 3))
 
 SCrank.data <- SCrankcorr(res_df, "personal_slope_mean_adj", 12, dsdata = TRUE)
@@ -328,10 +330,10 @@ scatterFig <- ggplot(data = SCrank.data) +
   labs(x = "S-A axis rank", y = "Covariate-adjusted mean slope (per year)")
 
 ggsave(
-  file.path(FigureFolder, paste0("scatter_personal_slope_mean_adj_vs_SCrank_SC_CV", CVthr, ".tiff")),
+  file.path(FigureFolder, paste0("scatter_personal_slope_mean_adj_vs_SCrank_SC_CV", CVthr, "_sct0.tiff")),
   scatterFig, height = 13, width = 13, units = "cm", bg = "transparent"
 )
 ggsave(
-  file.path(FigureFolder, paste0("scatter_personal_slope_mean_adj_vs_SCrank_SC_CV", CVthr, ".pdf")),
+  file.path(FigureFolder, paste0("scatter_personal_slope_mean_adj_vs_SCrank_SC_CV", CVthr, "_sct0.pdf")),
   scatterFig, height = 13, width = 13, units = "cm", bg = "transparent"
 )

@@ -315,7 +315,7 @@
      - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`
      - 预处理：按每个被试选取最小/最大年龄两次观测，计算 `delta_age`；**不做离群点剔除**
      - 变化率定义：`slope_per_year = (SC_t1 - SC_t0) / delta_age`
-     - 协变量控制：对每条 edge 将 `age_t0/mean_fd_t0/mean_fd_t1` 做均值中心化；`sex` 使用 sum-to-zero contrasts；拟合 `slope_per_year ~ age_t0_c + sex + mean_fd_t0_c + mean_fd_t1_c`，以 **模型截距** 作为 covariate-adjusted mean slope（同时保存 raw mean/sd 与残差 sd 供对照）
+     - 协变量控制：对每条 edge 将 `age_t0/SC_t0/mean_fd_t0/mean_fd_t1` 做均值中心化；`sex` 使用 sum-to-zero contrasts；拟合 `slope_per_year ~ age_t0_c + SC_t0_c + sex + mean_fd_t0_c + mean_fd_t1_c`，以 **模型截距** 作为 covariate-adjusted mean slope（同时保存 raw mean/sd 与残差 sd 供对照）
      - 结果：`outputs/results/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（每条边 raw mean/sd + adjusted mean + residual sd）
      - Windows 并行：默认使用 16 核（`SLOPE_CORES` 可覆盖）
      - 图像：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（covariate-adjusted mean slope 矩阵 + 与 S-A axis 的相关散点图）
