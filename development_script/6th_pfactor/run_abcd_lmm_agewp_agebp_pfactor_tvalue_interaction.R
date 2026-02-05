@@ -50,9 +50,6 @@ sa12_csv <- Sys.getenv(
 if (!file.exists(sa12_csv)) stop("Missing ABCD_SA12_CSV: ", sa12_csv)
 SA12_10 <- read.csv(sa12_csv, stringsAsFactors = FALSE)
 
-source(file.path(functionFolder, "SCrankcorr.R"))
-source(file.path(functionFolder, "pb_lmm_anova.R"))
-
 scanid_to_eventname <- function(scanID) {
   sess <- sub("^.*_ses-", "", as.character(scanID))
   sess <- gsub("([a-z])([A-Z])", "\\1_\\2", sess)
@@ -125,233 +122,74 @@ sex_tab <- table(SCdata$sex)
 sex_ref <- names(sex_tab)[which.max(sex_tab)]
 subid_ref <- as.character(SCdata$subID[1])
 
-vec_to_mat <- function(vec, ds = 12) {
-  mat <- matrix(NA, ds, ds)
-  idx <- which(lower.tri(mat, diag = TRUE))
-  if (length(vec) > length(idx)) {
-    stop("vec length exceeds lower-triangle size: ", length(vec), " > ", length(idx))
-  }
-  mat[idx[seq_along(vec)]] <- vec
-  mat[upper.tri(mat)] <- t(mat)[upper.tri(mat)]
-  dimnames(mat) <- list(as.character(seq_len(ds)), as.character(seq_len(ds)))
-  mat
-}
-
-plot_matrix <- function(mat, title, out_base) {
-  df_melt <- as.data.frame(as.table(mat))
-  names(df_melt) <- c("nodeid", "variable", "value")
-  node_raw <- df_melt$nodeid
-  var_raw <- df_melt$variable
-  df_melt$nodeid <- suppressWarnings(as.numeric(as.character(node_raw)))
-  df_melt$variable <- suppressWarnings(as.numeric(as.character(var_raw)))
-  if (all(is.na(df_melt$nodeid))) df_melt$nodeid <- as.integer(node_raw)
-  if (all(is.na(df_melt$variable))) df_melt$variable <- as.integer(var_raw)
-  df_melt$nodeid <- -df_melt$nodeid
-  df_melt$value <- as.numeric(df_melt$value)
-
-  if (all(is.na(df_melt$value))) {
-    limthr <- 1
-  } else {
-    limthr <- max(abs(df_melt$value), na.rm = TRUE)
-  }
-  if (!is.finite(limthr) || limthr == 0) {
-    message("[WARN] Matrix values are all NA/0 for: ", title, "; set limthr=1 for plotting")
-    limthr <- 1
-  }
-
-  linerange_frame <- data.frame(
-    x = c(0.5, 12 + 0.5),
-    ymin = rep(-12 - 0.5, times = 2),
-    ymax = rep(-0.5, times = 2),
-    y = c(-0.5, -12 - 0.5),
-    xmin = rep(0.5, times = 2),
-    xmax = rep(12 + 0.5, times = 2)
-  )
-
-  p <- ggplot(data = df_melt) +
-    geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
-    scale_fill_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
-    scale_color_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
-    geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
-    geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
-    annotate("segment", x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5, color = "black", linewidth = 0.5) +
-    ggtitle(label = title) +
-    labs(x = NULL, y = NULL) +
-    scale_y_continuous(breaks = NULL, labels = NULL) +
-    scale_x_continuous(breaks = NULL, labels = NULL) +
-    theme(
-      axis.line = element_blank(),
-      axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
-      axis.title = element_text(size = 18),
-      plot.title = element_text(size = 12, hjust = 0.5),
-      legend.title = element_text(size = 18),
-      legend.text = element_text(size = 18),
-      panel.background = element_rect(fill = NA),
-      panel.grid.major = element_line(linewidth = 0),
-      panel.grid.minor = element_line(linewidth = 1)
-    )
-
-  ggsave(paste0(out_base, ".tiff"), p, height = 18, width = 20, units = "cm", bg = "transparent")
-  ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
-}
-
-plot_matrix_sig <- function(mat, sig_mat, title, out_base) {
-  df_melt <- as.data.frame(as.table(mat))
-  names(df_melt) <- c("nodeid", "variable", "value")
-  node_raw <- df_melt$nodeid
-  var_raw <- df_melt$variable
-  df_melt$nodeid <- suppressWarnings(as.numeric(as.character(node_raw)))
-  df_melt$variable <- suppressWarnings(as.numeric(as.character(var_raw)))
-  if (all(is.na(df_melt$nodeid))) df_melt$nodeid <- as.integer(node_raw)
-  if (all(is.na(df_melt$variable))) df_melt$variable <- as.integer(var_raw)
-  df_melt$nodeid <- -df_melt$nodeid
-  df_melt$value <- as.numeric(df_melt$value)
-
-  sig_df <- as.data.frame(as.table(sig_mat))
-  names(sig_df) <- c("nodeid", "variable", "sig")
-  sig_df$nodeid <- suppressWarnings(as.numeric(as.character(sig_df$nodeid)))
-  sig_df$variable <- suppressWarnings(as.numeric(as.character(sig_df$variable)))
-  if (all(is.na(sig_df$nodeid))) sig_df$nodeid <- as.integer(sig_df$nodeid)
-  if (all(is.na(sig_df$variable))) sig_df$variable <- as.integer(sig_df$variable)
-  sig_df$nodeid <- -sig_df$nodeid
-  sig_df <- sig_df[!is.na(sig_df$sig) & sig_df$sig, , drop = FALSE]
-
-  if (all(is.na(df_melt$value))) {
-    limthr <- 1
-  } else {
-    limthr <- max(abs(df_melt$value), na.rm = TRUE)
-  }
-  if (!is.finite(limthr) || limthr == 0) {
-    message("[WARN] Matrix values are all NA/0 for: ", title, "; set limthr=1 for plotting")
-    limthr <- 1
-  }
-
-  linerange_frame <- data.frame(
-    x = c(0.5, 12 + 0.5),
-    ymin = rep(-12 - 0.5, times = 2),
-    ymax = rep(-0.5, times = 2),
-    y = c(-0.5, -12 - 0.5),
-    xmin = rep(0.5, times = 2),
-    xmax = rep(12 + 0.5, times = 2)
-  )
-
-  p <- ggplot(data = df_melt) +
-    geom_tile(aes(x = variable, y = nodeid, fill = value, color = value)) +
-    scale_fill_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
-    scale_color_distiller(type = "seq", palette = "RdBu", na.value = "grey", limits = c(-limthr, limthr)) +
-    geom_text(data = sig_df, aes(x = variable, y = nodeid, label = "*"), vjust = 0.7, hjust = 0.5, size = 8) +
-    geom_linerange(data = linerange_frame, aes(y = y, xmin = xmin, xmax = xmax), color = "black", linewidth = 0.5) +
-    geom_linerange(data = linerange_frame, aes(x = x, ymin = ymin, ymax = ymax), color = "black", linewidth = 0.5) +
-    annotate("segment", x = 0.5, y = -0.5, xend = 12 + 0.5, yend = -12 - 0.5, color = "black", linewidth = 0.5) +
-    ggtitle(label = title) +
-    labs(x = NULL, y = NULL) +
-    scale_y_continuous(breaks = NULL, labels = NULL) +
-    scale_x_continuous(breaks = NULL, labels = NULL) +
-    theme(
-      axis.line = element_blank(),
-      axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 12, angle = 315, hjust = 1, vjust = 1),
-      axis.title = element_text(size = 18),
-      plot.title = element_text(size = 12, hjust = 0.5),
-      legend.title = element_text(size = 18),
-      legend.text = element_text(size = 18),
-      panel.background = element_rect(fill = NA),
-      panel.grid.major = element_line(linewidth = 0),
-      panel.grid.minor = element_line(linewidth = 1)
-    )
-
-  ggsave(paste0(out_base, ".tiff"), p, height = 18, width = 20, units = "cm", bg = "transparent")
-  ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
-}
 num_cores <- as.integer(Sys.getenv("LMM_CORES", unset = "16"))
 if (is.na(num_cores) || num_cores < 1) num_cores <- 16
 num_cores <- min(num_cores, parallel::detectCores())
 
-pb_nsim <- as.integer(Sys.getenv("PB_NSIM", unset = "1000"))
-if (is.na(pb_nsim) || pb_nsim < 1) pb_nsim <- 1000
-pb_seed <- as.integer(Sys.getenv("PB_SEED", unset = "925"))
-if (is.na(pb_seed) || pb_seed < 1) pb_seed <- 925
-
-fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mean, sex_ref, mean_fd_mean, subid_ref, pb_nsim, pb_seed) {
+fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mean, sex_ref, mean_fd_mean, subid_ref) {
   edge <- edges[[i]]
   df <- data_all[, c("subID", "age_wp", "age_bp", "sex", "mean_fd", cov_name, edge)]
   names(df)[ncol(df)] <- "y"
-  names(df)[ncol(df) - 1] <- "pfactor_base"
   df <- df[complete.cases(df), , drop = FALSE]
   if (nrow(df) < 10) {
     return(list(
-      row = data.frame(edge = edge, n_sub = nrow(df), t_pfactor = NA_real_,
-                       bootstrap.P.pfactor = NA_real_,
-                       bootstrap_pvalue = NA_real_),
-      pred_low = NULL,
-      pred_high = NULL
+      row = data.frame(edge = edge, n_sub = nrow(df), stringsAsFactors = FALSE),
+      pred_low = data.frame(),
+      pred_high = data.frame()
     ))
   }
 
-  df$subID <- as.factor(df$subID)
-  df$sex <- as.factor(df$sex)
-
-  t_pfactor <- NA_real_
-  p_boot_main <- NA_real_
-  p_boot_int <- NA_real_
-  main_fit <- tryCatch(
-    lme4::lmer(y ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID) + pfactor_base, data = df, REML = FALSE),
-    error = function(e) NULL
-  )
-  null_main <- tryCatch(
-    lme4::lmer(y ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID), data = df, REML = FALSE),
-    error = function(e) NULL
-  )
-  if (!is.null(main_fit)) {
-    sm <- summary(main_fit)
-    if ("pfactor_base" %in% rownames(sm$coefficients)) {
-      t_pfactor <- sm$coefficients["pfactor_base", "t value"]
-    }
-    if (!is.null(null_main)) {
-      p_boot_main <- pb_lmm_anova(main_fit, null_main, nsim = pb_nsim, seed = pb_seed + i)
-    }
+  df$cov <- df[[cov_name]]
+  form <- stats::as.formula("y ~ age_wp * cov + age_bp + sex + mean_fd + (1 + age_wp || subID)")
+  fit <- tryCatch(lme4::lmer(form, data = df, REML = FALSE), error = function(e) NULL)
+  if (is.null(fit)) {
+    return(list(
+      row = data.frame(edge = edge, n_sub = nrow(df), stringsAsFactors = FALSE),
+      pred_low = data.frame(),
+      pred_high = data.frame()
+    ))
   }
 
-  int_fit <- tryCatch(
-    lme4::lmer(y ~ age_wp * pfactor_base + age_bp + sex + mean_fd + (1 + age_wp || subID), data = df, REML = FALSE),
-    error = function(e) NULL
+  new_base <- data.frame(
+    subID = subid_ref,
+    age_wp = age_seq - age_bp_mean,
+    age_bp = age_bp_mean,
+    sex = sex_ref,
+    mean_fd = mean_fd_mean,
+    cov = q10,
+    age = age_seq,
+    stringsAsFactors = FALSE
   )
-  if (!is.null(int_fit) && !is.null(main_fit)) {
-    p_boot_int <- pb_lmm_anova(int_fit, main_fit, nsim = pb_nsim, seed = pb_seed + 1000L + i)
-  }
+  if (is.factor(df$sex)) new_base$sex <- factor(sex_ref, levels = levels(df$sex))
+  if (is.factor(df$subID)) new_base$subID <- factor(subid_ref, levels = levels(df$subID))
 
-  pred_low <- NULL
-  pred_high <- NULL
-  if (!is.null(int_fit)) {
-    sub_levels <- levels(df$subID)
-    sex_levels <- levels(df$sex)
-    sub_ref <- if (length(sub_levels) > 0) sub_levels[[1]] else subid_ref
-    sex_ref_use <- if (sex_ref %in% sex_levels) sex_ref else sex_levels[[1]]
+  pred_low_val <- tryCatch(
+    stats::predict(fit, newdata = new_base, re.form = NA, allow.new.levels = TRUE),
+    error = function(e) rep(NA_real_, length(age_seq))
+  )
+  pred_low <- data.frame(
+    age = age_seq,
+    .fitted = as.numeric(pred_low_val),
+    label = "low",
+    SC_label = edge,
+    stringsAsFactors = FALSE
+  )
 
-    newdata_low <- data.frame(
-      subID = factor(sub_ref, levels = sub_levels),
-      age_bp = age_bp_mean,
-      age_wp = age_seq - age_bp_mean,
-      sex = factor(sex_ref_use, levels = sex_levels),
-      mean_fd = mean_fd_mean,
-      pfactor_base = q10
-    )
-    newdata_high <- newdata_low
-    newdata_high$pfactor_base <- q90
-
-    pred_low_vals <- tryCatch(predict(int_fit, newdata = newdata_low, re.form = NA), error = function(e) rep(NA_real_, length(age_seq)))
-    pred_high_vals <- tryCatch(predict(int_fit, newdata = newdata_high, re.form = NA), error = function(e) rep(NA_real_, length(age_seq)))
-
-    pred_low <- data.frame(age = age_seq, .fitted = as.numeric(pred_low_vals), label = "low", SC_label = edge)
-    pred_high <- data.frame(age = age_seq, .fitted = as.numeric(pred_high_vals), label = "high", SC_label = edge)
-  }
+  new_base$cov <- q90
+  pred_high_val <- tryCatch(
+    stats::predict(fit, newdata = new_base, re.form = NA, allow.new.levels = TRUE),
+    error = function(e) rep(NA_real_, length(age_seq))
+  )
+  pred_high <- data.frame(
+    age = age_seq,
+    .fitted = as.numeric(pred_high_val),
+    label = "high",
+    SC_label = edge,
+    stringsAsFactors = FALSE
+  )
 
   list(
-    row = data.frame(edge = edge, n_sub = nrow(df),
-                     t_pfactor = as.numeric(t_pfactor),
-                     bootstrap.P.pfactor = as.numeric(p_boot_main),
-                     bootstrap_pvalue = as.numeric(p_boot_int)),
+    row = data.frame(edge = edge, n_sub = nrow(df), stringsAsFactors = FALSE),
     pred_low = pred_low,
     pred_high = pred_high
   )
@@ -362,18 +200,10 @@ out_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_pfactor_tvalue_", Pvar_b
 out_csv <- sub("\\.rds$", ".csv", out_rds)
 pred_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_pfactor_pred_", Pvar_base, "_CV", CVthr, ".rds"))
 
-if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
-  message("[INFO] Found existing results, loading (set FORCE=1 to recompute)")
-  res_df <- readRDS(out_rds)
+if (!force && file.exists(pred_rds)) {
+  message("[INFO] Found existing prediction results, loading (set FORCE=1 to recompute)")
   pred_list <- readRDS(pred_rds)
-  need_cols <- c("t_pfactor", "bootstrap.P.pfactor", "bootstrap_pvalue")
-  missing_cols <- setdiff(need_cols, names(res_df))
-  if (length(missing_cols) > 0) {
-    stop(
-      "Existing results are missing new columns: ", paste(missing_cols, collapse = ", "),
-      "\nSet FORCE=1 to recompute: ", out_rds
-    )
-  }
+  res_df <- if (file.exists(out_rds)) readRDS(out_rds) else data.frame()
 } else {
   message("[INFO] Fitting LMM (pfactor) with age_wp + age_bp and interaction")
   if (.Platform$OS.type == "windows") {
@@ -382,7 +212,7 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
     on.exit(parallel::stopCluster(cl), add = TRUE)
     parallel::clusterExport(
       cl,
-      varlist = c("SCdata", "sc_cols", "fit_edge", "q10", "q90", "age_seq", "age_bp_mean", "sex_ref", "mean_fd_mean", "subid_ref", "pb_lmm_anova"),
+      varlist = c("SCdata", "sc_cols", "fit_edge", "q10", "q90", "age_seq", "age_bp_mean", "sex_ref", "mean_fd_mean", "subid_ref"),
       envir = environment()
     )
     res_list <- parallel::parLapply(
@@ -396,9 +226,7 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
       age_bp_mean = age_bp_mean,
       sex_ref = sex_ref,
       mean_fd_mean = mean_fd_mean,
-      subid_ref = subid_ref,
-      pb_nsim = pb_nsim,
-      pb_seed = pb_seed
+      subid_ref = subid_ref
     )
   } else {
     res_list <- lapply(
@@ -412,9 +240,7 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
       age_bp_mean = age_bp_mean,
       sex_ref = sex_ref,
       mean_fd_mean = mean_fd_mean,
-      subid_ref = subid_ref,
-      pb_nsim = pb_nsim,
-      pb_seed = pb_seed
+      subid_ref = subid_ref
     )
   }
 
@@ -423,8 +249,6 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
   pred_high_list <- lapply(res_list, `[[`, "pred_high")
 
   res_df <- dplyr::bind_rows(res_rows)
-  res_df$bootstrap_pvalue.fdr <- p.adjust(res_df$bootstrap_pvalue, method = "fdr")
-  res_df$bootstrap.P.pfactor.fdr <- p.adjust(res_df$bootstrap.P.pfactor, method = "fdr")
   pred_list <- list(
     low = dplyr::bind_rows(pred_low_list),
     high = dplyr::bind_rows(pred_high_list)
@@ -434,53 +258,6 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
   write.csv(res_df, out_csv, row.names = FALSE)
   saveRDS(pred_list, pred_rds)
 }
-
-if (!("bootstrap_pvalue.fdr" %in% names(res_df))) {
-  res_df$bootstrap_pvalue.fdr <- p.adjust(res_df$bootstrap_pvalue, method = "fdr")
-}
-if (!("bootstrap.P.pfactor.fdr" %in% names(res_df))) {
-  res_df$bootstrap.P.pfactor.fdr <- p.adjust(res_df$bootstrap.P.pfactor, method = "fdr")
-}
-
-message("[INFO] p-factor t value matrix + S-A axis correlation")
-mat_p_t <- vec_to_mat(res_df$t_pfactor, ds = 12)
-sig_pf <- vec_to_mat(res_df$bootstrap.P.pfactor.fdr < 0.05, ds = 12)
-plot_matrix_sig(
-  mat_p_t,
-  sig_pf,
-  "p-factor t value (age_wp/bp LMM)",
-  file.path(FigureFolder, paste0("matrix_pfactor_tvalue_", Pvar_base, "_CV", CVthr))
-)
-
-SCrank.df.pf <- SCrankcorr(res_df, "t_pfactor", 12, dsdata = FALSE)
-saveRDS(SCrank.df.pf, file.path(resultFolder, paste0("SCrankcorr_pfactor_tvalue_", Pvar_base, "_CV", CVthr, ".rds")))
-message("[INFO] SCrankcorr (pfactor t value) r=", round(SCrank.df.pf$r.spearman, 3), " p=", signif(SCrank.df.pf$p.spearman, 3))
-
-SCrank.data.pf <- SCrankcorr(res_df, "t_pfactor", 12, dsdata = TRUE)
-limthr <- max(abs(SCrank.data.pf$t_pfactor), na.rm = TRUE)
-if (!is.finite(limthr) || limthr == 0) limthr <- 1
-scatterFig <- ggplot(SCrank.data.pf) +
-  geom_point(aes(x = SCrank, y = t_pfactor, color = t_pfactor), size = 5) +
-  geom_smooth(aes(x = SCrank, y = t_pfactor), method = "lm", color = "black", linewidth = 1.4) +
-  scale_color_distiller(type = "seq", palette = "RdBu", direction = -1, limits = c(-limthr, limthr)) +
-  theme_classic() +
-  theme(
-    axis.text = element_text(size = 23, color = "black"),
-    axis.title = element_text(size = 23),
-    aspect.ratio = 0.9,
-    axis.line = element_line(linewidth = 0.6),
-    axis.ticks = element_line(linewidth = 0.6),
-    plot.title = element_text(size = 20, hjust = 0.5, vjust = 2),
-    plot.background = element_rect(fill = "transparent", color = NA),
-    panel.background = element_rect(fill = "transparent", color = NA),
-    legend.position = "none"
-  ) +
-  labs(x = "S-A connectional axis rank", y = "p-factor t value")
-
-ggsave(file.path(FigureFolder, paste0("scatter_pfactor_tvalue_vs_SCrank_", Pvar_base, "_CV", CVthr, ".tiff")),
-       scatterFig, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_pfactor_tvalue_vs_SCrank_", Pvar_base, "_CV", CVthr, ".pdf")),
-       scatterFig, width = 15, height = 15, units = "cm", bg = "transparent")
 
 plotdata.all <- dplyr::bind_rows(pred_list$low, pred_list$high)
 plotdata.all <- merge(plotdata.all, SA12_10, by = "SC_label")
