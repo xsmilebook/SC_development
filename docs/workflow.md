@@ -173,6 +173,7 @@
 	       - 脚本：`development_script/1st_dataclean/merge_Chinese_cohort/S2nd_mergedata_SA_ds_sumSC_ChineseCohort.R`（SA7/SA17），`development_script/1st_dataclean/merge_Chinese_cohort/V2nd_mergedata_Yeo_sumSC_ChineseCohort.R`（Yeo7）
 	       - 一键 sbatch（SA7 + SA17 + Yeo7）：`sbatch sbatch/run_chinese_merge_SA7_SA17_Yeo7_container.sbatch`
 	       - 默认输出目录：`outputs/intermediate/1st_dataclean/chinese_cohort/`
+	       - 说明：node volume 的 `*_Volume7.txt` 可能包含 `missing label` 等非数值行；脚本会忽略非数值行并仅使用前 400 个数值，且对缺失 volume 文件的被试给出 warning 并跳过。
 	     - 产物目录：
 	       - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
 	       - results：`outputs/results/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`

@@ -165,6 +165,34 @@ safe_rename <- function(df, mapping) {
   df
 }
 
+read_nodevolume <- function(path, expected_len) {
+  if (!file.exists(path)) {
+    warning("Missing node volume file: ", path)
+    return(NULL)
+  }
+  vol_raw <- tryCatch(
+    read.table(path, header = FALSE, fill = TRUE, stringsAsFactors = FALSE),
+    error = function(e) {
+      warning("Failed to read node volume file: ", path, " (", conditionMessage(e), ")")
+      return(NULL)
+    }
+  )
+  if (is.null(vol_raw) || nrow(vol_raw) == 0) {
+    warning("Empty node volume file: ", path)
+    return(NULL)
+  }
+  vol <- suppressWarnings(as.numeric(vol_raw[[2]]))
+  if (all(is.na(vol))) {
+    vol <- suppressWarnings(as.numeric(vol_raw[[1]]))
+  }
+  vol <- vol[!is.na(vol)]
+  if (length(vol) < expected_len) {
+    warning("Node volume length too short for: ", path, " (", length(vol), " < ", expected_len, ")")
+    return(NULL)
+  }
+  vol[seq_len(expected_len)]
+}
+
 behavior_cols <- c("subID", "Age", "Sex", "Handedness", "CBCLtotalproblem", "EFPCA", "ICV", "mean_fd")
 
 # rbind demographic data (align to the Yeo merge script inputs)
@@ -200,10 +228,13 @@ for (i in 1:nrow(Behavior)){
     
   }
 
+  sc_file <- paste0(SC_path, '/', SCname)
   volumefile <- paste0(Volume_path, '/', subID, '_Volume7.txt')
   # all the T1 parcellation for CuiBP succeed.
-  if (file.exists(paste0(SC_path, '/', SCname))){
-    SCmat <- readMat(paste0(SC_path, '/', SCname)) 
+  if (file.exists(sc_file)){
+    nodevolume <- read_nodevolume(volumefile, expected_len = 400L)
+    if (is.null(nodevolume)) next
+    SCmat <- readMat(sc_file) 
     # load steamline counts matrix & fiber length matrix
     SCmat_raw <- SCmat$schaefer400.sift.radius2.count.connectivity[schaefer376_delLM, schaefer376_delLM]
     SCmat_raw <- SCmat_raw[orderSA_7, orderSA_7] # 376*376 nodes sorted by S-A axis
@@ -237,8 +268,7 @@ for (i in 1:nrow(Behavior)){
     sumSC.raw75 <- result$sum_value75[1:elementnum]
     sumSC.raw25 <- result$sum_value25[1:elementnum]
     ## node volume
-    nodevolume <- read_table(volumefile, col_names=F)
-    nodevolume <- as.numeric(nodevolume$X1[orderSA_7.delLM]) # sort as SA-axis without limbic
+    nodevolume <- nodevolume[orderSA_7.delLM] # sort as SA-axis without limbic
     df2 <- data.frame(
       group = SAds.resolutionnode,
       value = nodevolume

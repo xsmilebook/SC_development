@@ -289,3 +289,4 @@
 - 2026-02-05: 中国队列 merge 脚本支持生成 SA7/SA17/Yeo7，并将输出写入本项目 `outputs/intermediate/1st_dataclean/chinese_cohort/`；新增一键生成三种结果的容器版 `sbatch` 脚本。
 - 2026-02-05: 修复中国队列 merge 脚本 `rbind` 列数不一致：统一 phenotype 合并列并对缺失列补 NA。
 - 2026-02-05: 修复中国队列 merge 脚本 `rename` 重复列名（`subID`）报错：对 CCNP 表使用安全重命名逻辑。
+- 2026-02-05: 修复中国队列 merge 的 node volume 读取：忽略 `missing label` 等非数值行，仅使用前 400 个数值；缺失 volume 文件或长度不足时 warning 并跳过被试。
