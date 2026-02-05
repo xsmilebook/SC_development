@@ -308,8 +308,12 @@
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC.R`
      - 输入：`*combatgam_age_sex_meanfd.rds`（SC + age/sex/mean_fd）
      - 模型：`SC ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID)`；`age_wp = age_ij - mean(age)_i`，`age_bp = mean(age)_i`
-     - 统计：age_wp/age_bp 的 partial R²（full vs null，parametric-bootstrap ANOVA）并做 FDR；输出矩阵与 S-A 相关散点图（散点绘制时对 partial R² 做 3-SD 过滤）
-     - 固定效应：输出 age_wp/age_bp 的 fixed effect（beta）矩阵与 S-A 相关散点图（显著性按对应 term 的 FDR 标注）
+     - 统计：输出 age_wp/age_bp 的 **t 值矩阵**与 S-A 相关散点图（不标注显著性）
+     - 固定效应：输出 age_wp/age_bp 的 fixed effect（beta）矩阵与 S-A 相关散点图（不标注显著性）
+   - ABCD age_wp/age_bp LMM（SC 版本；仅保留至少两次扫描被试）：
+     - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC_2tp.R`
+     - 输入与模型同上；仅保留 `subID` 观测次数 ≥ 2 的被试
+     - 输出：与 SC 版本一致，但文件名后缀为 `_2tp`
    - ABCD SC personal slope（LGCM-style slope per year；不做显著性检验）：
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lgcm_personal_slope_SC.R`
      - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`
@@ -327,6 +331,18 @@
      - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_pfactor_general.R`
      - 输入：纵向 SC `*combatgam_pfactor.rds`（含 `GENERAL`）；baseline pfactor 从 baseline `eventname` 提取
      - 统计：age_bp partial R² 矩阵 + S-A 相关；age_wp personal slope 的低/高组 t 值矩阵（FDR 标注）与 decile 柱状图；personal slope 与 pfactor 相关矩阵及其 S-A 相关散点图
+   - ABCD age_wp/age_bp LMM（cognition 版本；t 值 + interaction 预测）：
+     - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_cognition_tvalue_interaction.R`
+     - 模型 1：`SC ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID) + cognition`
+     - 统计：cognition 的 t 值矩阵 + S-A 相关散点图（不标注显著性）
+     - 模型 2：`SC ~ age_wp * cognition + age_bp + sex + mean_fd + (1 + age_wp || subID)`；取 cognition 的 10%/90% 分位预测 `.fitted`
+     - 图像：按 SA decile（10 组）汇总预测轨迹（低/高两条线），输出 `developmentcurve_decile*`（参考 `run_abcd_pfactor_effect_continuous_S1.R` 风格）
+   - ABCD age_wp/age_bp LMM（p-factor 版本；t 值 + interaction 预测）：
+     - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_pfactor_tvalue_interaction.R`
+     - 模型 1：`SC ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID) + pfactor`
+     - 统计：p-factor 的 t 值矩阵 + S-A 相关散点图（不标注显著性）
+     - 模型 2：`SC ~ age_wp * pfactor + age_bp + sex + mean_fd + (1 + age_wp || subID)`；取 pfactor 的 10%/90% 分位预测 `.fitted`
+     - 图像：按 SA decile（10 组）汇总预测轨迹（低/高两条线），输出 `developmentcurve_decile*`（参考 `run_abcd_pfactor_effect_continuous_S1.R` 风格）
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`

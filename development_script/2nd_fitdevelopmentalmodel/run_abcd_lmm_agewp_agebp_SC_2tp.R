@@ -24,7 +24,7 @@ dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
-out_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_SC_CV", CVthr, ".rds"))
+out_rds <- file.path(resultFolder, paste0("lmm_agewp_bp_SC_CV", CVthr, "_2tp.rds"))
 out_csv <- sub("\\.rds$", ".csv", out_rds)
 
 input_rds <- file.path(
@@ -58,6 +58,10 @@ message(
   "[INFO] SCdata age range (years): ",
   round(min(SCdata$age, na.rm = TRUE), 3), "-", round(max(SCdata$age, na.rm = TRUE), 3)
 )
+
+sub_n <- table(SCdata$subID)
+keep_sub <- names(sub_n[sub_n >= 2])
+SCdata <- SCdata[SCdata$subID %in% keep_sub, , drop = FALSE]
 
 sc_cols <- grep("^SC\\.", names(SCdata), value = TRUE)
 if (any(grepl("_h$", sc_cols))) sc_cols <- sc_cols[grepl("_h$", sc_cols)]
@@ -218,11 +222,11 @@ mat_wp_t <- vec_to_mat(res_df$t_wp, ds = 12)
 plot_matrix(
   mat_wp_t,
   "SC age_wp t value",
-  file.path(FigureFolder, paste0("matrix_age_wp_tvalue_SC_CV", CVthr))
+  file.path(FigureFolder, paste0("matrix_age_wp_tvalue_SC_CV", CVthr, "_2tp"))
 )
 
 SCrank.df.wp_t <- SCrankcorr(res_df, "t_wp", 12, dsdata = FALSE)
-saveRDS(SCrank.df.wp_t, file.path(resultFolder, paste0("SCrankcorr_age_wp_tvalue_SC_CV", CVthr, ".rds")))
+saveRDS(SCrank.df.wp_t, file.path(resultFolder, paste0("SCrankcorr_age_wp_tvalue_SC_CV", CVthr, "_2tp.rds")))
 message("[INFO] SCrankcorr (age_wp t value) r=", round(SCrank.df.wp_t$r.spearman, 3), " p=", signif(SCrank.df.wp_t$p.spearman, 3))
 
 SCrank.data.wp_t <- SCrankcorr(res_df, "t_wp", 12, dsdata = TRUE)
@@ -246,9 +250,9 @@ scatterFig.wp_t <- ggplot(SCrank.data.wp_t) +
   ) +
   labs(x = "S-A connectional axis rank", y = "age_wp t value")
 
-ggsave(file.path(FigureFolder, paste0("scatter_age_wp_tvalue_vs_SCrank_SC_CV", CVthr, ".tiff")),
+ggsave(file.path(FigureFolder, paste0("scatter_age_wp_tvalue_vs_SCrank_SC_CV", CVthr, "_2tp.tiff")),
        scatterFig.wp_t, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_age_wp_tvalue_vs_SCrank_SC_CV", CVthr, ".pdf")),
+ggsave(file.path(FigureFolder, paste0("scatter_age_wp_tvalue_vs_SCrank_SC_CV", CVthr, "_2tp.pdf")),
        scatterFig.wp_t, width = 15, height = 15, units = "cm", bg = "transparent")
 
 message("[INFO] age_bp t value matrix + S-A axis correlation")
@@ -256,11 +260,11 @@ mat_bp_t <- vec_to_mat(res_df$t_bp, ds = 12)
 plot_matrix(
   mat_bp_t,
   "SC age_bp t value",
-  file.path(FigureFolder, paste0("matrix_age_bp_tvalue_SC_CV", CVthr))
+  file.path(FigureFolder, paste0("matrix_age_bp_tvalue_SC_CV", CVthr, "_2tp"))
 )
 
 SCrank.df.bp_t <- SCrankcorr(res_df, "t_bp", 12, dsdata = FALSE)
-saveRDS(SCrank.df.bp_t, file.path(resultFolder, paste0("SCrankcorr_age_bp_tvalue_SC_CV", CVthr, ".rds")))
+saveRDS(SCrank.df.bp_t, file.path(resultFolder, paste0("SCrankcorr_age_bp_tvalue_SC_CV", CVthr, "_2tp.rds")))
 message("[INFO] SCrankcorr (age_bp t value) r=", round(SCrank.df.bp_t$r.spearman, 3), " p=", signif(SCrank.df.bp_t$p.spearman, 3))
 
 SCrank.data.bp_t <- SCrankcorr(res_df, "t_bp", 12, dsdata = TRUE)
@@ -284,9 +288,9 @@ scatterFig.bp_t <- ggplot(SCrank.data.bp_t) +
   ) +
   labs(x = "S-A connectional axis rank", y = "age_bp t value")
 
-ggsave(file.path(FigureFolder, paste0("scatter_age_bp_tvalue_vs_SCrank_SC_CV", CVthr, ".tiff")),
+ggsave(file.path(FigureFolder, paste0("scatter_age_bp_tvalue_vs_SCrank_SC_CV", CVthr, "_2tp.tiff")),
        scatterFig.bp_t, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_age_bp_tvalue_vs_SCrank_SC_CV", CVthr, ".pdf")),
+ggsave(file.path(FigureFolder, paste0("scatter_age_bp_tvalue_vs_SCrank_SC_CV", CVthr, "_2tp.pdf")),
        scatterFig.bp_t, width = 15, height = 15, units = "cm", bg = "transparent")
 
 message("[INFO] age_wp fixed effect (beta_wp) matrix + S-A axis correlation")
@@ -294,11 +298,11 @@ mat_wp <- vec_to_mat(res_df$beta_wp, ds = 12)
 plot_matrix(
   mat_wp,
   "SC age_wp fixed effect (beta)",
-  file.path(FigureFolder, paste0("matrix_age_wp_beta_SC_CV", CVthr))
+  file.path(FigureFolder, paste0("matrix_age_wp_beta_SC_CV", CVthr, "_2tp"))
 )
 
 SCrank.df.wp <- SCrankcorr(res_df, "beta_wp", 12, dsdata = FALSE)
-saveRDS(SCrank.df.wp, file.path(resultFolder, paste0("SCrankcorr_age_wp_beta_SC_CV", CVthr, ".rds")))
+saveRDS(SCrank.df.wp, file.path(resultFolder, paste0("SCrankcorr_age_wp_beta_SC_CV", CVthr, "_2tp.rds")))
 message("[INFO] SCrankcorr (age_wp beta) r=", round(SCrank.df.wp$r.spearman, 3), " p=", signif(SCrank.df.wp$p.spearman, 3))
 
 SCrank.data.wp <- SCrankcorr(res_df, "beta_wp", 12, dsdata = TRUE)
@@ -322,9 +326,9 @@ scatterFig.wp <- ggplot(SCrank.data.wp) +
   ) +
   labs(x = "S-A connectional axis rank", y = "age_wp fixed effect (beta)")
 
-ggsave(file.path(FigureFolder, paste0("scatter_age_wp_beta_vs_SCrank_SC_CV", CVthr, ".tiff")),
+ggsave(file.path(FigureFolder, paste0("scatter_age_wp_beta_vs_SCrank_SC_CV", CVthr, "_2tp.tiff")),
        scatterFig.wp, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_age_wp_beta_vs_SCrank_SC_CV", CVthr, ".pdf")),
+ggsave(file.path(FigureFolder, paste0("scatter_age_wp_beta_vs_SCrank_SC_CV", CVthr, "_2tp.pdf")),
        scatterFig.wp, width = 15, height = 15, units = "cm", bg = "transparent")
 
 message("[INFO] age_bp fixed effect (beta_bp) matrix + S-A axis correlation")
@@ -332,11 +336,11 @@ mat_bp_beta <- vec_to_mat(res_df$beta_bp, ds = 12)
 plot_matrix(
   mat_bp_beta,
   "SC age_bp fixed effect (beta)",
-  file.path(FigureFolder, paste0("matrix_age_bp_beta_SC_CV", CVthr))
+  file.path(FigureFolder, paste0("matrix_age_bp_beta_SC_CV", CVthr, "_2tp"))
 )
 
 SCrank.df.bp_beta <- SCrankcorr(res_df, "beta_bp", 12, dsdata = FALSE)
-saveRDS(SCrank.df.bp_beta, file.path(resultFolder, paste0("SCrankcorr_age_bp_beta_SC_CV", CVthr, ".rds")))
+saveRDS(SCrank.df.bp_beta, file.path(resultFolder, paste0("SCrankcorr_age_bp_beta_SC_CV", CVthr, "_2tp.rds")))
 message("[INFO] SCrankcorr (age_bp beta) r=", round(SCrank.df.bp_beta$r.spearman, 3), " p=", signif(SCrank.df.bp_beta$p.spearman, 3))
 
 SCrank.data.bp_beta <- SCrankcorr(res_df, "beta_bp", 12, dsdata = TRUE)
@@ -360,9 +364,9 @@ scatterFig.bp_beta <- ggplot(SCrank.data.bp_beta) +
   ) +
   labs(x = "S-A connectional axis rank", y = "age_bp fixed effect (beta)")
 
-ggsave(file.path(FigureFolder, paste0("scatter_age_bp_beta_vs_SCrank_SC_CV", CVthr, ".tiff")),
+ggsave(file.path(FigureFolder, paste0("scatter_age_bp_beta_vs_SCrank_SC_CV", CVthr, "_2tp.tiff")),
        scatterFig.bp_beta, width = 15, height = 15, units = "cm", bg = "transparent")
-ggsave(file.path(FigureFolder, paste0("scatter_age_bp_beta_vs_SCrank_SC_CV", CVthr, ".pdf")),
+ggsave(file.path(FigureFolder, paste0("scatter_age_bp_beta_vs_SCrank_SC_CV", CVthr, "_2tp.pdf")),
        scatterFig.bp_beta, width = 15, height = 15, units = "cm", bg = "transparent")
 
 message("[INFO] Done.")

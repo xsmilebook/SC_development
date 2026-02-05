@@ -288,3 +288,5 @@
 - 2026-02-05: SC personal slope 脚本更新：在被试层面控制 `age_t0/sex/mean_fd_t0/mean_fd_t1`，使用 `slope_per_year` 回归残差的均值作为 edge 指标，并据此绘制矩阵与 S-A axis 相关散点图（同时保留 raw mean/sd）。
 - 2026-02-05: SC personal slope 脚本修正：残差均值恒为 0（含截距时的性质）；改为对数值协变量做中心化、`sex` 用 sum contrasts，并以回归模型的截距作为 covariate-adjusted mean slope（用于矩阵与 S-A axis 相关散点图）。
 - 2026-02-05: SC personal slope 脚本更新：协变量模型加入 `SC_t0`（中心化后作为 `SC_t0_c`），即 `slope_per_year ~ age_t0_c + SC_t0_c + sex + mean_fd_t0_c + mean_fd_t1_c`，并以截距作为 covariate-adjusted mean slope。
+- 2026-02-05: age_wp/age_bp SC 脚本改为输出 t 值矩阵与 S-A 相关散点图（不再计算 partial R²）；新增仅保留两次及以上扫描被试的 2tp 版本脚本。
+- 2026-02-05: 新增 cognition/pfactor 的 age_wp/age_bp t 值脚本与 interaction 预测脚本（10%/90% 分位，按 SA decile 输出 10 组发育曲线图）。
