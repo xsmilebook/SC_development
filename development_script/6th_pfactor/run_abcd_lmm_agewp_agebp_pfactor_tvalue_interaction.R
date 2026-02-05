@@ -51,6 +51,7 @@ if (!file.exists(sa12_csv)) stop("Missing ABCD_SA12_CSV: ", sa12_csv)
 SA12_10 <- read.csv(sa12_csv, stringsAsFactors = FALSE)
 
 source(file.path(functionFolder, "SCrankcorr.R"))
+source(file.path(functionFolder, "pb_lmm_anova.R"))
 
 scanid_to_eventname <- function(scanID) {
   sess <- sub("^.*_ses-", "", as.character(scanID))
@@ -199,7 +200,12 @@ num_cores <- as.integer(Sys.getenv("LMM_CORES", unset = "16"))
 if (is.na(num_cores) || num_cores < 1) num_cores <- 16
 num_cores <- min(num_cores, parallel::detectCores())
 
-fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mean, sex_ref, mean_fd_mean, subid_ref) {
+pb_nsim <- as.integer(Sys.getenv("PB_NSIM", unset = "1000"))
+if (is.na(pb_nsim) || pb_nsim < 1) pb_nsim <- 1000
+pb_seed <- as.integer(Sys.getenv("PB_SEED", unset = "925"))
+if (is.na(pb_seed) || pb_seed < 1) pb_seed <- 925
+
+fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mean, sex_ref, mean_fd_mean, subid_ref, pb_nsim, pb_seed) {
   edge <- edges[[i]]
   df <- data_all[, c("subID", "age_wp", "age_bp", "sex", "mean_fd", cov_name, edge)]
   names(df)[ncol(df)] <- "y"
@@ -207,7 +213,9 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
   df <- df[complete.cases(df), , drop = FALSE]
   if (nrow(df) < 10) {
     return(list(
-      row = data.frame(edge = edge, n_sub = nrow(df), t_pfactor = NA_real_),
+      row = data.frame(edge = edge, n_sub = nrow(df), t_pfactor = NA_real_,
+                       p_pfactor = NA_real_, bootstrap.P.pfactor = NA_real_,
+                       bootstrap_pvalue = NA_real_),
       pred_low = NULL,
       pred_high = NULL
     ))
@@ -217,14 +225,25 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
   df$sex <- as.factor(df$sex)
 
   t_pfactor <- NA_real_
+  p_pfactor <- NA_real_
+  p_boot_main <- NA_real_
+  p_boot_int <- NA_real_
   main_fit <- tryCatch(
     lme4::lmer(y ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID) + pfactor_base, data = df, REML = FALSE),
+    error = function(e) NULL
+  )
+  null_main <- tryCatch(
+    lme4::lmer(y ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID), data = df, REML = FALSE),
     error = function(e) NULL
   )
   if (!is.null(main_fit)) {
     sm <- summary(main_fit)
     if ("pfactor_base" %in% rownames(sm$coefficients)) {
       t_pfactor <- sm$coefficients["pfactor_base", "t value"]
+      p_pfactor <- sm$coefficients["pfactor_base", "Pr(>|t|)"]
+    }
+    if (!is.null(null_main)) {
+      p_boot_main <- pb_lmm_anova(main_fit, null_main, nsim = pb_nsim, seed = pb_seed + i)
     }
   }
 
@@ -232,6 +251,9 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
     lme4::lmer(y ~ age_wp * pfactor_base + age_bp + sex + mean_fd + (1 + age_wp || subID), data = df, REML = FALSE),
     error = function(e) NULL
   )
+  if (!is.null(int_fit) && !is.null(main_fit)) {
+    p_boot_int <- pb_lmm_anova(int_fit, main_fit, nsim = pb_nsim, seed = pb_seed + 1000L + i)
+  }
 
   pred_low <- NULL
   pred_high <- NULL
@@ -260,7 +282,11 @@ fit_edge <- function(i, data_all, edges, cov_name, q10, q90, age_seq, age_bp_mea
   }
 
   list(
-    row = data.frame(edge = edge, n_sub = nrow(df), t_pfactor = as.numeric(t_pfactor)),
+    row = data.frame(edge = edge, n_sub = nrow(df),
+                     t_pfactor = as.numeric(t_pfactor),
+                     p_pfactor = as.numeric(p_pfactor),
+                     bootstrap.P.pfactor = as.numeric(p_boot_main),
+                     bootstrap_pvalue = as.numeric(p_boot_int)),
     pred_low = pred_low,
     pred_high = pred_high
   )
@@ -275,6 +301,14 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
   message("[INFO] Found existing results, loading (set FORCE=1 to recompute)")
   res_df <- readRDS(out_rds)
   pred_list <- readRDS(pred_rds)
+  need_cols <- c("t_pfactor", "p_pfactor", "bootstrap.P.pfactor", "bootstrap_pvalue")
+  missing_cols <- setdiff(need_cols, names(res_df))
+  if (length(missing_cols) > 0) {
+    stop(
+      "Existing results are missing new columns: ", paste(missing_cols, collapse = ", "),
+      "\nSet FORCE=1 to recompute: ", out_rds
+    )
+  }
 } else {
   message("[INFO] Fitting LMM (pfactor) with age_wp + age_bp and interaction")
   if (.Platform$OS.type == "windows") {
@@ -283,7 +317,7 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
     on.exit(parallel::stopCluster(cl), add = TRUE)
     parallel::clusterExport(
       cl,
-      varlist = c("SCdata", "sc_cols", "fit_edge", "q10", "q90", "age_seq", "age_bp_mean", "sex_ref", "mean_fd_mean", "subid_ref"),
+      varlist = c("SCdata", "sc_cols", "fit_edge", "q10", "q90", "age_seq", "age_bp_mean", "sex_ref", "mean_fd_mean", "subid_ref", "pb_lmm_anova"),
       envir = environment()
     )
     res_list <- parallel::parLapply(
@@ -297,7 +331,9 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
       age_bp_mean = age_bp_mean,
       sex_ref = sex_ref,
       mean_fd_mean = mean_fd_mean,
-      subid_ref = subid_ref
+      subid_ref = subid_ref,
+      pb_nsim = pb_nsim,
+      pb_seed = pb_seed
     )
   } else {
     res_list <- lapply(
@@ -311,7 +347,9 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
       age_bp_mean = age_bp_mean,
       sex_ref = sex_ref,
       mean_fd_mean = mean_fd_mean,
-      subid_ref = subid_ref
+      subid_ref = subid_ref,
+      pb_nsim = pb_nsim,
+      pb_seed = pb_seed
     )
   }
 
@@ -320,6 +358,8 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
   pred_high_list <- lapply(res_list, `[[`, "pred_high")
 
   res_df <- dplyr::bind_rows(res_rows)
+  res_df$bootstrap_pvalue.fdr <- p.adjust(res_df$bootstrap_pvalue, method = "fdr")
+  res_df$bootstrap.P.pfactor.fdr <- p.adjust(res_df$bootstrap.P.pfactor, method = "fdr")
   pred_list <- list(
     low = dplyr::bind_rows(pred_low_list),
     high = dplyr::bind_rows(pred_high_list)
@@ -328,6 +368,13 @@ if (!force && file.exists(out_rds) && file.exists(pred_rds)) {
   saveRDS(res_df, out_rds)
   write.csv(res_df, out_csv, row.names = FALSE)
   saveRDS(pred_list, pred_rds)
+}
+
+if (!("bootstrap_pvalue.fdr" %in% names(res_df))) {
+  res_df$bootstrap_pvalue.fdr <- p.adjust(res_df$bootstrap_pvalue, method = "fdr")
+}
+if (!("bootstrap.P.pfactor.fdr" %in% names(res_df))) {
+  res_df$bootstrap.P.pfactor.fdr <- p.adjust(res_df$bootstrap.P.pfactor, method = "fdr")
 }
 
 message("[INFO] p-factor t value matrix + S-A axis correlation")
