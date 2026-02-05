@@ -295,3 +295,4 @@
 - 2026-02-05: cognition/pfactor 的 age_wp/age_bp 交互脚本移除 t 值/SCrank 输出，仅保留按 SA decile 的低/高预测轨迹绘图。
 - 2026-02-05: cognition/pfactor 交互 decile 曲线图固定 low/high 线型映射（low=虚线，high=实线），避免因标签顺序导致显示反向。
 - 2026-02-05: cognition/pfactor 交互 decile 曲线新增 2×5 拼接总图（developmentcurve_decile_all_2x5）。
+- 2026-02-05: p-factor 交互 decile 曲线线型调整为 high=虚线（severe）、low=实线（mild）。
