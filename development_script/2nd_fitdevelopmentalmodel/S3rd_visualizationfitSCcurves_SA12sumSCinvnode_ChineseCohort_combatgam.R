@@ -153,21 +153,21 @@ plot_one <- function(idx) {
 plotdatasum <- mclapply(seq_len(n_edges), plot_one, mc.cores = n_cores)
 saveRDS(plotdatasum, out_plotdatasum_list)
 
-## SA12 index & SC rank
-Matrix12 <- matrix(NA, nrow = 12, ncol = 12)
-indexup12 <- upper.tri(Matrix12)
-indexsave12 <- !indexup12
-Matrix12.SCrank <- Matrix12
-for (x in 1:12) {
-  for (y in 1:12) {
-    Matrix12.SCrank[x, y] <- x^2 + y^2
+## S-A index & SC rank
+MatrixSA <- matrix(NA, nrow = ds.resolution, ncol = ds.resolution)
+indexup_sa <- upper.tri(MatrixSA)
+indexsave_sa <- !indexup_sa
+MatrixSA.SCrank <- MatrixSA
+for (x in 1:ds.resolution) {
+  for (y in 1:ds.resolution) {
+    MatrixSA.SCrank[x, y] <- x^2 + y^2
   }
 }
-Matrix12.SCrank[indexup12] <- NA
-Matrix12.SCrank[indexsave12] <- rank(Matrix12.SCrank[indexsave12], ties.method = "average")
+MatrixSA.SCrank[indexup_sa] <- NA
+MatrixSA.SCrank[indexsave_sa] <- rank(MatrixSA.SCrank[indexsave_sa], ties.method = "average")
 
 parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
-SCrank_map <- setNames(Matrix12.SCrank[indexsave12], parcel_all)
+SCrank_map <- setNames(MatrixSA.SCrank[indexsave_sa], parcel_all)
 
 ok_plot_idx <- which(!vapply(plotdatasum, is.null, logical(1)))
 if (length(ok_plot_idx) == 0) stop("All plotdata_generate() calls failed; see warnings above.")
@@ -230,12 +230,12 @@ ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.tiff"), p2, width
 ggsave(file.path(FigureFolder_SCfit, "devcurve_meanderv2_fit.Z.pdf"), p2, dpi = 600, width = 15, height = 15, units = "cm", bg = "transparent")
 
 ## Average fitted values for 10 deciles of connectional axis
-SA12_10 <- data.frame(SCrank = Matrix12.SCrank[indexsave12]) %>%
+SA_10 <- data.frame(SCrank = MatrixSA.SCrank[indexsave_sa]) %>%
   mutate(decile = ntile(SCrank, 10))
-SA12_10$SC_label <- parcel_all
-write.csv(SA12_10, file.path(interfileFolder, "SA12_10.csv"), row.names = FALSE)
+SA_10$SC_label <- parcel_all
+write.csv(SA_10, file.path(interfileFolder, paste0(out_tag, "_10.csv")), row.names = FALSE)
 
-plotdatasum.df.label <- merge(plotdatasum.df, SA12_10, by.x = "SC_label", by.y = "SC_label", all.x = TRUE)
+plotdatasum.df.label <- merge(plotdatasum.df, SA_10, by.x = "SC_label", by.y = "SC_label", all.x = TRUE)
 plotdatasum.df.decile <- plotdatasum.df.label %>%
   group_by(decile, age) %>%
   summarise(fit.avg = mean(fit), .groups = "drop")
