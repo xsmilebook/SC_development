@@ -283,3 +283,4 @@
 - 2026-02-04: age LMM 与 age_wp/age_bp LMM 输出 ranef(age_wp/age) 全 0 的边清单与数量，并在结果表中新增随机斜率方差列。
 - 2026-02-04: age LMM 的随机斜率方差列改为使用 `VarCorr(lmer)` 的参数估计（不再使用 BLUP 方差）。
 - 2026-02-05: age_wp/age_bp SC 脚本：结果存在时默认直接读取；新增 age_wp 固定效应（beta）矩阵与 S-A 散点；partial R² 的 3-SD 过滤仅用于散点图。
+- 2026-02-05: age_wp/age_bp SC 脚本补齐 age_wp/age_bp 的 partial R² 与 beta 的矩阵/散点图输出。
