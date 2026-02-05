@@ -169,6 +169,10 @@
 	   - Chinese Cohort（基于 ComBat-GAM 输出）的可复现运行入口：
 	     - 输入默认：`outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_chinese_devmodel_combatgam_CV75_container.sbatch`
+	     - 中国队列 merge 数据生成（pre-ComBat；输出到当前项目路径）：
+	       - 脚本：`development_script/1st_dataclean/merge_Chinese_cohort/S2nd_mergedata_SA_ds_sumSC_ChineseCohort.R`（SA7/SA17），`development_script/1st_dataclean/merge_Chinese_cohort/V2nd_mergedata_Yeo_sumSC_ChineseCohort.R`（Yeo7）
+	       - 一键 sbatch（SA7 + SA17 + Yeo7）：`sbatch sbatch/run_chinese_merge_SA7_SA17_Yeo7_container.sbatch`
+	       - 默认输出目录：`outputs/intermediate/1st_dataclean/chinese_cohort/`
 	     - 产物目录：
 	       - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
 	       - results：`outputs/results/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
