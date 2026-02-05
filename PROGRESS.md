@@ -293,3 +293,4 @@
 - 2026-02-05: 中国队列 CuiBP demopath 改为项目内 `demopath/basic_demo_merge_screen.xlsx`。
 - 2026-02-05: 中国队列 devmodel/changerate 脚本新增 `ds_res/out_tag` 支持，SA7/SA17 输出独立命名与目录。
 - 2026-02-05: 新增中国队列 Yeo7 ComBat-GAM devmodel/changerate 脚本与 SA7/SA17/Yeo7 的容器版 sbatch 提交脚本。
+- 2026-02-05: 新增中国队列 SA7/SA17/Yeo7 的 ComBat-GAM sbatch 提交脚本。
