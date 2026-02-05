@@ -298,3 +298,4 @@
 - 2026-02-05: p-factor 交互 decile 曲线线型调整为 high=虚线（severe）、low=实线（mild）。
 - 2026-02-05: SC age_wp/age_bp 与 cognition/pfactor 交互脚本移除随机斜率，统一为随机截距 (1 | subID)。
 - 2026-02-05: p-factor 交互脚本改用纵向 pfactor 数据（不再取 baseline），并调整线型为低=虚线、高=实线以对齐参考脚本。
+- 2026-02-05: p-factor 交互 decile 曲线线型对齐参考脚本（high=虚线，low=实线）。
