@@ -75,6 +75,7 @@ elementnum <- ds.resolution * (ds.resolution + 1) / 2
 out_tag <- if (!is.null(args$out_tag)) as.character(args$out_tag) else ""
 tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
 make_matrix_graphs <- as.integer(if (!is.null(args$make_matrix_graphs)) args$make_matrix_graphs else 0L) == 1L
+skip_euclid <- as.integer(if (!is.null(args$skip_euclid)) args$skip_euclid else 0L) == 1L
 
 interfileFolder <- file.path(
   project_root, "outputs", "intermediate", "2nd_fitdevelopmentalmodel",
@@ -123,8 +124,14 @@ euclid_csv <- if (!is.null(args$euclid_csv)) {
 } else {
   file.path(project_root, "wd", "interdataFolder_HCPD", paste0("average_EuclideanDistance_", ds.resolution, ".csv"))
 }
-if (!file.exists(euclid_csv)) stop("Missing euclid_csv: ", euclid_csv)
-EucDistance <- read.csv(euclid_csv)
+do_euclid <- !skip_euclid
+EucDistance <- NULL
+if (do_euclid) {
+  if (!file.exists(euclid_csv)) stop("Missing euclid_csv: ", euclid_csv)
+  EucDistance <- read.csv(euclid_csv)
+} else {
+  message("[INFO] skip_euclid=1: skipping Euclidean-distance control.")
+}
 
 message(sum(gamresult$sig), " edges have significant developmental effects.")
 
@@ -141,8 +148,7 @@ if (!force && !skip_compute &&
   file.exists(out_summary) &&
   file.exists(out_fig_meanderv2) &&
   file.exists(out_fig_meanderv2_pdf) &&
-  file.exists(out_fig_meanderv2_ctrl_tiff) &&
-  file.exists(out_fig_meanderv2_ctrl_pdf)) {
+  (!do_euclid || (file.exists(out_fig_meanderv2_ctrl_tiff) && file.exists(out_fig_meanderv2_ctrl_pdf)))) {
   message("[INFO] S4 outputs exist; skipping S4. Set --force=1 to re-run.")
   tryCatch({
     SCrank_correlation <- read.csv(out_summary, stringsAsFactors = FALSE)
@@ -169,19 +175,21 @@ meanSC_map <- setNames(meanSC, sc_cols)
 
 parcel_all <- paste0("SC.", seq_len(elementnum), "_h")
 
-if (!"Edistance" %in% names(EucDistance)) stop("Euclidean distance CSV missing column 'Edistance': ", euclid_csv)
-if ("SC_label" %in% names(EucDistance)) {
-  Edist_map <- setNames(EucDistance$Edistance, as.character(EucDistance$SC_label))
-} else if ("parcel" %in% names(EucDistance)) {
-  Edist_map <- setNames(EucDistance$Edistance, as.character(EucDistance$parcel))
-} else if (nrow(EucDistance) == elementnum) {
-  Edist_map <- setNames(EucDistance$Edistance, parcel_all)
-} else {
-  stop("Euclidean distance CSV cannot be aligned (need SC_label/parcel or nrow==78): ", euclid_csv)
-}
+if (do_euclid) {
+  if (!"Edistance" %in% names(EucDistance)) stop("Euclidean distance CSV missing column 'Edistance': ", euclid_csv)
+  if ("SC_label" %in% names(EucDistance)) {
+    Edist_map <- setNames(EucDistance$Edistance, as.character(EucDistance$SC_label))
+  } else if ("parcel" %in% names(EucDistance)) {
+    Edist_map <- setNames(EucDistance$Edistance, as.character(EucDistance$parcel))
+  } else if (nrow(EucDistance) == elementnum) {
+    Edist_map <- setNames(EucDistance$Edistance, parcel_all)
+  } else {
+    stop("Euclidean distance CSV cannot be aligned (need SC_label/parcel or nrow==elementnum): ", euclid_csv)
+  }
 
-meanSC_aligned <- meanSC_map[gamresult$parcel]
-gamresult$EucDistance <- unname(Edist_map[gamresult$parcel])
+  meanSC_aligned <- meanSC_map[gamresult$parcel]
+  gamresult$EucDistance <- unname(Edist_map[gamresult$parcel])
+}
 
 ## convert critical ages of insignificantly developmental edges to NA
 ## convert critical ages equal to age boundaries to NA (age boundaries depend on each edge/model).
@@ -203,14 +211,16 @@ if ("meanderv2" %in% names(gamresult)) {
 }
 
 ## Validation: Control for Euclidean distance
-if ("partialRsq" %in% names(gamresult)) {
-  fit_pr <- lm(partialRsq ~ EucDistance, data = gamresult, na.action = na.exclude)
-  gamresult$partialRsq_control_distance <- as.numeric(residuals(fit_pr))
-}
+if (do_euclid) {
+  if ("partialRsq" %in% names(gamresult)) {
+    fit_pr <- lm(partialRsq ~ EucDistance, data = gamresult, na.action = na.exclude)
+    gamresult$partialRsq_control_distance <- as.numeric(residuals(fit_pr))
+  }
 
-if ("meanderv2_c" %in% names(gamresult)) {
-  fit_md <- lm(meanderv2_c ~ EucDistance, data = gamresult, na.action = na.exclude)
-  gamresult$meanderv2_c_control_distance <- as.numeric(residuals(fit_md))
+  if ("meanderv2_c" %in% names(gamresult)) {
+    fit_md <- lm(meanderv2_c ~ EucDistance, data = gamresult, na.action = na.exclude)
+    gamresult$meanderv2_c_control_distance <- as.numeric(residuals(fit_md))
+  }
 }
 
 if (!skip_compute) {

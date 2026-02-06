@@ -113,6 +113,7 @@ cmd=(
   --ds_res="${DS_RES}"
   --out_tag="${OUT_TAG}"
   --input_rds="${INPUT_RDS_CONTAINER}"
+  --skip_euclid=1
   --make_matrix_graphs="${MAKE_MATRIX_GRAPHS}"
   --force=1
 )

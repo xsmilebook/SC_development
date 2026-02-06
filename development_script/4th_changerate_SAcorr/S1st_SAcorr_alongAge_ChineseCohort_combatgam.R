@@ -71,10 +71,11 @@ ds.resolution <- as_int(args$ds_res, 12L)
 out_tag <- if (!is.null(args$out_tag)) as.character(args$out_tag) else ""
 tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
 save_svg <- is_windows
+skip_euclid <- as_int(args$skip_euclid, 0L) == 1L
 
 in_euclid <- if (!is.null(args$euclid_csv)) {
   args$euclid_csv
-} else {
+} else if (!skip_euclid) {
   # Prefer the generic SA12 distance table if present.
   # (We keep distances under existing wd/* folders; Chinese does not have its own copy.)
   candidates <- c(
@@ -82,7 +83,10 @@ in_euclid <- if (!is.null(args$euclid_csv)) {
     file.path(project_root, "wd", "interdataFolder_HCPD", paste0("average_EuclideanDistance_", ds.resolution, ".csv"))
   )
   candidates[file.exists(candidates)][[1]]
+} else {
+  NA_character_
 }
+do_euclid <- !skip_euclid
 
 result_dir <- file.path(project_root, "outputs", "results", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix))
 figure_dir <- file.path(project_root, "outputs", "figures", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix), "Alignment_development")
@@ -123,12 +127,12 @@ out_flip_cd <- file.path(result_dir, "alignment_summary_flip_age_control_distanc
 if (plot_only) {
   message("[INFO] Windows detected: plot-only mode (use existing results).")
   if (!file.exists(out_corr_gz) || !file.exists(out_curve) || !file.exists(out_flip) ||
-      !file.exists(out_corr_gz_cd) || !file.exists(out_curve_cd) || !file.exists(out_flip_cd)) {
+      (do_euclid && (!file.exists(out_corr_gz_cd) || !file.exists(out_curve_cd) || !file.exists(out_flip_cd)))) {
     stop("Plot-only mode requires existing outputs: ", result_dir)
   }
 } else if (!force &&
            file.exists(out_corr_gz) && file.exists(out_curve) && file.exists(out_flip) &&
-           file.exists(out_corr_gz_cd) && file.exists(out_curve_cd) && file.exists(out_flip_cd)) {
+           (!do_euclid || (file.exists(out_corr_gz_cd) && file.exists(out_curve_cd) && file.exists(out_flip_cd)))) {
   message("[INFO] Outputs exist; skipping (set --force=1 to re-run): ", result_dir)
   quit(save = "no", status = 0)
 }
@@ -137,7 +141,7 @@ message("[INFO] dataset=", dataset)
 message("[INFO] CVthr=", CVthr)
 message("[INFO] in_derivative_posterior=", in_derivative_posterior)
 message("[INFO] in_derivative=", in_derivative)
-message("[INFO] in_euclid=", in_euclid)
+message("[INFO] in_euclid=", ifelse(is.na(in_euclid), "<skip>", in_euclid))
 message("[INFO] n_cores=", n_cores)
 message("[INFO] n_draws_req=", n_draws_req)
 message("[INFO] save_svg=", save_svg)
@@ -156,21 +160,24 @@ if (any(is.na(edge_sarank_value))) {
 }
 sa_rank <- rank(edge_sarank_value, ties.method = "average")
 
-if (!file.exists(in_euclid)) stop("Missing euclidean distance CSV (--euclid_csv): ", in_euclid)
-euclid_df <- read.csv(in_euclid, stringsAsFactors = FALSE)
-if (!all(c("Edistance", "SC_label") %in% names(euclid_df))) {
-  stop("Euclidean distance CSV missing required columns Edistance/SC_label: ", in_euclid)
+dist_vec <- NULL
+if (do_euclid) {
+  if (!file.exists(in_euclid)) stop("Missing euclidean distance CSV (--euclid_csv): ", in_euclid)
+  euclid_df <- read.csv(in_euclid, stringsAsFactors = FALSE)
+  if (!all(c("Edistance", "SC_label") %in% names(euclid_df))) {
+    stop("Euclidean distance CSV missing required columns Edistance/SC_label: ", in_euclid)
+  }
+  edge_labels <- paste0("SC.", seq_len(length(posterior_list)), "_h")
+  dist_match <- match(edge_labels, as.character(euclid_df$SC_label))
+  if (any(is.na(dist_match))) {
+    missing_labs <- edge_labels[is.na(dist_match)]
+    stop("Euclidean distance CSV missing labels (first few): ",
+         paste(head(missing_labs, 10), collapse = ", "),
+         " ... file=", in_euclid)
+  }
+  dist_vec <- as.numeric(euclid_df$Edistance[dist_match])
+  if (any(!is.finite(dist_vec))) stop("Non-finite Edistance found after matching labels in: ", in_euclid)
 }
-edge_labels <- paste0("SC.", seq_len(length(posterior_list)), "_h")
-dist_match <- match(edge_labels, as.character(euclid_df$SC_label))
-if (any(is.na(dist_match))) {
-  missing_labs <- edge_labels[is.na(dist_match)]
-  stop("Euclidean distance CSV missing labels (first few): ",
-       paste(head(missing_labs, 10), collapse = ", "),
-       " ... file=", in_euclid)
-}
-dist_vec <- as.numeric(euclid_df$Edistance[dist_match])
-if (any(!is.finite(dist_vec))) stop("Non-finite Edistance found after matching labels in: ", in_euclid)
 
 age_values <- sort(unique(as.numeric(posterior_list[[1]]$age)))
 if (length(age_values) < 10) stop("Too few unique age points in posterior derivatives: ", length(age_values))
@@ -183,16 +190,18 @@ message("[INFO] age_points=", length(age_values), " draw_count=", length(draw_ke
 
 if (plot_only) {
   curve_df <- read.csv(out_curve)
-  curve_df_cd <- read.csv(out_curve_cd)
   flip_df <- read.csv(out_flip)
-  flip_df_cd <- read.csv(out_flip_cd)
   corr_df <- read.csv(gzfile(out_corr_gz))
-  corr_df_cd <- read.csv(gzfile(out_corr_gz_cd))
   age_values <- as.numeric(sub("^age_", "", names(corr_df)[-1]))
   corr_mat <- as.matrix(corr_df[, -1, drop = FALSE])
-  corr_mat_cd <- as.matrix(corr_df_cd[, -1, drop = FALSE])
   corr_mat_round <- round(corr_mat, 4)
-  corr_mat_round_cd <- round(corr_mat_cd, 4)
+  if (do_euclid) {
+    curve_df_cd <- read.csv(out_curve_cd)
+    flip_df_cd <- read.csv(out_flip_cd)
+    corr_df_cd <- read.csv(gzfile(out_corr_gz_cd))
+    corr_mat_cd <- as.matrix(corr_df_cd[, -1, drop = FALSE])
+    corr_mat_round_cd <- round(corr_mat_cd, 4)
+  }
   sum_main <- list(
     median_rho = as.numeric(curve_df$rho_median),
     ci_low = as.numeric(curve_df$rho_ci_low),
@@ -205,18 +214,20 @@ if (plot_only) {
     flip_median = as.numeric(flip_df$flip_age_median[[1]]),
     flip_ci = c(as.numeric(flip_df$flip_age_ci_low[[1]]), as.numeric(flip_df$flip_age_ci_high[[1]]))
   )
-  sum_cd <- list(
-    median_rho = as.numeric(curve_df_cd$rho_median),
-    ci_low = as.numeric(curve_df_cd$rho_ci_low),
-    ci_high = as.numeric(curve_df_cd$rho_ci_high),
-    flip_age_each_draw = vapply(seq_len(nrow(corr_mat_round_cd)), function(i) {
-      row <- corr_mat_round_cd[i, ]
-      idx <- which.min(abs(row - 0))
-      age_values[[idx]]
-    }, numeric(1)),
-    flip_median = as.numeric(flip_df_cd$flip_age_median[[1]]),
-    flip_ci = c(as.numeric(flip_df_cd$flip_age_ci_low[[1]]), as.numeric(flip_df_cd$flip_age_ci_high[[1]]))
-  )
+  if (do_euclid) {
+    sum_cd <- list(
+      median_rho = as.numeric(curve_df_cd$rho_median),
+      ci_low = as.numeric(curve_df_cd$rho_ci_low),
+      ci_high = as.numeric(curve_df_cd$rho_ci_high),
+      flip_age_each_draw = vapply(seq_len(nrow(corr_mat_round_cd)), function(i) {
+        row <- corr_mat_round_cd[i, ]
+        idx <- which.min(abs(row - 0))
+        age_values[[idx]]
+      }, numeric(1)),
+      flip_median = as.numeric(flip_df_cd$flip_age_median[[1]]),
+      flip_ci = c(as.numeric(flip_df_cd$flip_age_ci_low[[1]]), as.numeric(flip_df_cd$flip_age_ci_high[[1]]))
+    )
+  }
 } else {
   compute_corr_one_draw <- function(draw_label) {
     # Build edge x age matrix for this draw
@@ -237,26 +248,35 @@ if (plot_only) {
       if (all(is.na(v))) next
       rho[[j]] <- suppressWarnings(cor(v, sa_rank, method = "spearman", use = "pairwise.complete.obs"))
 
-      ok <- is.finite(v) & is.finite(dist_vec) & is.finite(sa_rank)
-      if (sum(ok) < 3) next
-      resid <- suppressWarnings(residuals(stats::lm(v[ok] ~ dist_vec[ok])))
-      rho_cd[[j]] <- suppressWarnings(cor(resid, sa_rank[ok], method = "spearman", use = "pairwise.complete.obs"))
+      if (do_euclid) {
+        ok <- is.finite(v) & is.finite(dist_vec) & is.finite(sa_rank)
+        if (sum(ok) < 3) next
+        resid <- suppressWarnings(residuals(stats::lm(v[ok] ~ dist_vec[ok])))
+        rho_cd[[j]] <- suppressWarnings(cor(resid, sa_rank[ok], method = "spearman", use = "pairwise.complete.obs"))
+      }
     }
-    list(rho = rho, rho_control_distance = rho_cd)
+    if (do_euclid) {
+      return(list(rho = rho, rho_control_distance = rho_cd))
+    }
+    list(rho = rho)
   }
 
   corr_rows <- mclapply(draw_keep, compute_corr_one_draw, mc.cores = n_cores)
   corr_mat <- do.call(rbind, lapply(corr_rows, `[[`, "rho"))
-  corr_mat_cd <- do.call(rbind, lapply(corr_rows, `[[`, "rho_control_distance"))
   colnames(corr_mat) <- paste0("age_", format(age_values, trim = TRUE, scientific = FALSE))
   rownames(corr_mat) <- draw_keep
-  colnames(corr_mat_cd) <- colnames(corr_mat)
-  rownames(corr_mat_cd) <- draw_keep
+  if (do_euclid) {
+    corr_mat_cd <- do.call(rbind, lapply(corr_rows, `[[`, "rho_control_distance"))
+    colnames(corr_mat_cd) <- colnames(corr_mat)
+    rownames(corr_mat_cd) <- draw_keep
+  }
 
   # Match the historical Rmd behavior: round correlations to 4 decimals before
   # computing medians/CI and flip-age (rho≈0) window.
   corr_mat_round <- round(corr_mat, 4)
-  corr_mat_round_cd <- round(corr_mat_cd, 4)
+  if (do_euclid) {
+    corr_mat_round_cd <- round(corr_mat_cd, 4)
+  }
 
   write_corr_gz <- function(path, mat) {
     con <- gzfile(path, open = "wt")
@@ -266,7 +286,9 @@ if (plot_only) {
 
   # Save full draw x age correlations (compressed CSV)
   write_corr_gz(out_corr_gz, corr_mat)
-  write_corr_gz(out_corr_gz_cd, corr_mat_cd)
+  if (do_euclid) {
+    write_corr_gz(out_corr_gz_cd, corr_mat_cd)
+  }
 
   summarize_corr <- function(mat_round) {
     median_rho <- apply(mat_round, 2, median, na.rm = TRUE)
@@ -292,7 +314,9 @@ if (plot_only) {
   }
 
   sum_main <- summarize_corr(corr_mat_round)
-  sum_cd <- summarize_corr(corr_mat_round_cd)
+  if (do_euclid) {
+    sum_cd <- summarize_corr(corr_mat_round_cd)
+  }
 
   write_summary <- function(curve_path, flip_path, sum_obj, n_edges, n_draws, n_age_points) {
     curve_df <- data.frame(
@@ -316,7 +340,9 @@ if (plot_only) {
   }
 
   curve_df <- write_summary(out_curve, out_flip, sum_main, length(posterior_list), nrow(corr_mat), length(age_values))
-  curve_df_cd <- write_summary(out_curve_cd, out_flip_cd, sum_cd, length(posterior_list), nrow(corr_mat_cd), length(age_values))
+  if (do_euclid) {
+    curve_df_cd <- write_summary(out_curve_cd, out_flip_cd, sum_cd, length(posterior_list), nrow(corr_mat_cd), length(age_values))
+  }
 }
 
 # Print numeric results to stdout for SLURM logs
@@ -329,11 +355,13 @@ message(sprintf("[RESULT] rho_median_max=%.5f at age=%.5f", sum_main$median_rho[
 message(sprintf("[RESULT] rho_median_first=%.5f at age=%.5f", sum_main$median_rho[[1]], age_values[[1]]))
 message(sprintf("[RESULT] rho_median_last=%.5f at age=%.5f", sum_main$median_rho[[length(sum_main$median_rho)]], age_values[[length(age_values)]]))
 
-min_idx_cd <- which.min(sum_cd$median_rho)
-max_idx_cd <- which.max(sum_cd$median_rho)
-message(sprintf("[RESULT] control_distance flip_age_median=%.5f CI95=[%.5f, %.5f]", sum_cd$flip_median, sum_cd$flip_ci[[1]], sum_cd$flip_ci[[2]]))
-message(sprintf("[RESULT] control_distance rho_median_min=%.5f at age=%.5f", sum_cd$median_rho[[min_idx_cd]], age_values[[min_idx_cd]]))
-message(sprintf("[RESULT] control_distance rho_median_max=%.5f at age=%.5f", sum_cd$median_rho[[max_idx_cd]], age_values[[max_idx_cd]]))
+if (do_euclid) {
+  min_idx_cd <- which.min(sum_cd$median_rho)
+  max_idx_cd <- which.max(sum_cd$median_rho)
+  message(sprintf("[RESULT] control_distance flip_age_median=%.5f CI95=[%.5f, %.5f]", sum_cd$flip_median, sum_cd$flip_ci[[1]], sum_cd$flip_ci[[2]]))
+  message(sprintf("[RESULT] control_distance rho_median_min=%.5f at age=%.5f", sum_cd$median_rho[[min_idx_cd]], age_values[[min_idx_cd]]))
+  message(sprintf("[RESULT] control_distance rho_median_max=%.5f at age=%.5f", sum_cd$median_rho[[max_idx_cd]], age_values[[max_idx_cd]]))
+}
 
 # Figures: alignment curve + flip-age histogram
 prep_curve_for_plot <- function(curve_df, flip_ci) {
@@ -406,14 +434,16 @@ ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_flip_age_hist.pd
 ggsave(file.path(figure_dir, "Agedistribution_0corr.tiff"), p_hist_rmd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
 ggsave(file.path(figure_dir, "Agedistribution_0corr.pdf"), p_hist_rmd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
 
-curve_df_plot_cd <- prep_curve_for_plot(curve_df_cd, sum_cd$flip_ci)
-p_align_cd <- make_alignment_plot(curve_df_plot_cd)
-ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_divweight_corr_control_distance.tiff")), p_align_cd, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_divweight_corr_control_distance.pdf")), p_align_cd, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+if (do_euclid) {
+  curve_df_plot_cd <- prep_curve_for_plot(curve_df_cd, sum_cd$flip_ci)
+  p_align_cd <- make_alignment_plot(curve_df_plot_cd)
+  ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_divweight_corr_control_distance.tiff")), p_align_cd, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
+  ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_divweight_corr_control_distance.pdf")), p_align_cd, dpi = 600, width = 13.5, height = 13.5, units = "cm", bg = "transparent")
 
-p_hist_cd <- make_flip_hist_plot(sum_cd$flip_age_each_draw, sum_cd$flip_median)
-ggsave(file.path(figure_dir, "Agedistribution_0corr_control_distance.tiff"), p_hist_cd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, "Agedistribution_0corr_control_distance.pdf"), p_hist_cd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+  p_hist_cd <- make_flip_hist_plot(sum_cd$flip_age_each_draw, sum_cd$flip_median)
+  ggsave(file.path(figure_dir, "Agedistribution_0corr_control_distance.tiff"), p_hist_cd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+  ggsave(file.path(figure_dir, "Agedistribution_0corr_control_distance.pdf"), p_hist_cd, dpi = 600, width = 6, height = 6, units = "cm", bg = "transparent")
+}
 
 save_svg_if_available <- function(filename, plot, width_cm, height_cm, dpi = 600) {
   if (!requireNamespace("svglite", quietly = TRUE)) {
@@ -429,9 +459,11 @@ if (save_svg) {
   save_svg_if_available(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_alignment.svg")), p_align, width_cm = 13.5, height_cm = 13.5)
   save_svg_if_available(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_flip_age_hist.svg")), p_hist_rmd, width_cm = 6, height_cm = 6)
   save_svg_if_available(file.path(figure_dir, "Agedistribution_0corr.svg"), p_hist_rmd, width_cm = 6, height_cm = 6)
-  save_svg_if_available(file.path(figure_dir, paste0(plot_tag, "_posDeriv_divweight_corr_control_distance.svg")), p_align_cd, width_cm = 13.5, height_cm = 13.5)
-  save_svg_if_available(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_alignment_control_distance.svg")), p_align_cd, width_cm = 13.5, height_cm = 13.5)
-  save_svg_if_available(file.path(figure_dir, "Agedistribution_0corr_control_distance.svg"), p_hist_cd, width_cm = 6, height_cm = 6)
+  if (do_euclid) {
+    save_svg_if_available(file.path(figure_dir, paste0(plot_tag, "_posDeriv_divweight_corr_control_distance.svg")), p_align_cd, width_cm = 13.5, height_cm = 13.5)
+    save_svg_if_available(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_alignment_control_distance.svg")), p_align_cd, width_cm = 13.5, height_cm = 13.5)
+    save_svg_if_available(file.path(figure_dir, "Agedistribution_0corr_control_distance.svg"), p_hist_cd, width_cm = 6, height_cm = 6)
+  }
 }
 
 # Additional figures from the original Rmd: age-specific derivative scatter/matrix and derivative line plot.
