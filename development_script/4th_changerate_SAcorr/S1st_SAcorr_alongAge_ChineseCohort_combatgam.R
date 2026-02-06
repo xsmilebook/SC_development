@@ -73,17 +73,20 @@ tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
 save_svg <- is_windows
 skip_euclid <- as_int(args$skip_euclid, 0L) == 1L
 
+do_euclid <- !skip_euclid && ds.resolution == 12L
 in_euclid <- if (!is.null(args$euclid_csv)) {
   args$euclid_csv
-} else {
+} else if (do_euclid) {
   # Prefer the generic distance table if present.
   candidates <- c(
     file.path(project_root, "wd", "interdataFolder_ABCD", paste0("average_EuclideanDistance_", ds.resolution, ".csv")),
     file.path(project_root, "wd", "interdataFolder_HCPD", paste0("average_EuclideanDistance_", ds.resolution, ".csv"))
   )
-  candidates[file.exists(candidates)][[1]]
+  available <- candidates[file.exists(candidates)]
+  if (length(available) > 0) available[[1]] else NA_character_
+} else {
+  NA_character_
 }
-do_euclid <- !skip_euclid && ds.resolution == 12L
 if (!do_euclid) {
   in_euclid <- NA_character_
 } else if (is.null(in_euclid) || is.na(in_euclid) || !file.exists(in_euclid)) {
