@@ -354,8 +354,11 @@
       - `y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)`
       - `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)`
     - 预测与图像（不输出 t 值矩阵）：
+      - `age_wp*cov`：预测时固定 `age_bp=mean(age_bp)`，`age_wp` 取数据范围；横轴显示实际年龄 `Age=age_wp+mean(age_bp)`
+      - `age_bp*cov`：预测时固定 `age_wp=mean(age_wp)`，`age_bp` 取数据范围；横轴显示实际年龄 `Age=age_bp+mean(age_wp)`
       - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
       - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - 坐标轴：`x=Age`（整数刻度）；`y=SC strength (ratio)`（一位小数；范围/刻度对齐既有脚本）
   - ABCD age_wp/age_bp LMM（p-factor 版本；基线年龄分解 + baseline pfactor + 双交互 + decile 聚合 SC）：
     - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_baselineage_pfactor_interaction_decileavg.R`
     - 年龄定义：`age_bp` 为 baseline age（基线访视年龄），`age_wp = age_current - age_bp`
@@ -364,8 +367,11 @@
       - `y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)`
       - `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)`
     - 预测与图像（不输出 t 值矩阵）：
+      - `age_wp*cov`：预测时固定 `age_bp=mean(age_bp)`，`age_wp` 取数据范围；横轴显示实际年龄 `Age=age_wp+mean(age_bp)`
+      - `age_bp*cov`：预测时固定 `age_wp=mean(age_wp)`，`age_bp` 取数据范围；横轴显示实际年龄 `Age=age_bp+mean(age_wp)`
       - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
       - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - 坐标轴：`x=Age`（整数刻度）；`y=SC strength (ratio)`（一位小数；范围/刻度对齐既有脚本）
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
