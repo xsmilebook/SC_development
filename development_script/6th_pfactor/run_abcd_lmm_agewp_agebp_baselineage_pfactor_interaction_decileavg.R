@@ -170,7 +170,7 @@ predict_low_high <- function(
 }
 
 fit_outcome_models <- function(
-    data_all, y_col, cov_col, q_low, q_high, age_wp_seq, age_bp_seq,
+    data_all, y_col, cov_col, q_low, q_high, age_actual_seq,
     age_wp_ref, age_bp_ref, sex_ref, mean_fd_ref, subid_ref
 ) {
   df <- data_all[, c("subID", "age_wp", "age_bp", "sex", "mean_fd", cov_col, y_col)]
@@ -207,17 +207,17 @@ fit_outcome_models <- function(
 
   pred_wp <- predict_low_high(
     fit_wp, df_model = df,
-    age_wp_vec = age_wp_seq,
-    age_bp_vec = rep(age_bp_ref, length(age_wp_seq)),
-    age_actual_vec = age_wp_seq + age_bp_ref,
+    age_wp_vec = age_actual_seq - age_bp_ref,
+    age_bp_vec = rep(age_bp_ref, length(age_actual_seq)),
+    age_actual_vec = age_actual_seq,
     sex_ref = sex_ref, mean_fd_ref = mean_fd_ref, subid_ref = subid_ref,
     q_low = q_low, q_high = q_high
   )
   pred_bp <- predict_low_high(
     fit_bp, df_model = df,
-    age_wp_vec = rep(age_wp_ref, length(age_bp_seq)),
-    age_bp_vec = age_bp_seq,
-    age_actual_vec = age_bp_seq + age_wp_ref,
+    age_wp_vec = rep(age_wp_ref, length(age_actual_seq)),
+    age_bp_vec = age_actual_seq - age_wp_ref,
+    age_actual_vec = age_actual_seq,
     sex_ref = sex_ref, mean_fd_ref = mean_fd_ref, subid_ref = subid_ref,
     q_low = q_low, q_high = q_high
   )
@@ -358,8 +358,7 @@ base_by_sub <- base_by_sub[!is.na(base_by_sub)]
 q10 <- as.numeric(stats::quantile(base_by_sub, 0.1, na.rm = TRUE))
 q90 <- as.numeric(stats::quantile(base_by_sub, 0.9, na.rm = TRUE))
 
-age_wp_seq <- seq(min(SCdata$age_wp, na.rm = TRUE), max(SCdata$age_wp, na.rm = TRUE), length.out = 100)
-age_bp_seq <- seq(min(SCdata$age_bp, na.rm = TRUE), max(SCdata$age_bp, na.rm = TRUE), length.out = 100)
+age_actual_seq <- seq(min(SCdata$age, na.rm = TRUE), max(SCdata$age, na.rm = TRUE), length.out = 100)
 age_wp_ref <- mean(SCdata$age_wp, na.rm = TRUE)
 age_bp_ref <- mean(SCdata$age_bp, na.rm = TRUE)
 mean_fd_ref <- mean(SCdata$mean_fd, na.rm = TRUE)
@@ -393,6 +392,17 @@ if (!need_refit && file.exists(out_rds)) {
   if (!has_age) {
     message("[INFO] Existing cache uses old x-axis fields; recomputing with actual-age predictions")
     need_refit <- TRUE
+  } else {
+    cache_min <- min(result_obj$edge_wp_decile$age, na.rm = TRUE)
+    cache_max <- max(result_obj$edge_wp_decile$age, na.rm = TRUE)
+    target_min <- min(SCdata$age, na.rm = TRUE)
+    target_max <- max(SCdata$age, na.rm = TRUE)
+    if (is.finite(cache_min) && is.finite(cache_max) && is.finite(target_min) && is.finite(target_max)) {
+      if (cache_min > target_min + 1e-6 || cache_max < target_max - 1e-6) {
+        message("[INFO] Existing cache does not cover full age span; recomputing")
+        need_refit <- TRUE
+      }
+    }
   }
 }
 
@@ -404,7 +414,7 @@ if (need_refit || !file.exists(out_rds)) {
       fit_outcome_models(
         data_all = SCdata, y_col = edge, cov_col = Pvar_base,
         q_low = q10, q_high = q90,
-        age_wp_seq = age_wp_seq, age_bp_seq = age_bp_seq,
+        age_actual_seq = age_actual_seq,
         age_wp_ref = age_wp_ref, age_bp_ref = age_bp_ref,
         sex_ref = sex_ref, mean_fd_ref = mean_fd_ref, subid_ref = subid_ref
       )
@@ -447,7 +457,7 @@ if (need_refit || !file.exists(out_rds)) {
       fit_outcome_models(
         data_all = SCdata_dec, y_col = dec_col, cov_col = Pvar_base,
         q_low = q10, q_high = q90,
-        age_wp_seq = age_wp_seq, age_bp_seq = age_bp_seq,
+        age_actual_seq = age_actual_seq,
         age_wp_ref = age_wp_ref, age_bp_ref = age_bp_ref,
         sex_ref = sex_ref, mean_fd_ref = mean_fd_ref, subid_ref = subid_ref
       )

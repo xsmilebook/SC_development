@@ -303,3 +303,4 @@
 - 2026-02-06: 新增 `development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R`：在 SC `2tp` LMM 中改用 baseline-age 分解（`age_bp=baseline age`、`age_wp=current-baseline`），其余统计输出与原 `run_abcd_lmm_agewp_agebp_SC_2tp.R` 保持一致，并使用 `_baselineage_2tp` 后缀避免覆盖。
 - 2026-02-06: baseline-age cognition/pfactor decile 图坐标轴标签调整为与既有流程一致：`x=Age`、`y=SC strength (ratio)`（不再显示 age_wp/age_bp 的自定义 x 轴文字）。
 - 2026-02-06: baseline-age cognition/pfactor decile 预测逻辑更新：`age_wp*cov` 固定 `age_bp` 均值并让 `age_wp` 走范围，`age_bp*cov` 固定 `age_wp` 均值并让 `age_bp` 走范围；绘图横轴统一显示实际年龄（非 0 起点），`Age` 使用整数刻度，`SC strength (ratio)` 采用一位小数并固定到既有 y 轴范围/刻度。
+- 2026-02-06: baseline-age cognition/pfactor decile 曲线改为覆盖数据集全年龄段：两类模型均按 `Age` 最小值到最大值生成 100 个时间点，并在缓存为旧年龄范围时自动重算。
