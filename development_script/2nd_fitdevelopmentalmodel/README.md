@@ -40,6 +40,14 @@ Scripts:
 - `S1st_fitgammodels_SA_ds_sumSCinvnode_ABCD_combatgam.R`
 - `S2nd_calculatederivative_ABCD_combatgam.R`
 
+## ABCD age_wp/age_bp LMM (SC, 2tp, baseline-age decomposition)
+- `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R`
+- Keeps subjects with at least two timepoints (`2tp`).
+- Uses baseline-age decomposition:
+  - `age_bp`: baseline age (fallback to per-subject minimum age if baseline event label is unavailable);
+  - `age_wp`: current age minus baseline age.
+- Fits `SC ~ age_wp + age_bp + sex + mean_fd + (1 | subID)` per edge and exports t-value/beta matrices plus S-A rank scatter outputs.
+
 ## Chinese Cohort (ComBat-GAM) in-repo runnable scripts
 For Chinese Cohort, we add project-root relative scripts to generate scaled GAM models and derivatives from the ComBat-GAM output. Outputs are written under `SCDevelopment/outputs/` (no writes to historical `wd/`).
 

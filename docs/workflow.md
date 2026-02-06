@@ -314,6 +314,11 @@
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC_2tp.R`
      - 输入与模型同上；仅保留 `subID` 观测次数 ≥ 2 的被试
      - 输出：与 SC 版本一致，但文件名后缀为 `_2tp`
+   - ABCD age_wp/age_bp LMM（SC 版本；baseline-age 分解 + 仅保留至少两次扫描被试）：
+     - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R`
+     - 年龄定义：`age_bp` 为 baseline age（基线访视年龄；若缺少 baseline 标签则回退到该被试最小年龄），`age_wp = age_current - age_bp`
+     - 输入与模型：与 `run_abcd_lmm_agewp_agebp_SC_2tp.R` 一致（`SC ~ age_wp + age_bp + sex + mean_fd + (1 | subID)`），仅保留 `subID` 观测次数 ≥ 2 的被试
+     - 输出：t value 与 fixed effect（beta）的矩阵/散点结果，文件名后缀为 `_baselineage_2tp`
    - ABCD SC personal slope（LGCM-style slope per year；不做显著性检验）：
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lgcm_personal_slope_SC.R`
      - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`
