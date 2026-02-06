@@ -102,7 +102,6 @@ exec_sif Rscript --vanilla /work/development_script/4th_changerate_SAcorr/S1st_S
   --cvthr="${CVTHR}" \
   --ds_res="${DS_RES}" \
   --out_tag="${OUT_TAG}" \
-  --skip_euclid=1 \
   --n_draws="${N_DRAWS}" \
   --force="${FORCE}"
 

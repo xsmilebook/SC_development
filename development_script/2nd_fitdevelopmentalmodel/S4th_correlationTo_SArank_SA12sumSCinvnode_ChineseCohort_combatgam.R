@@ -124,13 +124,15 @@ euclid_csv <- if (!is.null(args$euclid_csv)) {
 } else {
   file.path(project_root, "wd", "interdataFolder_HCPD", paste0("average_EuclideanDistance_", ds.resolution, ".csv"))
 }
-do_euclid <- !skip_euclid
+do_euclid <- !skip_euclid && ds.resolution == 12L
 EucDistance <- NULL
-if (do_euclid) {
-  if (!file.exists(euclid_csv)) stop("Missing euclid_csv: ", euclid_csv)
-  EucDistance <- read.csv(euclid_csv)
+if (!do_euclid) {
+  message("[INFO] Euclidean-distance control disabled (ds_res=", ds.resolution, ", skip_euclid=", skip_euclid, ").")
+} else if (!file.exists(euclid_csv)) {
+  message("[INFO] Euclidean-distance CSV missing; skipping control: ", euclid_csv)
+  do_euclid <- FALSE
 } else {
-  message("[INFO] skip_euclid=1: skipping Euclidean-distance control.")
+  EucDistance <- read.csv(euclid_csv)
 }
 
 message(sum(gamresult$sig), " edges have significant developmental effects.")

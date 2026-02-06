@@ -295,4 +295,4 @@
 - 2026-02-05: 新增中国队列 Yeo7 ComBat-GAM devmodel/changerate 脚本与 SA7/SA17/Yeo7 的容器版 sbatch 提交脚本。
 - 2026-02-05: 新增中国队列 SA7/SA17/Yeo7 的 ComBat-GAM sbatch 提交脚本。
 - 2026-02-05: 修复中国队列 devmodel S3 在 SA7/SA17 的 S-A rank/decile 计算使用 `ds_res` 并避免 decile CSV 覆盖。
-- 2026-02-05: 中国队列 SA7/SA17 devmodel/changerate 默认跳过 Euclidean distance 控制（新增 `skip_euclid` 分支与 sbatch 参数）。
+- 2026-02-05: 中国队列 SA7/SA17 devmodel/changerate 在非 SA12 分辨率时自动跳过 Euclidean distance 控制，避免缺失距离文件报错。

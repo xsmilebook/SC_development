@@ -185,12 +185,12 @@
 	       - SA7：`sbatch sbatch/run_chinese_devmodel_combatgam_SA7_CV75_container.sbatch`
 	       - SA17：`sbatch sbatch/run_chinese_devmodel_combatgam_SA17_CV75_container.sbatch`
 	       - 输出：`outputs/{intermediate,results,figures}/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`（文件名含 SA7/SA17 标记）。
-	       - 说明：SA7/SA17 默认跳过 Euclidean distance 控制（无 `average_EuclideanDistance_7/17.csv`）。
+	       - 说明：SA7/SA17 不做 Euclidean distance 控制（脚本在非 SA12 分辨率时自动跳过）。
 	     - 中国队列（SA7/SA17）changerate S-A corr（容器版，50 核）：
 	       - SA7：`sbatch sbatch/run_chinese_changerate_sacorr_combatgam_SA7_CV75_container.sbatch`
 	       - SA17：`sbatch sbatch/run_chinese_changerate_sacorr_combatgam_SA17_CV75_container.sbatch`
 	       - 输出：`outputs/{results,figures}/4th_changerate_SAcorr/chinese/combat_gam/CV75_SA7/` 与 `CV75_SA17/`。
-	       - 说明：SA7/SA17 默认跳过 Euclidean distance 控制。
+	       - 说明：SA7/SA17 不做 Euclidean distance 控制（脚本在非 SA12 分辨率时自动跳过）。
 	     - 中国队列（Yeo7）devmodel / changerate：
 	       - devmodel：`sbatch sbatch/run_chinese_devmodel_combatgam_Yeo7_CV75_container.sbatch`
 	       - changerate：`sbatch sbatch/run_chinese_changerate_sacorr_combatgam_Yeo7_CV75_container.sbatch`
