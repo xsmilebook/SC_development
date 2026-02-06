@@ -10,3 +10,15 @@ Sensitivity analysis using CBCL total raw score (`cbcl_scr_syn_totprob_r`) inste
 - `outputs/figures/cbcl_totprob/Association/`: S-A rank scatter plots and 12×12 t-value matrices.
 - `outputs/figures/cbcl_totprob/Interaction/`: high (90th) vs low (10th) CBCL trajectories across S-A deciles (1–10).
 
+## run_abcd_lmm_agewp_agebp_baselineage_pfactor_interaction_decileavg.R
+ABCD baseline-age decomposition LMM interaction workflow for *p*-factor (no t-value matrix output).  
+- `age_bp`: baseline age (from baseline event; fallback to minimum age if baseline tag is missing).  
+- `age_wp`: current age minus baseline age.  
+- *p*-factor uses baseline-only `GENERAL_base` (aligned with cognition baseline strategy).  
+- Two interaction models are fitted for each edge:
+  - `y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)`
+  - `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)`
+- Produces decile plots (1-10) for both `age_wp` and `age_bp` under low/high *p*-factor in two pipelines:
+  - edge-first: fit per edge, then average predictions within decile;
+  - decile-avg-SC-first: aggregate SC ratio within each decile first, then fit interaction models.
+

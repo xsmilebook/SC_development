@@ -341,6 +341,26 @@
     - 模型：`SC ~ age_wp * pfactor + age_bp + sex + mean_fd + (1 | subID)`（pfactor 使用纵向数据，不再限制 baseline）
     - 预测：取 pfactor 的 10%/90% 分位预测 `.fitted`
     - 图像：按 SA decile（10 组）汇总预测轨迹（低/高两条线），输出 `developmentcurve_decile*`；同时拼接为 2×5 的总图 `developmentcurve_decile_all_2x5`（参考 `run_abcd_pfactor_effect_continuous_S1.R` 风格；不再计算 t 值矩阵或 S-A 相关散点图）
+  - ABCD age_wp/age_bp LMM（cognition 版本；基线年龄分解 + 双交互 + decile 聚合 SC）：
+    - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_baselineage_cognition_interaction_decileavg.R`
+    - 年龄定义：`age_bp` 为 baseline age（基线访视年龄），`age_wp = age_current - age_bp`
+    - cognition：使用 baseline-only `nihtbx_fluidcomp_uncorrected_base`
+    - 模型（均为随机截距）：
+      - `y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)`
+      - `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)`
+    - 预测与图像（不输出 t 值矩阵）：
+      - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+  - ABCD age_wp/age_bp LMM（p-factor 版本；基线年龄分解 + baseline pfactor + 双交互 + decile 聚合 SC）：
+    - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_baselineage_pfactor_interaction_decileavg.R`
+    - 年龄定义：`age_bp` 为 baseline age（基线访视年龄），`age_wp = age_current - age_bp`
+    - pfactor：使用 baseline-only `GENERAL_base`（与 cognition 对齐）
+    - 模型（均为随机截距）：
+      - `y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)`
+      - `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)`
+    - 预测与图像（不输出 t 值矩阵）：
+      - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
