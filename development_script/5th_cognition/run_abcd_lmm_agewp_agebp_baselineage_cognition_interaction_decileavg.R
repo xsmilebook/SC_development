@@ -223,7 +223,7 @@ fit_outcome_models <- function(
 }
 
 plot_decile_curves <- function(
-    plot_df, x_col, out_dir, out_prefix, line_types, x_lab, y_lab = "SC strength (ratio)"
+    plot_df, x_col, out_dir, out_prefix, line_types, y_lab = "SC strength (ratio)"
 ) {
   dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
   plot_df$label <- factor(plot_df$label, levels = c("low", "high"))
@@ -287,7 +287,7 @@ plot_decile_curves <- function(
       ) +
       scale_linetype_manual(values = line_types) +
       scale_y_continuous(limits = y_lim) +
-      labs(x = x_lab, y = y_lab) +
+      labs(x = "Age", y = y_lab) +
       mytheme
 
     out_base <- file.path(out_dir, paste0(out_prefix, "_decile", i))
@@ -490,8 +490,7 @@ if (nrow(result_obj$edge_wp_decile) > 0) {
     result_obj$edge_wp_decile, x_col = "age_wp",
     out_dir = file.path(FigureFolder, "edge_first", "age_wp_interaction"),
     out_prefix = "developmentcurve_edgefirst_agewp",
-    line_types = line_types,
-    x_lab = "age_wp (current age - baseline age, year)"
+    line_types = line_types
   )
 }
 if (nrow(result_obj$edge_bp_decile) > 0) {
@@ -499,8 +498,7 @@ if (nrow(result_obj$edge_bp_decile) > 0) {
     result_obj$edge_bp_decile, x_col = "age_bp",
     out_dir = file.path(FigureFolder, "edge_first", "age_bp_interaction"),
     out_prefix = "developmentcurve_edgefirst_agebp",
-    line_types = line_types,
-    x_lab = "age_bp (baseline age, year)"
+    line_types = line_types
   )
 }
 if (nrow(result_obj$decile_wp_plot) > 0) {
@@ -508,8 +506,7 @@ if (nrow(result_obj$decile_wp_plot) > 0) {
     result_obj$decile_wp_plot, x_col = "age_wp",
     out_dir = file.path(FigureFolder, "decile_avg_sc_first", "age_wp_interaction"),
     out_prefix = "developmentcurve_decileavgSC_agewp",
-    line_types = line_types,
-    x_lab = "age_wp (current age - baseline age, year)"
+    line_types = line_types
   )
 }
 if (nrow(result_obj$decile_bp_plot) > 0) {
@@ -517,8 +514,7 @@ if (nrow(result_obj$decile_bp_plot) > 0) {
     result_obj$decile_bp_plot, x_col = "age_bp",
     out_dir = file.path(FigureFolder, "decile_avg_sc_first", "age_bp_interaction"),
     out_prefix = "developmentcurve_decileavgSC_agebp",
-    line_types = line_types,
-    x_lab = "age_bp (baseline age, year)"
+    line_types = line_types
   )
 }
 

@@ -301,3 +301,4 @@
 - 2026-02-05: p-factor 交互 decile 曲线线型对齐参考脚本（high=虚线，low=实线）。
 - 2026-02-06: 新增 baseline-age 分解的 cognition/pfactor 双交互脚本（`run_abcd_lmm_agewp_agebp_baselineage_*_interaction_decileavg.R`）：`age_bp=baseline age`、`age_wp=current-baseline`，并同时实现 `age_wp*cov` 与 `age_bp*cov` 两类随机截距模型；pfactor 改为 baseline-only `GENERAL_base`；新增“decile 内先聚合 SC ratio 再拟合”流程，输出 age_wp/age_bp 在 low/high 下的 10 decile 曲线图（含 2×5 总图），不输出 t 值矩阵。
 - 2026-02-06: 新增 `development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R`：在 SC `2tp` LMM 中改用 baseline-age 分解（`age_bp=baseline age`、`age_wp=current-baseline`），其余统计输出与原 `run_abcd_lmm_agewp_agebp_SC_2tp.R` 保持一致，并使用 `_baselineage_2tp` 后缀避免覆盖。
+- 2026-02-06: baseline-age cognition/pfactor decile 图坐标轴标签调整为与既有流程一致：`x=Age`、`y=SC strength (ratio)`（不再显示 age_wp/age_bp 的自定义 x 轴文字）。
