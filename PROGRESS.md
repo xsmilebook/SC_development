@@ -304,3 +304,4 @@
 - 2026-02-06: baseline-age cognition/pfactor decile 图坐标轴标签调整为与既有流程一致：`x=Age`、`y=SC strength (ratio)`（不再显示 age_wp/age_bp 的自定义 x 轴文字）。
 - 2026-02-06: baseline-age cognition/pfactor decile 预测逻辑更新：`age_wp*cov` 固定 `age_bp` 均值并让 `age_wp` 走范围，`age_bp*cov` 固定 `age_wp` 均值并让 `age_bp` 走范围；绘图横轴统一显示实际年龄（非 0 起点），`Age` 使用整数刻度，`SC strength (ratio)` 采用一位小数并固定到既有 y 轴范围/刻度。
 - 2026-02-06: baseline-age cognition/pfactor decile 曲线改为覆盖数据集全年龄段：两类模型均按 `Age` 最小值到最大值生成 100 个时间点，并在缓存为旧年龄范围时自动重算。
+- 2026-02-07: baseline-age cognition/pfactor decile 脚本更新为以 `age_wp`/`age_bp` 实际值作为绘图横轴（标签仍为 `Age`）；`decile_avg_sc_first` 新增 `age_wp:cov` 与 `age_bp:cov` 的 LRT 显著性检验（对比 `red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)`），输出 FDR 校正列并将 FDR p 值标注到 decile 图上。

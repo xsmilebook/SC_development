@@ -21,4 +21,7 @@ ABCD baseline-age decomposition LMM interaction workflow for *p*-factor (no t-va
 - Produces decile plots (1-10) for both `age_wp` and `age_bp` under low/high *p*-factor in two pipelines:
   - edge-first: fit per edge, then average predictions within decile;
   - decile-avg-SC-first: aggregate SC ratio within each decile first, then fit interaction models.
+- Decile plotting uses the actual `age_wp` (for `age_wp*cov`) and `age_bp` (for `age_bp*cov`) values on x-axis; axis labels remain `Age` and `SC strength (ratio)` to match previous figures.
+- In `decile-avg-SC-first`, interaction significance is tested for both `age_wp:cov` and `age_bp:cov` by LRT against
+  `y ~ age_wp + cov + age_bp + sex + mean_fd + (1 | subID)`, followed by FDR correction (`p_agewp_cov_fdr`, `p_agebp_cov_fdr`) and figure annotation.
 

@@ -117,7 +117,7 @@ extract_baseline_cov <- function(df, value_col, out_col, sub_col = "subID", even
 }
 
 predict_low_high <- function(
-    fit_obj, df_model, age_wp_vec, age_bp_vec, age_actual_vec,
+    fit_obj, df_model, age_wp_vec, age_bp_vec, x_vec, x_name,
     sex_ref, mean_fd_ref, subid_ref, q_low, q_high
 ) {
   if (is.null(fit_obj)) return(data.frame())
@@ -138,7 +138,7 @@ predict_low_high <- function(
     new_template$subID <- factor(subid_ref, levels = levels(df_model$subID))
   }
 
-  n_pred <- length(age_actual_vec)
+  n_pred <- length(x_vec)
   new_low <- new_template[rep(1, n_pred), , drop = FALSE]
   new_low$age_wp <- as.numeric(age_wp_vec)
   new_low$age_bp <- as.numeric(age_bp_vec)
@@ -155,22 +155,22 @@ predict_low_high <- function(
   )
 
   out_low <- data.frame(
-    age = as.numeric(age_actual_vec),
     label = "low",
     .fitted = as.numeric(pred_low),
     stringsAsFactors = FALSE
   )
   out_high <- data.frame(
-    age = as.numeric(age_actual_vec),
     label = "high",
     .fitted = as.numeric(pred_high),
     stringsAsFactors = FALSE
   )
+  out_low[[x_name]] <- as.numeric(x_vec)
+  out_high[[x_name]] <- as.numeric(x_vec)
   rbind(out_low, out_high)
 }
 
 fit_outcome_models <- function(
-    data_all, y_col, cov_col, q_low, q_high, age_actual_seq,
+    data_all, y_col, cov_col, q_low, q_high, age_wp_seq, age_bp_seq,
     age_wp_ref, age_bp_ref, sex_ref, mean_fd_ref, subid_ref
 ) {
   df <- data_all[, c("subID", "age_wp", "age_bp", "sex", "mean_fd", cov_col, y_col)]
@@ -182,6 +182,8 @@ fit_outcome_models <- function(
     n_obs = nrow(df),
     beta_agewp_cov = NA_real_,
     beta_agebp_cov = NA_real_,
+    p_agewp_cov = NA_real_,
+    p_agebp_cov = NA_real_,
     stringsAsFactors = FALSE
   )
   if (nrow(df) < 10) {
@@ -194,6 +196,8 @@ fit_outcome_models <- function(
 
   fit_wp <- tryCatch(lme4::lmer(form_wp, data = df, REML = FALSE), error = function(e) NULL)
   fit_bp <- tryCatch(lme4::lmer(form_bp, data = df, REML = FALSE), error = function(e) NULL)
+  form_red <- stats::as.formula("y ~ age_wp + cov + age_bp + sex + mean_fd + (1 | subID)")
+  fit_red <- tryCatch(lme4::lmer(form_red, data = df, REML = FALSE), error = function(e) NULL)
 
   get_coef <- function(fit_obj, coef_name) {
     if (is.null(fit_obj)) return(NA_real_)
@@ -204,20 +208,30 @@ fit_outcome_models <- function(
   }
   row_info$beta_agewp_cov <- get_coef(fit_wp, "age_wp:cov")
   row_info$beta_agebp_cov <- get_coef(fit_bp, "age_bp:cov")
+  get_lrt_p <- function(fit_red_obj, fit_full_obj) {
+    if (is.null(fit_red_obj) || is.null(fit_full_obj)) return(NA_real_)
+    tb <- tryCatch(stats::anova(fit_red_obj, fit_full_obj), error = function(e) NULL)
+    if (is.null(tb) || nrow(tb) < 2 || !("Pr(>Chisq)" %in% names(tb))) return(NA_real_)
+    as.numeric(tb$`Pr(>Chisq)`[2])
+  }
+  row_info$p_agewp_cov <- get_lrt_p(fit_red, fit_wp)
+  row_info$p_agebp_cov <- get_lrt_p(fit_red, fit_bp)
 
   pred_wp <- predict_low_high(
     fit_wp, df_model = df,
-    age_wp_vec = age_actual_seq - age_bp_ref,
-    age_bp_vec = rep(age_bp_ref, length(age_actual_seq)),
-    age_actual_vec = age_actual_seq,
+    age_wp_vec = age_wp_seq,
+    age_bp_vec = rep(age_bp_ref, length(age_wp_seq)),
+    x_vec = age_wp_seq,
+    x_name = "age_wp",
     sex_ref = sex_ref, mean_fd_ref = mean_fd_ref, subid_ref = subid_ref,
     q_low = q_low, q_high = q_high
   )
   pred_bp <- predict_low_high(
     fit_bp, df_model = df,
-    age_wp_vec = rep(age_wp_ref, length(age_actual_seq)),
-    age_bp_vec = age_actual_seq - age_wp_ref,
-    age_actual_vec = age_actual_seq,
+    age_wp_vec = rep(age_wp_ref, length(age_bp_seq)),
+    age_bp_vec = age_bp_seq,
+    x_vec = age_bp_seq,
+    x_name = "age_bp",
     sex_ref = sex_ref, mean_fd_ref = mean_fd_ref, subid_ref = subid_ref,
     q_low = q_low, q_high = q_high
   )
@@ -227,15 +241,19 @@ fit_outcome_models <- function(
   list(row = row_info, pred_wp = pred_wp, pred_bp = pred_bp)
 }
 
-plot_decile_curves <- function(plot_df, out_dir, out_prefix, line_types, y_lab = "SC strength (ratio)") {
+plot_decile_curves <- function(
+    plot_df, out_dir, out_prefix, line_types, x_col,
+    p_col = NULL, p_df = NULL, y_lab = "SC strength (ratio)"
+) {
   dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
   plot_df$label <- factor(plot_df$label, levels = c("low", "high"))
   colorid <- rev(RColorBrewer::brewer.pal(10, "RdBu"))
+  x_values <- as.numeric(plot_df[[x_col]])
 
-  x_min <- floor(min(plot_df$age, na.rm = TRUE))
-  x_max <- ceiling(max(plot_df$age, na.rm = TRUE))
+  x_min <- floor(min(x_values, na.rm = TRUE))
+  x_max <- ceiling(max(x_values, na.rm = TRUE))
   if (!is.finite(x_min) || !is.finite(x_max) || x_min >= x_max) {
-    x_breaks <- pretty(plot_df$age, n = 5)
+    x_breaks <- pretty(x_values, n = 5)
   } else {
     x_breaks <- seq(x_min, x_max, by = 1)
   }
@@ -250,7 +268,7 @@ plot_decile_curves <- function(plot_df, out_dir, out_prefix, line_types, y_lab =
         fit.avg = NA_real_,
         stringsAsFactors = FALSE
       )
-      tmp$age <- mean(plot_df$age, na.rm = TRUE)
+      tmp[[x_col]] <- mean(x_values, na.rm = TRUE)
     }
     color_i <- colorid[[i]]
 
@@ -287,7 +305,7 @@ plot_decile_curves <- function(plot_df, out_dir, out_prefix, line_types, y_lab =
 
     fig <- ggplot(tmp) +
       geom_line(
-        aes(x = age, y = fit.avg, group = label, linetype = label),
+        aes(x = .data[[x_col]], y = fit.avg, group = label, linetype = label),
         linewidth = 1.2, color = color_i, na.rm = TRUE
       ) +
       scale_linetype_manual(values = line_types) +
@@ -302,6 +320,18 @@ plot_decile_curves <- function(plot_df, out_dir, out_prefix, line_types, y_lab =
       ) +
       labs(x = "Age", y = y_lab) +
       mytheme
+    if (!is.null(p_df) && !is.null(p_col) && p_col %in% names(p_df)) {
+        p_row <- p_df[p_df$decile == i, , drop = FALSE]
+        if (nrow(p_row) > 0) {
+          p_val <- as.numeric(p_row[[p_col]][1])
+          p_txt <- if (is.finite(p_val)) sprintf("FDR p=%.3g", p_val) else "FDR p=NA"
+        x_pos <- suppressWarnings(min(tmp[[x_col]], na.rm = TRUE))
+        if (!is.finite(x_pos)) x_pos <- suppressWarnings(mean(x_values, na.rm = TRUE))
+        if (!is.finite(x_pos)) x_pos <- 0
+        y_pos <- 1.145
+        fig <- fig + annotate("text", x = x_pos, y = y_pos, label = p_txt, hjust = 0, vjust = 1, size = 6)
+      }
+    }
 
     out_base <- file.path(out_dir, paste0(out_prefix, "_decile", i))
     ggsave(paste0(out_base, ".tiff"), fig, width = 10, height = 10, units = "cm", bg = "transparent")
@@ -358,7 +388,8 @@ base_by_sub <- base_by_sub[!is.na(base_by_sub)]
 q10 <- as.numeric(stats::quantile(base_by_sub, 0.1, na.rm = TRUE))
 q90 <- as.numeric(stats::quantile(base_by_sub, 0.9, na.rm = TRUE))
 
-age_actual_seq <- seq(min(SCdata$age, na.rm = TRUE), max(SCdata$age, na.rm = TRUE), length.out = 100)
+age_wp_seq <- seq(min(SCdata$age_wp, na.rm = TRUE), max(SCdata$age_wp, na.rm = TRUE), length.out = 100)
+age_bp_seq <- seq(min(SCdata$age_bp, na.rm = TRUE), max(SCdata$age_bp, na.rm = TRUE), length.out = 100)
 age_wp_ref <- mean(SCdata$age_wp, na.rm = TRUE)
 age_bp_ref <- mean(SCdata$age_bp, na.rm = TRUE)
 mean_fd_ref <- mean(SCdata$mean_fd, na.rm = TRUE)
@@ -384,22 +415,33 @@ need_refit <- force
 if (!need_refit && file.exists(out_rds)) {
   message("[INFO] Found existing results, loading (set FORCE=1 to recompute)")
   result_obj <- readRDS(out_rds)
-  has_age <- TRUE
-  if (!("age" %in% names(result_obj$edge_wp_decile))) has_age <- FALSE
-  if (!("age" %in% names(result_obj$edge_bp_decile))) has_age <- FALSE
-  if (!("age" %in% names(result_obj$decile_wp_plot))) has_age <- FALSE
-  if (!("age" %in% names(result_obj$decile_bp_plot))) has_age <- FALSE
-  if (!has_age) {
-    message("[INFO] Existing cache uses old x-axis fields; recomputing with actual-age predictions")
+  has_axis <- TRUE
+  if (!("age_wp" %in% names(result_obj$edge_wp_decile))) has_axis <- FALSE
+  if (!("age_bp" %in% names(result_obj$edge_bp_decile))) has_axis <- FALSE
+  if (!("age_wp" %in% names(result_obj$decile_wp_plot))) has_axis <- FALSE
+  if (!("age_bp" %in% names(result_obj$decile_bp_plot))) has_axis <- FALSE
+  has_fdr <- all(c("p_agewp_cov_fdr", "p_agebp_cov_fdr") %in% names(result_obj$decile_summary))
+  if (!has_axis || !has_fdr) {
+    message("[INFO] Existing cache uses old format; recomputing with age_wp/age_bp x-axis and FDR results")
     need_refit <- TRUE
   } else {
-    cache_min <- min(result_obj$edge_wp_decile$age, na.rm = TRUE)
-    cache_max <- max(result_obj$edge_wp_decile$age, na.rm = TRUE)
-    target_min <- min(SCdata$age, na.rm = TRUE)
-    target_max <- max(SCdata$age, na.rm = TRUE)
-    if (is.finite(cache_min) && is.finite(cache_max) && is.finite(target_min) && is.finite(target_max)) {
-      if (cache_min > target_min + 1e-6 || cache_max < target_max - 1e-6) {
-        message("[INFO] Existing cache does not cover full age span; recomputing")
+    cache_wp_min <- min(result_obj$edge_wp_decile$age_wp, na.rm = TRUE)
+    cache_wp_max <- max(result_obj$edge_wp_decile$age_wp, na.rm = TRUE)
+    target_wp_min <- min(SCdata$age_wp, na.rm = TRUE)
+    target_wp_max <- max(SCdata$age_wp, na.rm = TRUE)
+    cache_bp_min <- min(result_obj$edge_bp_decile$age_bp, na.rm = TRUE)
+    cache_bp_max <- max(result_obj$edge_bp_decile$age_bp, na.rm = TRUE)
+    target_bp_min <- min(SCdata$age_bp, na.rm = TRUE)
+    target_bp_max <- max(SCdata$age_bp, na.rm = TRUE)
+    if (
+      is.finite(cache_wp_min) && is.finite(cache_wp_max) && is.finite(target_wp_min) && is.finite(target_wp_max) &&
+      is.finite(cache_bp_min) && is.finite(cache_bp_max) && is.finite(target_bp_min) && is.finite(target_bp_max)
+    ) {
+      if (
+        cache_wp_min > target_wp_min + 1e-6 || cache_wp_max < target_wp_max - 1e-6 ||
+        cache_bp_min > target_bp_min + 1e-6 || cache_bp_max < target_bp_max - 1e-6
+      ) {
+        message("[INFO] Existing cache does not cover full age_wp/age_bp span; recomputing")
         need_refit <- TRUE
       }
     }
@@ -414,7 +456,7 @@ if (need_refit || !file.exists(out_rds)) {
       fit_outcome_models(
         data_all = SCdata, y_col = edge, cov_col = Pvar_base,
         q_low = q10, q_high = q90,
-        age_actual_seq = age_actual_seq,
+        age_wp_seq = age_wp_seq, age_bp_seq = age_bp_seq,
         age_wp_ref = age_wp_ref, age_bp_ref = age_bp_ref,
         sex_ref = sex_ref, mean_fd_ref = mean_fd_ref, subid_ref = subid_ref
       )
@@ -431,14 +473,14 @@ if (need_refit || !file.exists(out_rds)) {
     edge_pred_wp <- edge_pred_wp %>% rename(SC_label = outcome)
     edge_wp_dec <- edge_pred_wp %>%
       inner_join(edge_map, by = "SC_label") %>%
-      group_by(decile, age, label) %>%
+      group_by(decile, age_wp, label) %>%
       summarise(fit.avg = safe_mean(.fitted), .groups = "drop")
   }
   if (nrow(edge_pred_bp) > 0) {
     edge_pred_bp <- edge_pred_bp %>% rename(SC_label = outcome)
     edge_bp_dec <- edge_pred_bp %>%
       inner_join(edge_map, by = "SC_label") %>%
-      group_by(decile, age, label) %>%
+      group_by(decile, age_bp, label) %>%
       summarise(fit.avg = safe_mean(.fitted), .groups = "drop")
   }
 
@@ -457,7 +499,7 @@ if (need_refit || !file.exists(out_rds)) {
       fit_outcome_models(
         data_all = SCdata_dec, y_col = dec_col, cov_col = Pvar_base,
         q_low = q10, q_high = q90,
-        age_actual_seq = age_actual_seq,
+        age_wp_seq = age_wp_seq, age_bp_seq = age_bp_seq,
         age_wp_ref = age_wp_ref, age_bp_ref = age_bp_ref,
         sex_ref = sex_ref, mean_fd_ref = mean_fd_ref, subid_ref = subid_ref
       )
@@ -470,8 +512,12 @@ if (need_refit || !file.exists(out_rds)) {
 
   if (nrow(decile_summary) > 0) {
     decile_summary$decile <- as.integer(sub("^SC_decile", "", decile_summary$outcome))
+    decile_summary$p_agewp_cov_fdr <- stats::p.adjust(decile_summary$p_agewp_cov, method = "fdr")
+    decile_summary$p_agebp_cov_fdr <- stats::p.adjust(decile_summary$p_agebp_cov, method = "fdr")
   } else {
     decile_summary$decile <- integer(0)
+    decile_summary$p_agewp_cov_fdr <- numeric(0)
+    decile_summary$p_agebp_cov_fdr <- numeric(0)
   }
 
   decile_wp_plot <- data.frame()
@@ -479,13 +525,13 @@ if (need_refit || !file.exists(out_rds)) {
   if (nrow(decile_pred_wp) > 0) {
     decile_pred_wp$decile <- as.integer(sub("^SC_decile", "", decile_pred_wp$outcome))
     decile_wp_plot <- decile_pred_wp %>%
-      group_by(decile, age, label) %>%
+      group_by(decile, age_wp, label) %>%
       summarise(fit.avg = safe_mean(.fitted), .groups = "drop")
   }
   if (nrow(decile_pred_bp) > 0) {
     decile_pred_bp$decile <- as.integer(sub("^SC_decile", "", decile_pred_bp$outcome))
     decile_bp_plot <- decile_pred_bp %>%
-      group_by(decile, age, label) %>%
+      group_by(decile, age_bp, label) %>%
       summarise(fit.avg = safe_mean(.fitted), .groups = "drop")
   }
 
@@ -520,7 +566,8 @@ if (nrow(result_obj$edge_wp_decile) > 0) {
     result_obj$edge_wp_decile,
     out_dir = file.path(FigureFolder, "edge_first", "age_wp_interaction"),
     out_prefix = "developmentcurve_edgefirst_agewp",
-    line_types = line_types
+    line_types = line_types,
+    x_col = "age_wp"
   )
 }
 if (nrow(result_obj$edge_bp_decile) > 0) {
@@ -528,7 +575,8 @@ if (nrow(result_obj$edge_bp_decile) > 0) {
     result_obj$edge_bp_decile,
     out_dir = file.path(FigureFolder, "edge_first", "age_bp_interaction"),
     out_prefix = "developmentcurve_edgefirst_agebp",
-    line_types = line_types
+    line_types = line_types,
+    x_col = "age_bp"
   )
 }
 if (nrow(result_obj$decile_wp_plot) > 0) {
@@ -536,7 +584,10 @@ if (nrow(result_obj$decile_wp_plot) > 0) {
     result_obj$decile_wp_plot,
     out_dir = file.path(FigureFolder, "decile_avg_sc_first", "age_wp_interaction"),
     out_prefix = "developmentcurve_decileavgSC_agewp",
-    line_types = line_types
+    line_types = line_types,
+    x_col = "age_wp",
+    p_col = "p_agewp_cov_fdr",
+    p_df = result_obj$decile_summary
   )
 }
 if (nrow(result_obj$decile_bp_plot) > 0) {
@@ -544,7 +595,10 @@ if (nrow(result_obj$decile_bp_plot) > 0) {
     result_obj$decile_bp_plot,
     out_dir = file.path(FigureFolder, "decile_avg_sc_first", "age_bp_interaction"),
     out_prefix = "developmentcurve_decileavgSC_agebp",
-    line_types = line_types
+    line_types = line_types,
+    x_col = "age_bp",
+    p_col = "p_agebp_cov_fdr",
+    p_df = result_obj$decile_summary
   )
 }
 
