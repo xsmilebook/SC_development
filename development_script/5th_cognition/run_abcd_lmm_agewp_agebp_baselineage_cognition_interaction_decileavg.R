@@ -601,9 +601,7 @@ if (nrow(result_obj$decile_wp_plot) > 0) {
     out_dir = file.path(FigureFolder, "decile_avg_sc_first", "age_wp_interaction"),
     out_prefix = "developmentcurve_decileavgSC_agewp",
     line_types = line_types,
-    x_col = "age_wp",
-    p_col = "p_agewp_cov_fdr",
-    p_df = result_obj$decile_summary
+    x_col = "age_wp"
   )
 }
 if (nrow(result_obj$decile_bp_plot) > 0) {
@@ -612,9 +610,7 @@ if (nrow(result_obj$decile_bp_plot) > 0) {
     out_dir = file.path(FigureFolder, "decile_avg_sc_first", "age_bp_interaction"),
     out_prefix = "developmentcurve_decileavgSC_agebp",
     line_types = line_types,
-    x_col = "age_bp",
-    p_col = "p_agebp_cov_fdr",
-    p_df = result_obj$decile_summary
+    x_col = "age_bp"
   )
 }
 
