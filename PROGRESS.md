@@ -297,3 +297,4 @@
 - 2026-02-05: 修复中国队列 devmodel S3 在 SA7/SA17 的 S-A rank/decile 计算使用 `ds_res` 并避免 decile CSV 覆盖。
 - 2026-02-05: 中国队列 SA7/SA17 devmodel/changerate 在非 SA12 分辨率时自动跳过 Euclidean distance 控制，避免缺失距离文件报错。
 - 2026-02-05: 修复 changerate 脚本在无距离文件时的候选路径选择，避免 `subscript out of bounds`。
+- 2026-02-05: 更新 check_k 脚本使用 ComBat-GAM 数据并输出 k 值 AIC 对比图，新增容器 sbatch 提交脚本。

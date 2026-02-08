@@ -217,9 +217,21 @@
          - SA7：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_SA7_CV75_container.sbatch`
          - SA17：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_SA17_CV75_container.sbatch`
          - Yeo7：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`；如你的边数为 28 则改为 `DS_RES=7`）
-   - 产物目录：
-     - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
-     - results：`outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
+     - 产物目录：
+      - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
+      - results：`outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
+
+## GAM 平滑参数 k 的检查（ComBat-GAM 数据）
+- 脚本：`development_script/2nd_fitdevelopmentalmodel/V_check_k/V1st_check_k.R`
+- 容器提交：`sbatch sbatch/run_check_k_combatgam_container.sbatch`
+- 默认输入（可通过 `INPUT_RDS` 覆盖）：
+  - HCP-D：`outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+  - ABCD：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
+  - Chinese：`outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
+- 输出：
+  - AIC 明细：`outputs/results/2nd_fitdevelopmentalmodel/<dataset>/check_k/aic_by_edge.csv`
+  - 最优 k 汇总：`outputs/results/2nd_fitdevelopmentalmodel/<dataset>/check_k/aic_summary.csv`
+  - AIC 对比图：`outputs/figures/2nd_fitdevelopmentalmodel/<dataset>/check_k/aic_compare_by_k.{tiff,pdf}`
      - figures：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
    - S4 散点图输出：`correlation_sumSCinvnode_SCrank/` 内默认生成 `pdf`；若在 Windows 环境运行则额外输出 `svg`（需要 `svglite`）。
    - Windows 便捷模式：S4 默认在 Windows 跳过 summary 计算，仅生成散点图；可用 `--skip_compute_on_windows=0` 关闭（或 `--force=1` 强制完整重算）。
