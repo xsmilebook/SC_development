@@ -16,6 +16,7 @@ set.seed(925)
 
 library(mgcv)
 library(parallel)
+library(ggplot2)
 
 parse_args <- function(args) {
   res <- list()
@@ -35,6 +36,14 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 }
 
 dataset <- tolower(if (!is.null(args$dataset)) args$dataset else "chinese")
+
+dataset_label <- switch(
+  dataset,
+  hcpd = "HCPD",
+  abcd = "ABCD",
+  chinese = "Chinese Cohort",
+  toupper(dataset)
+)
 
 resolve_path <- function(path) {
   if (is.null(path)) return(NULL)
@@ -147,46 +156,75 @@ compute_aic <- function(data, sc_label, k) {
   AIC(mod)
 }
 
-fit_edge <- function(sc_label) {
-  aic_vals <- sapply(k_values, function(k) compute_aic(scdata, sc_label, k))
-  names(aic_vals) <- paste0("AIC_k", k_values)
-  data.frame(region = sc_label, t(aic_vals), check.names = FALSE, stringsAsFactors = FALSE)
+aic_by_edge_path <- file.path(output_dir, "aic_by_edge.csv")
+aic_summary_path <- file.path(output_dir, "aic_summary.csv")
+aic_cols <- paste0("AIC_k", k_values)
+
+has_required_aic_cols <- function(df) {
+  all(aic_cols %in% names(df))
 }
 
-result_rows <- mclapply(sc_cols[seq_len(n_edges)], fit_edge, mc.cores = n_cores)
-aic_by_edge <- do.call(rbind, result_rows)
+aic_by_edge <- NULL
+if (file.exists(aic_by_edge_path)) {
+  aic_by_edge <- tryCatch(read.csv(aic_by_edge_path, stringsAsFactors = FALSE), error = function(e) NULL)
+  if (is.null(aic_by_edge) || !has_required_aic_cols(aic_by_edge)) {
+    message("[WARN] Existing aic_by_edge.csv missing required columns; recomputing.")
+    aic_by_edge <- NULL
+  } else {
+    message("[INFO] Found existing aic_by_edge.csv; skip recomputation.")
+  }
+}
 
-aic_cols <- paste0("AIC_k", k_values)
-best_k <- apply(aic_by_edge[, aic_cols, drop = FALSE], 1, function(x) {
+if (is.null(aic_by_edge)) {
+  fit_edge <- function(sc_label) {
+    aic_vals <- sapply(k_values, function(k) compute_aic(scdata, sc_label, k))
+    names(aic_vals) <- paste0("AIC_k", k_values)
+    data.frame(region = sc_label, t(aic_vals), check.names = FALSE, stringsAsFactors = FALSE)
+  }
+
+  result_rows <- mclapply(sc_cols[seq_len(n_edges)], fit_edge, mc.cores = n_cores)
+  aic_by_edge <- do.call(rbind, result_rows)
+  write.csv(aic_by_edge, aic_by_edge_path, row.names = FALSE)
+}
+
+if (nrow(aic_by_edge) < n_edges) {
+  message("[WARN] aic_by_edge has fewer rows than n_edges; using available rows.")
+}
+
+aic_by_edge_use <- aic_by_edge[seq_len(min(n_edges, nrow(aic_by_edge))), , drop = FALSE]
+
+best_k <- apply(aic_by_edge_use[, aic_cols, drop = FALSE], 1, function(x) {
   if (all(is.na(x))) return(NA_integer_)
   k_values[which.min(x)]
 })
-aic_by_edge$best_k <- best_k
+aic_by_edge_use$best_k <- best_k
 
-best_table <- as.data.frame(table(best_k, useNA = "ifany"), stringsAsFactors = FALSE)
-colnames(best_table) <- c("k", "n_edges")
-best_table$k <- as.character(best_table$k)
-valid_total <- sum(best_table$n_edges[best_table$k != "NA"])
-best_table$proportion <- if (valid_total > 0) {
-  best_table$n_edges / valid_total
+if (file.exists(aic_summary_path)) {
+  message("[INFO] Found existing aic_summary.csv; skip recomputation.")
 } else {
-  NA_real_
+  best_table <- as.data.frame(table(best_k, useNA = "ifany"), stringsAsFactors = FALSE)
+  colnames(best_table) <- c("k", "n_edges")
+  best_table$k <- as.character(best_table$k)
+  valid_total <- sum(best_table$n_edges[best_table$k != "NA"])
+  best_table$proportion <- if (valid_total > 0) {
+    best_table$n_edges / valid_total
+  } else {
+    NA_real_
+  }
+
+  mean_aic <- sapply(aic_cols, function(col) mean(aic_by_edge_use[[col]], na.rm = TRUE))
+  mean_aic_df <- data.frame(k = k_values, mean_aic = as.numeric(mean_aic))
+
+  aic_summary <- merge(best_table, mean_aic_df, by.x = "k", by.y = "k", all = TRUE)
+  write.csv(aic_summary, aic_summary_path, row.names = FALSE)
 }
 
-mean_aic <- sapply(aic_cols, function(col) mean(aic_by_edge[[col]], na.rm = TRUE))
-mean_aic_df <- data.frame(k = k_values, mean_aic = as.numeric(mean_aic))
-
-aic_summary <- merge(best_table, mean_aic_df, by.x = "k", by.y = "k", all = TRUE)
-
-write.csv(aic_by_edge, file.path(output_dir, "aic_by_edge.csv"), row.names = FALSE)
-write.csv(aic_summary, file.path(output_dir, "aic_summary.csv"), row.names = FALSE)
-
-if (all(is.na(unlist(aic_by_edge[, aic_cols, drop = FALSE])))) {
+if (all(is.na(unlist(aic_by_edge_use[, aic_cols, drop = FALSE])))) {
   warning("All AIC values are NA; skipping AIC figure output.")
 } else {
   aic_long <- data.frame(
-    k = rep(k_values, each = nrow(aic_by_edge)),
-    AIC = as.vector(t(as.matrix(aic_by_edge[, aic_cols, drop = FALSE])))
+    k = rep(k_values, each = nrow(aic_by_edge_use)),
+    AIC = as.vector(t(as.matrix(aic_by_edge_use[, aic_cols, drop = FALSE])))
   )
 
   pdf(file.path(figure_dir, "aic_compare_by_k.pdf"), width = 6, height = 4)
@@ -202,43 +240,70 @@ if (all(is.na(unlist(aic_by_edge[, aic_cols, drop = FALSE])))) {
   dev.off()
 }
 
+bootstrap_counts_path <- file.path(output_dir, "bootstrap_k_counts.csv")
+bootstrap_best_path <- file.path(output_dir, "bootstrap_best_k.csv")
+
 if (bootstrap_n > 0) {
-  stratify_candidates <- c("siteID", "site", "study", "site_id", "siteid")
-  stratify_var <- stratify_candidates[stratify_candidates %in% names(scdata)]
-  stratify_var <- if (length(stratify_var) > 0) stratify_var[1] else NA_character_
+  bootstrap_best <- NULL
 
-  message("[INFO] bootstrap stratify_var=", ifelse(is.na(stratify_var), "<none>", stratify_var))
-
-  sample_indices <- function(n) {
-    if (is.na(stratify_var)) {
-      sample.int(n, n, replace = TRUE)
+  if (file.exists(bootstrap_best_path)) {
+    bootstrap_best_df <- read.csv(bootstrap_best_path, stringsAsFactors = FALSE)
+    if ("best_k" %in% names(bootstrap_best_df)) {
+      bootstrap_best <- as.integer(bootstrap_best_df$best_k)
     } else {
-      split_idx <- split(seq_len(n), scdata[[stratify_var]])
-      sampled <- lapply(split_idx, function(x) sample(x, length(x), replace = TRUE))
-      unlist(sampled, use.names = FALSE)
+      bootstrap_best <- as.integer(bootstrap_best_df[[1]])
+    }
+    message("[INFO] Found existing bootstrap_best_k.csv; skip recomputation.")
+  } else if (file.exists(bootstrap_counts_path)) {
+    counts_df <- read.csv(bootstrap_counts_path, stringsAsFactors = FALSE)
+    if (all(c("k", "n_boot") %in% names(counts_df))) {
+      bootstrap_best <- unlist(mapply(function(k, n) rep(as.integer(k), as.integer(n)),
+                                      counts_df$k, counts_df$n_boot, SIMPLIFY = FALSE),
+                               use.names = FALSE)
+      message("[INFO] Found existing bootstrap_k_counts.csv; reconstructing histogram data.")
     }
   }
 
-  bootstrap_best <- mclapply(seq_len(bootstrap_n), function(i) {
-    set.seed(925 + i)
-    idx <- sample_indices(nrow(scdata))
-    data_sub <- scdata[idx, , drop = FALSE]
+  if (is.null(bootstrap_best)) {
+    stratify_candidates <- c("siteID", "site", "study", "site_id", "siteid")
+    stratify_var <- stratify_candidates[stratify_candidates %in% names(scdata)]
+    stratify_var <- if (length(stratify_var) > 0) stratify_var[1] else NA_character_
 
-    edge_best <- rep(NA_integer_, n_edges)
-    for (j in seq_len(n_edges)) {
-      sc_label <- sc_cols[j]
-      aic_vals <- sapply(k_values, function(k) compute_aic(data_sub, sc_label, k))
-      if (!all(is.na(aic_vals))) {
-        edge_best[j] <- k_values[which.min(aic_vals)]
+    message("[INFO] bootstrap stratify_var=", ifelse(is.na(stratify_var), "<none>", stratify_var))
+
+    sample_indices <- function(n) {
+      if (is.na(stratify_var)) {
+        sample.int(n, n, replace = TRUE)
+      } else {
+        split_idx <- split(seq_len(n), scdata[[stratify_var]])
+        sampled <- lapply(split_idx, function(x) sample(x, length(x), replace = TRUE))
+        unlist(sampled, use.names = FALSE)
       }
     }
 
-    if (all(is.na(edge_best))) return(NA_integer_)
-    freq <- table(edge_best)
-    as.integer(names(freq)[which.max(freq)])
-  }, mc.cores = n_cores)
+    bootstrap_best <- mclapply(seq_len(bootstrap_n), function(i) {
+      set.seed(925 + i)
+      idx <- sample_indices(nrow(scdata))
+      data_sub <- scdata[idx, , drop = FALSE]
 
-  bootstrap_best <- as.integer(unlist(bootstrap_best))
+      edge_best <- rep(NA_integer_, n_edges)
+      for (j in seq_len(n_edges)) {
+        sc_label <- sc_cols[j]
+        aic_vals <- sapply(k_values, function(k) compute_aic(data_sub, sc_label, k))
+        if (!all(is.na(aic_vals))) {
+          edge_best[j] <- k_values[which.min(aic_vals)]
+        }
+      }
+
+      if (all(is.na(edge_best))) return(NA_integer_)
+      freq <- table(edge_best)
+      as.integer(names(freq)[which.max(freq)])
+    }, mc.cores = n_cores)
+
+    bootstrap_best <- as.integer(unlist(bootstrap_best))
+    write.csv(data.frame(best_k = bootstrap_best), bootstrap_best_path, row.names = FALSE)
+  }
+
   counts <- setNames(rep(0L, length(k_values)), k_values)
   freq_table <- table(bootstrap_best, useNA = "no")
   counts[names(freq_table)] <- as.integer(freq_table)
@@ -246,22 +311,39 @@ if (bootstrap_n > 0) {
   freq <- if (total_valid > 0) counts / total_valid else rep(NA_real_, length(counts))
 
   bootstrap_df <- data.frame(k = as.integer(names(counts)), n_boot = counts, frequency = freq)
-  write.csv(bootstrap_df, file.path(output_dir, "bootstrap_k_counts.csv"), row.names = FALSE)
+  if (!file.exists(bootstrap_counts_path)) {
+    write.csv(bootstrap_df, bootstrap_counts_path, row.names = FALSE)
+  }
 
   if (total_valid > 0) {
-    pdf(file.path(figure_dir, "bootstrap_best_k_hist.pdf"), width = 6, height = 4)
-    bar_mid <- barplot(freq, names.arg = names(counts), col = "#B4D3E7",
-                       xlab = "k", ylab = "Frequency",
-                       main = paste0("Bootstrap best k (", toupper(dataset), ")"))
-    text(bar_mid, freq, labels = counts, pos = 3, cex = 0.8)
-    dev.off()
+    k_min <- min(k_values)
+    k_max <- max(k_values)
+    breaks_hist <- seq(k_min - 0.5, k_max + 0.5, by = 1)
+    x_breaks <- k_values
 
-    tiff(file.path(figure_dir, "bootstrap_best_k_hist.tiff"), width = 1800, height = 1200, res = 300)
-    bar_mid <- barplot(freq, names.arg = names(counts), col = "#B4D3E7",
-                       xlab = "k", ylab = "Frequency",
-                       main = paste0("Bootstrap best k (", toupper(dataset), ")"))
-    text(bar_mid, freq, labels = counts, pos = 3, cex = 0.8)
-    dev.off()
+    choice.df <- data.frame(MostFrequent = bootstrap_best)
+
+    hist_plot <- ggplot(data = choice.df, aes(MostFrequent, y = ..count..)) +
+      geom_histogram(binwidth = 1, color = "black", fill = "#B4D3E7",
+                     position = position_dodge(width = 1),
+                     breaks = breaks_hist, center = 0) +
+      scale_x_continuous(breaks = x_breaks, limits = c(k_min - 0.5, k_max + 0.5)) +
+      labs(x = expression("The optimal "*italic("k")*" value"), y = "Frequency", title = dataset_label) +
+      theme_classic() +
+      theme(panel.background = element_rect(fill = "transparent"),
+            plot.background = element_rect(fill = "transparent", colour = NA),
+            aspect.ratio = 0.7,
+            plot.title = element_text(color = "black", size = 14, hjust = 0.5),
+            axis.title = element_text(color = "black", size = 14),
+            axis.line = element_line(linewidth = 0.4),
+            axis.ticks = element_line(linewidth = 0.4),
+            axis.text = element_text(color = "black", size = 14),
+            legend.position = "none")
+
+    ggsave(file.path(figure_dir, "bootstrap_best_k_hist.pdf"), plot = hist_plot,
+           width = 12, height = 12, units = "cm")
+    ggsave(file.path(figure_dir, "bootstrap_best_k_hist.tiff"), plot = hist_plot,
+           width = 12, height = 12, units = "cm")
   } else {
     warning("No valid bootstrap results; skipping bootstrap figure output.")
   }
