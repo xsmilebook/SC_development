@@ -302,3 +302,4 @@
 - 2026-02-08: check_k 容器 sbatch 支持 `DATASET=all` 串行运行 HCP-D/ABCD/Chinese，并提供按数据集覆盖输入路径的参数。
 - 2026-02-08: `development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R` 更新为 ComBat-GAM 数据与参数化接口，输出固定到项目内目录。
 - 2026-02-08: 同步 `development_script/2nd_fitdevelopmentalmodel/V_check_k/V1st_check_k.R` 到新版本，修复旧路径导致的 `source(gamsmooth.R)` 报错。
+- 2026-02-08: check_k 脚本新增 bootstrap 最优 k 的频次/频率统计与柱状图输出。

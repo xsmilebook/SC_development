@@ -238,6 +238,8 @@
   - AIC 明细：`outputs/results/2nd_fitdevelopmentalmodel/<dataset>/check_k/aic_by_edge.csv`
   - 最优 k 汇总：`outputs/results/2nd_fitdevelopmentalmodel/<dataset>/check_k/aic_summary.csv`
   - AIC 对比图：`outputs/figures/2nd_fitdevelopmentalmodel/<dataset>/check_k/aic_compare_by_k.{tiff,pdf}`
+  - bootstrap 最优 k 频次：`outputs/results/2nd_fitdevelopmentalmodel/<dataset>/check_k/bootstrap_k_counts.csv`
+  - bootstrap 频率柱状图：`outputs/figures/2nd_fitdevelopmentalmodel/<dataset>/check_k/bootstrap_best_k_hist.{tiff,pdf}`
      - figures：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
    - S4 散点图输出：`correlation_sumSCinvnode_SCrank/` 内默认生成 `pdf`；若在 Windows 环境运行则额外输出 `svg`（需要 `svglite`）。
    - Windows 便捷模式：S4 默认在 Windows 跳过 summary 计算，仅生成散点图；可用 `--skip_compute_on_windows=0` 关闭（或 `--force=1` 强制完整重算）。

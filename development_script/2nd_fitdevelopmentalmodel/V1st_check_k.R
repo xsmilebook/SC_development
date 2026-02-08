@@ -7,6 +7,8 @@
 ##     --dataset=abcd --k_values=3,4,5,6 --n_edges=10
 ##   Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R \
 ##     --input_rds=/path/to/SCdata.rds --output_dir=/path/to/output --figure_dir=/path/to/figs
+##   Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R \
+##     --bootstrap_n=1000
 
 rm(list = ls())
 
@@ -61,6 +63,9 @@ k_values <- as.integer(strsplit(k_values_raw, ",", fixed = TRUE)[[1]])
 k_values <- k_values[!is.na(k_values)]
 if (length(k_values) == 0) stop("No valid k_values: ", k_values_raw)
 
+bootstrap_n <- as.integer(if (!is.null(args$bootstrap_n)) args$bootstrap_n else 1000)
+if (is.na(bootstrap_n) || bootstrap_n < 0) stop("Invalid bootstrap_n: ", args$bootstrap_n)
+
 output_dir <- resolve_path(if (!is.null(args$output_dir)) args$output_dir else {
   file.path(project_root, "outputs", "results", "2nd_fitdevelopmentalmodel", dataset, "check_k")
 })
@@ -104,20 +109,23 @@ message("[INFO] dataset=", dataset)
 message("[INFO] input_rds=", input_rds)
 message("[INFO] k_values=", paste(k_values, collapse = ","))
 message("[INFO] n_edges=", n_edges)
+message("[INFO] bootstrap_n=", bootstrap_n)
 message("[INFO] output_dir=", output_dir)
 message("[INFO] figure_dir=", figure_dir)
 message("[INFO] n_cores=", n_cores)
 
+compute_aic <- function(data, sc_label, k) {
+  modelformula <- as.formula(sprintf("%s ~ s(age, k = %s, fx = TRUE) + sex + mean_fd", sc_label, k))
+  mod <- tryCatch(
+    gam(modelformula, method = "REML", data = data),
+    error = function(e) NULL
+  )
+  if (is.null(mod)) return(NA_real_)
+  AIC(mod)
+}
+
 fit_edge <- function(sc_label) {
-  aic_vals <- sapply(k_values, function(k) {
-    modelformula <- as.formula(sprintf("%s ~ s(age, k = %s, fx = TRUE) + sex + mean_fd", sc_label, k))
-    mod <- tryCatch(
-      gam(modelformula, method = "REML", data = scdata),
-      error = function(e) NULL
-    )
-    if (is.null(mod)) return(NA_real_)
-    AIC(mod)
-  })
+  aic_vals <- sapply(k_values, function(k) compute_aic(scdata, sc_label, k))
   names(aic_vals) <- paste0("AIC_k", k_values)
   data.frame(region = sc_label, t(aic_vals), check.names = FALSE, stringsAsFactors = FALSE)
 }
@@ -151,7 +159,7 @@ write.csv(aic_by_edge, file.path(output_dir, "aic_by_edge.csv"), row.names = FAL
 write.csv(aic_summary, file.path(output_dir, "aic_summary.csv"), row.names = FALSE)
 
 if (all(is.na(unlist(aic_by_edge[, aic_cols, drop = FALSE])))) {
-  warning("All AIC values are NA; skipping figure output.")
+  warning("All AIC values are NA; skipping AIC figure output.")
 } else {
   aic_long <- data.frame(
     k = rep(k_values, each = nrow(aic_by_edge)),
@@ -169,4 +177,69 @@ if (all(is.na(unlist(aic_by_edge[, aic_cols, drop = FALSE])))) {
           xlab = "k", ylab = "AIC",
           main = paste0("AIC compare (", toupper(dataset), ")"))
   dev.off()
+}
+
+if (bootstrap_n > 0) {
+  stratify_candidates <- c("siteID", "site", "study", "site_id", "siteid")
+  stratify_var <- stratify_candidates[stratify_candidates %in% names(scdata)]
+  stratify_var <- if (length(stratify_var) > 0) stratify_var[1] else NA_character_
+
+  message("[INFO] bootstrap stratify_var=", ifelse(is.na(stratify_var), "<none>", stratify_var))
+
+  sample_indices <- function(n) {
+    if (is.na(stratify_var)) {
+      sample.int(n, n, replace = TRUE)
+    } else {
+      split_idx <- split(seq_len(n), scdata[[stratify_var]])
+      sampled <- lapply(split_idx, function(x) sample(x, length(x), replace = TRUE))
+      unlist(sampled, use.names = FALSE)
+    }
+  }
+
+  bootstrap_best <- mclapply(seq_len(bootstrap_n), function(i) {
+    set.seed(925 + i)
+    idx <- sample_indices(nrow(scdata))
+    data_sub <- scdata[idx, , drop = FALSE]
+
+    edge_best <- rep(NA_integer_, n_edges)
+    for (j in seq_len(n_edges)) {
+      sc_label <- sc_cols[j]
+      aic_vals <- sapply(k_values, function(k) compute_aic(data_sub, sc_label, k))
+      if (!all(is.na(aic_vals))) {
+        edge_best[j] <- k_values[which.min(aic_vals)]
+      }
+    }
+
+    if (all(is.na(edge_best))) return(NA_integer_)
+    freq <- table(edge_best)
+    as.integer(names(freq)[which.max(freq)])
+  }, mc.cores = n_cores)
+
+  bootstrap_best <- as.integer(unlist(bootstrap_best))
+  counts <- setNames(rep(0L, length(k_values)), k_values)
+  freq_table <- table(bootstrap_best, useNA = "no")
+  counts[names(freq_table)] <- as.integer(freq_table)
+  total_valid <- sum(counts)
+  freq <- if (total_valid > 0) counts / total_valid else rep(NA_real_, length(counts))
+
+  bootstrap_df <- data.frame(k = as.integer(names(counts)), n_boot = counts, frequency = freq)
+  write.csv(bootstrap_df, file.path(output_dir, "bootstrap_k_counts.csv"), row.names = FALSE)
+
+  if (total_valid > 0) {
+    pdf(file.path(figure_dir, "bootstrap_best_k_hist.pdf"), width = 6, height = 4)
+    bar_mid <- barplot(freq, names.arg = names(counts), col = "#B4D3E7",
+                       xlab = "k", ylab = "Frequency",
+                       main = paste0("Bootstrap best k (", toupper(dataset), ")"))
+    text(bar_mid, freq, labels = counts, pos = 3, cex = 0.8)
+    dev.off()
+
+    tiff(file.path(figure_dir, "bootstrap_best_k_hist.tiff"), width = 1800, height = 1200, res = 300)
+    bar_mid <- barplot(freq, names.arg = names(counts), col = "#B4D3E7",
+                       xlab = "k", ylab = "Frequency",
+                       main = paste0("Bootstrap best k (", toupper(dataset), ")"))
+    text(bar_mid, freq, labels = counts, pos = 3, cex = 0.8)
+    dev.off()
+  } else {
+    warning("No valid bootstrap results; skipping bootstrap figure output.")
+  }
 }
