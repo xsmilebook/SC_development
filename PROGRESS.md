@@ -304,3 +304,4 @@
 - 2026-02-08: 同步 `development_script/2nd_fitdevelopmentalmodel/V_check_k/V1st_check_k.R` 到新版本，修复旧路径导致的 `source(gamsmooth.R)` 报错。
 - 2026-02-08: check_k 脚本新增 bootstrap 最优 k 的频次/频率统计与柱状图输出。
 - 2026-02-08: 新增 `V1st_check_k_new.R` 的 ComBat-GAM 版本（ABCD 使用 GAMM），并提供对应容器 sbatch 提交脚本。
+- 2026-02-08: `V1st_check_k_new.R` 增加固定随机种子 `set.seed(925)`。

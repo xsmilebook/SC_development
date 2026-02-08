@@ -12,6 +12,7 @@
 ##     --bootstrap_n=1000
 
 rm(list = ls())
+set.seed(925)
 
 library(mgcv)
 library(parallel)
