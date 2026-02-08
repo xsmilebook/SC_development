@@ -193,6 +193,8 @@ fit_outcome_models <- function(
     n_obs = nrow(df),
     beta_agewp_cov = NA_real_,
     beta_agebp_cov = NA_real_,
+    t_agewp_cov = NA_real_,
+    t_agebp_cov = NA_real_,
     p_agewp_cov = NA_real_,
     p_agebp_cov = NA_real_,
     stringsAsFactors = FALSE
@@ -217,8 +219,18 @@ fit_outcome_models <- function(
     if (!coef_name %in% names(cf)) return(NA_real_)
     as.numeric(cf[[coef_name]])
   }
+  get_tval <- function(fit_obj, coef_name) {
+    if (is.null(fit_obj)) return(NA_real_)
+    sm <- tryCatch(summary(fit_obj), error = function(e) NULL)
+    if (is.null(sm) || is.null(sm$coefficients)) return(NA_real_)
+    tb <- sm$coefficients
+    if (!(coef_name %in% rownames(tb)) || !("t value" %in% colnames(tb))) return(NA_real_)
+    as.numeric(tb[coef_name, "t value"])
+  }
   row_info$beta_agewp_cov <- get_coef(fit_wp, "age_wp:cov")
   row_info$beta_agebp_cov <- get_coef(fit_bp, "age_bp:cov")
+  row_info$t_agewp_cov <- get_tval(fit_wp, "age_wp:cov")
+  row_info$t_agebp_cov <- get_tval(fit_bp, "age_bp:cov")
   get_lrt_p <- function(fit_red_obj, fit_full_obj) {
     if (is.null(fit_red_obj) || is.null(fit_full_obj)) return(NA_real_)
     tb <- tryCatch(stats::anova(fit_red_obj, fit_full_obj), error = function(e) NULL)
@@ -254,7 +266,7 @@ fit_outcome_models <- function(
 
 plot_decile_curves <- function(
     plot_df, out_dir, out_prefix, line_types, x_col,
-    p_col = NULL, p_df = NULL, y_lab = "SC strength (ratio)"
+    t_col = NULL, p_col = NULL, stat_df = NULL, y_lab = "SC strength (ratio)"
 ) {
   dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
   plot_df$label <- factor(plot_df$label, levels = c("low", "high"))
@@ -331,16 +343,19 @@ plot_decile_curves <- function(
       ) +
       labs(x = "Age", y = y_lab) +
       mytheme
-    if (!is.null(p_df) && !is.null(p_col) && p_col %in% names(p_df)) {
-        p_row <- p_df[p_df$decile == i, , drop = FALSE]
+    if (!is.null(stat_df) && !is.null(p_col) && p_col %in% names(stat_df)) {
+        p_row <- stat_df[stat_df$decile == i, , drop = FALSE]
         if (nrow(p_row) > 0) {
           p_val <- as.numeric(p_row[[p_col]][1])
-          p_txt <- if (is.finite(p_val)) sprintf("FDR p=%.3g", p_val) else "FDR p=NA"
+          t_val <- if (!is.null(t_col) && t_col %in% names(p_row)) as.numeric(p_row[[t_col]][1]) else NA_real_
+          p_txt <- if (is.finite(p_val)) sprintf("p=%.3g", p_val) else "p=NA"
+          t_txt <- if (is.finite(t_val)) sprintf("t=%.2f", t_val) else "t=NA"
+          stat_txt <- paste(t_txt, p_txt, sep = ", ")
         x_pos <- suppressWarnings(min(tmp[[x_col]], na.rm = TRUE))
         if (!is.finite(x_pos)) x_pos <- suppressWarnings(mean(x_values, na.rm = TRUE))
         if (!is.finite(x_pos)) x_pos <- 0
         y_pos <- 1.145
-        fig <- fig + annotate("text", x = x_pos, y = y_pos, label = p_txt, hjust = 0, vjust = 1, size = 6)
+        fig <- fig + annotate("text", x = x_pos, y = y_pos, label = stat_txt, hjust = 0, vjust = 1, size = 6)
       }
     }
 
@@ -601,7 +616,10 @@ if (nrow(result_obj$decile_wp_plot) > 0) {
     out_dir = file.path(FigureFolder, "decile_avg_sc_first", "age_wp_interaction"),
     out_prefix = "developmentcurve_decileavgSC_agewp",
     line_types = line_types,
-    x_col = "age_wp"
+    x_col = "age_wp",
+    t_col = "t_agewp_cov",
+    p_col = "p_agewp_cov",
+    stat_df = result_obj$decile_summary
   )
 }
 if (nrow(result_obj$decile_bp_plot) > 0) {
@@ -610,7 +628,10 @@ if (nrow(result_obj$decile_bp_plot) > 0) {
     out_dir = file.path(FigureFolder, "decile_avg_sc_first", "age_bp_interaction"),
     out_prefix = "developmentcurve_decileavgSC_agebp",
     line_types = line_types,
-    x_col = "age_bp"
+    x_col = "age_bp",
+    t_col = "t_agebp_cov",
+    p_col = "p_agebp_cov",
+    stat_df = result_obj$decile_summary
   )
 }
 

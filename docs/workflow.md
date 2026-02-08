@@ -358,7 +358,8 @@
       - `age_bp*cov`：预测时固定 `age_wp=mean(age_wp)`，`age_bp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_bp` 实际值（标签保持 `Age`）
       - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
       - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
-      - decile-avg-SC-first 额外统计：对 `age_wp:cov` 与 `age_bp:cov` 分别进行 LRT（`red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)` vs 对应 full），并输出 FDR 校正结果到 `decile_avgSC_summary_baselineage_interaction_*.csv`（图中不显示显著性文本）
+      - decile-avg-SC-first 额外统计：对 `age_wp:cov` 与 `age_bp:cov` 分别进行 LRT（`red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)` vs 对应 full），并输出 FDR 校正结果到 `decile_avgSC_summary_baselineage_interaction_*.csv`
+      - decile-avg-SC-first 图注：每个 decile 标注交互项 `t value`（来自 `age_wp:cov`/`age_bp:cov` 系数）与对应 LRT `p value`
       - 坐标轴：`x=Age`（整数刻度）；`y=SC strength (ratio)`（一位小数；范围/刻度对齐既有脚本）
   - ABCD age_wp/age_bp LMM（p-factor 版本；基线年龄分解 + baseline pfactor + 双交互 + decile 聚合 SC）：
     - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_baselineage_pfactor_interaction_decileavg.R`
@@ -372,7 +373,8 @@
       - `age_bp*cov`：预测时固定 `age_wp=mean(age_wp)`，`age_bp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_bp` 实际值（标签保持 `Age`）
       - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
       - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
-      - decile-avg-SC-first 额外统计：对 `age_wp:cov` 与 `age_bp:cov` 分别进行 LRT（`red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)` vs 对应 full），并输出 FDR 校正结果到 `decile_avgSC_summary_baselineage_interaction_*.csv`（图中不显示显著性文本）
+      - decile-avg-SC-first 额外统计：对 `age_wp:cov` 与 `age_bp:cov` 分别进行 LRT（`red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)` vs 对应 full），并输出 FDR 校正结果到 `decile_avgSC_summary_baselineage_interaction_*.csv`
+      - decile-avg-SC-first 图注：每个 decile 标注交互项 `t value`（来自 `age_wp:cov`/`age_bp:cov` 系数）与对应 LRT `p value`
       - 坐标轴：`x=Age`（整数刻度）；`y=SC strength (ratio)`（一位小数；范围/刻度对齐既有脚本）
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
