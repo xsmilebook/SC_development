@@ -1,370 +1,172 @@
-# This script is for check the k value.
-rm(list=ls())
+## Check GAM k values using ComBat-GAM data.
+##
+## Usage (examples):
+##   Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R \
+##     --dataset=chinese
+##   Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R \
+##     --dataset=abcd --k_values=3,4,5,6 --n_edges=10
+##   Rscript --vanilla development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R \
+##     --input_rds=/path/to/SCdata.rds --output_dir=/path/to/output --figure_dir=/path/to/figs
+
+rm(list = ls())
+
 library(mgcv)
 library(parallel)
-interfileFolder_HCP <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_HCPD'
-interfileFolder_ABCD <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ABCD'
-interfileFolder_ChineseCohort <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/interdataFolder_ChineseCohort'
-functionFolder <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/Rcode_SCdevelopment/gamfunction'
-FigureFolderABCD <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_ABCD_final/SA12/CV75'
-FigureFolderHCPD <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_HCPD_final/SA12/CV75'
-FigureFolderChineseCohort<-'D:/xuxiaoyu/DMRI_network_development/SC_development/Figure_ChineseCohort_final/SA12/CV75'
-resultFolderABCD <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/results_ABCD'
-resultFolderHCPD <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/results_HCPD'
-resultFolder_ChineseCohort <- 'D:/xuxiaoyu/DMRI_network_development/SC_development/results_ChineseCohort'
 
-source(paste0(functionFolder, '/gamsmooth.R'))
-source(paste0(functionFolder, '/gammsmooth.R'))
-SCdata.hcp <- readRDS(paste0(interfileFolder_HCP, "/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatage.rds"))
-SCdata.ABCD <- readRDS(paste0(interfileFolder_ABCD, '/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatage.rds'))
-SCdata.ChineseCohort <- readRDS(paste0(interfileFolder_ChineseCohort, '/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatage.rds'))
-
-# load models
-#gammodel.HCP.k3 <- readRDS(paste0(interfileFolder_HCP, '/gammodel78_sumSCinvnode_over8_CV75.rds'))
-#gammodel.ABCD.k3 <- readRDS(paste0(interfileFolder_ABCD, '/gammodel78_sumSCinvnode_over8_siteall_CV75.rds'))
-
-# HCPD k=3~6
-####################################
-AIC_k3_6 <- data.frame(region=paste0("SC.", 1:78), AIC.k3=rep(NA,78), AIC.k4=rep(NA,78),
-                       AIC.k5=rep(NA,78),AIC.k6=rep(NA,78))
-SCdata.hcp$sex <- as.factor(SCdata.hcp$sex)
-covariates<-"sex+mean_fd"
-dataname<-"SCdata.hcp"
-smooth_var<-"age"
-for (k in c(4,5,6)){
-  for (i in 1:78){
-    model.k3.tmp <- gammodel.HCP.k3[[i]]
-    AIC_k3_6$region[i] <- as.character(model.k3.tmp$terms[[2]])
-    region <- AIC_k3_6$region[i]
-    model.kN.tmp<-gam.fit.smooth(region, dataname, smooth_var, covariates, knots=k, set_fx=TRUE, stats_only = TRUE, mod_only=TRUE)
-    df.tmp <- AIC(model.k3.tmp, model.kN.tmp)
-    AIC_k3_6$AIC.k3[i] <- df.tmp$AIC[1]
-    AIC_k3_6[i, paste0('AIC.k', k)] <- df.tmp$AIC[2]
+parse_args <- function(args) {
+  res <- list()
+  for (a in args) {
+    if (!startsWith(a, "--") || !grepl("=", a, fixed = TRUE)) next
+    kv <- strsplit(sub("^--", "", a), "=", fixed = TRUE)[[1]]
+    if (length(kv) != 2) next
+    res[[kv[[1]]]] <- kv[[2]]
   }
-}
-min.index <- apply(AIC_k3_6, 1, function(x) which.min(x))
-AIC_k3_6$min.index <- min.index+1
-table(AIC_k3_6$min.index) # 52/78 edges have the minimal AIC when k=3.
-
-## bootstrap
-num_cores <- detectCores() - 8
-cl <- makeCluster(num_cores)
-clusterEvalQ(cl, {
-  library(mgcv)
-  library(tidyr)
-  
-})
-
-SCdata.hcp$sex <- as.factor(SCdata.hcp$sex)
-covariates<-"sex+mean_fd"
-smooth_var<-"age"
-stratify.var <- SCdata.hcp$site
-
-choice.df <- data.frame(boottime=1:1000)
-for (i in 1:78){
-  region <- paste0("SC.", i, "_h")
-  clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
-  
-  bootchoice<-parLapply(cl, 1:1000, function(x){
-    
-    # bootstrap
-    set.seed( seed=925 + x )
-    SPLIT <- split(1:NROW(SCdata.hcp), stratify.var)
-    LAPPLY <- lapply(SPLIT,function(X){sample(x=X,size=length(X),replace=TRUE)})
-    INDEX <- unsplit(LAPPLY, stratify.var)
-    
-    SCdata.hcp.subset <- SCdata.hcp[INDEX, ]
-    
-    # fit models
-    AIC_df <- data.frame(knots=rep(NA,4), AIC=rep(NA,4))
-    for (knots in c(3:6)){
-      modelformula <- as.formula(sprintf("%s ~ s(%s, k = %s, fx = %s) + %s", region, smooth_var, knots, "TRUE", covariates))
-      gam.model <- gam(modelformula, method = "REML", data = SCdata.hcp.subset)
-      AIC_df$knots[knots-2] <- knots
-      AIC_df$AIC[knots-2] <- AIC(gam.model)
-    }
-    
-    bestK <- AIC_df$knots[which.min(AIC_df$AIC)]
-    
-    return(bestK)
-    
-  })
-  
-  bootchoice.df <- unlist(bootchoice)
-  choice.df[[region]] <- bootchoice.df
+  res
 }
 
-choice.df$MostFrequent <- apply(choice.df, 1, function(row) {
-  freq <- table(row)
-  as.numeric(names(freq)[which.max(freq)])
-})
+args <- parse_args(commandArgs(trailingOnly = TRUE))
+project_root <- normalizePath(if (!is.null(args$project_root)) args$project_root else getwd(), mustWork = FALSE)
+if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
+  stop("project_root does not look like SCDevelopment (missing ARCHITECTURE.md): ", project_root)
+}
 
-table(choice.df$MostFrequent)
-# 3   4   5   6 
-# 777  72  75  76
+dataset <- tolower(if (!is.null(args$dataset)) args$dataset else "chinese")
 
-choice.df$modelnum_k3 <- rowSums(choice.df[,2:79] == 3)
-write.csv(choice.df, paste0(resultFolderHCPD, "/select_k_gam.csv"), row.names = F)
-## Best k
-ggplot(data = choice.df, aes(MostFrequent, y = ..count..)) +
-  geom_histogram(binwidth = 1, color = "black", fill = "#B4D3E7", position = position_dodge(width = 1), breaks=c(2.5,3.5,4.5,5.5, 6.5), center=0) +
-  scale_x_continuous(breaks=c(3,4,5,6), limits = c(2.5, 6.5))+
-  labs(x = expression("The optimal "*italic("k")*" value"), y = "Frequency", title = "HCPD") +
-  labs(y= "Frequency")+theme_classic()+
-  theme(panel.background = element_rect(fill="transparent"),
-        plot.background = element_rect(fill = "transparent",colour = NA),aspect.ratio = 0.7,
-        plot.title = element_text(color = "black", size = 14, hjust = 0.5),
-        axis.title = element_text(color = "black", size = 14),axis.line = element_line(linewidth = 0.4),
-        axis.ticks = element_line(linewidth = 0.4),
-        axis.text = element_text(color = "black", size = 14),
-        legend.position = "none")
-
-ggsave(paste(FigureFolderHCPD, '/GAM_k_choose.tiff', sep = ''), width = 12, height = 12, units = "cm")
-ggsave(paste(FigureFolderHCPD, '/GAM_k_choose.svg', sep = ''), width = 12, height = 10, units = "cm")
-
-## Number of models select k=3
-ggplot(data = choice.df, aes(modelnum_k3, y = ..count..)) +
-  geom_histogram(binwidth = 1, color = "black", fill = "#B4D3E7", position = position_dodge(width = 1)) +
-  #geom_vline(xintercept = median(choice.df$modelnum_k3), color="red", linetype="dashed", linewidth=1)+
-  labs(x = expression("Number of models choosing "*italic("k")*"=3"), y = "Frequency", title = "HCP-D") +
-  labs(y= "Frequency")+theme_classic()+
-  theme(panel.background = element_rect(fill="transparent"),
-        plot.background = element_rect(fill = "transparent",colour = NA),aspect.ratio = 0.7,
-        plot.title = element_text(color = "black", size = 14, hjust = 0.5),
-        axis.title = element_text(color = "black", size = 14),axis.line = element_line(linewidth = 0.4),
-        axis.ticks = element_line(linewidth = 0.4),
-        axis.text = element_text(color = "black", size = 14),
-        legend.position = "none")
-
-ggsave(paste(FigureFolderHCPD, '/GAM_k_choose_modelnum.tiff', sep = ''), width = 12, height = 12, units = "cm")
-ggsave(paste(FigureFolderHCPD, '/GAM_k_choose_modelnum.svg', sep = ''), width = 12, height = 10, units = "cm")
-######################################################
-
-
-# ABCD k=3~6
-####################################################
-AIC_k3_6.abcd <- data.frame(region=paste0("SC.", 1:78), AIC.k3=rep(NA,78), AIC.k4=rep(NA,78),
-                       AIC.k5=rep(NA,78),AIC.k6=rep(NA,78))
-SCdata.ABCD$sex <- as.factor(SCdata.ABCD$sex)
-covariates<-"sex+mean_fd"
-dataname<-"SCdata.ABCD"
-smooth_var<-"age"
-for (k in c(4,5,6)){
-  for (i in 1:78){
-    model.k3.tmp <- gammodel.ABCD.k3[[i]]
-    AIC_k3_6.abcd$region[i] <- as.character(model.k3.tmp$gam$terms[[2]])
-    region <- AIC_k3_6.abcd$region[i]
-    model.kN.tmp<-gamm.fit.smooth(region, dataname, smooth_var, covariates, knots=k, set_fx=TRUE, stats_only = TRUE, mod_only=TRUE)
-    df.tmp <- AIC(model.k3.tmp$mer, model.kN.tmp$mer)
-    AIC_k3_6.abcd$AIC.k3[i] <- df.tmp$AIC[1]
-    AIC_k3_6.abcd[i, paste0('AIC.k', k)] <- df.tmp$AIC[2]
+resolve_path <- function(path) {
+  if (is.null(path)) return(NULL)
+  if (!grepl("^/", path)) {
+    path <- file.path(project_root, path)
   }
+  normalizePath(path, mustWork = FALSE)
 }
 
-min.index <- apply(AIC_k3_6.abcd, 1, function(x) which.min(x))
-AIC_k3_6.abcd$min.index <- min.index+1
-table(AIC_k3_6.abcd$min.index) # 71/78 edges have the minimal AIC when k=3.
+input_rds <- if (!is.null(args$input_rds)) {
+  resolve_path(args$input_rds)
+} else {
+  switch(
+    dataset,
+    hcpd = file.path(project_root, "outputs", "results", "combat_gam", "hcpd",
+                     "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds"),
+    abcd = file.path(project_root, "outputs", "results", "combat_gam", "abcd",
+                     "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"),
+    chinese = file.path(project_root, "outputs", "results", "combat_gam", "chinese",
+                        "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds"),
+    stop("Unsupported dataset: ", dataset, " (expected hcpd|abcd|chinese)")
+  )
+}
+if (!file.exists(input_rds)) stop("Missing input_rds: ", input_rds)
 
-## bootstrap
-num_cores <- detectCores() - 8
-cl <- makeCluster(num_cores)
-clusterEvalQ(cl, {
-  library(mgcv)
-  library(tidyr)
-  library(gamm4)
+k_values_raw <- if (!is.null(args$k_values)) args$k_values else "3,4,5,6"
+k_values <- as.integer(strsplit(k_values_raw, ",", fixed = TRUE)[[1]])
+k_values <- k_values[!is.na(k_values)]
+if (length(k_values) == 0) stop("No valid k_values: ", k_values_raw)
+
+output_dir <- resolve_path(if (!is.null(args$output_dir)) args$output_dir else {
+  file.path(project_root, "outputs", "results", "2nd_fitdevelopmentalmodel", dataset, "check_k")
+})
+figure_dir <- resolve_path(if (!is.null(args$figure_dir)) args$figure_dir else {
+  file.path(project_root, "outputs", "figures", "2nd_fitdevelopmentalmodel", dataset, "check_k")
 })
 
-SCdata.ABCD$sex <- as.factor(SCdata.ABCD$sex)
-covariates<-"sex+mean_fd"
-smooth_var<-"age"
-stratify.var <- SCdata.ABCD$siteID
+if (!startsWith(output_dir, project_root)) stop("output_dir must be under project_root: ", output_dir)
+if (!startsWith(figure_dir, project_root)) stop("figure_dir must be under project_root: ", figure_dir)
 
-choice.df <- data.frame(boottime=1:1000)
-for (i in 1:78){
-  region <- paste0("SC.", i, "_h")
-  clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
-  
-  bootchoice<-parLapply(cl, 1:1000, function(x){
-    
-    # bootstrap
-    set.seed( seed=925 + x )
-    SPLIT <- split(1:NROW(SCdata.ABCD), stratify.var)
-    LAPPLY <- lapply(SPLIT,function(X){sample(x=X,size=length(X),replace=TRUE)})
-    INDEX <- unsplit(LAPPLY, stratify.var)
-    
-    SCdata.ABCD.subset <- SCdata.ABCD[INDEX, ]
-    
-    # fit models
-    AIC_df <- data.frame(knots=rep(NA,4), AIC=rep(NA,4))
-    for (knots in c(3:6)){
-      modelformula <- as.formula(sprintf("%s ~ s(%s, k = %s, fx = %s) + %s", region, smooth_var, knots, "TRUE", covariates))
-      gamm.model <- gamm4(modelformula, random=~(1|subID), REML=TRUE, data = SCdata.ABCD.subset)
-      
-      AIC_df$knots[knots-2] <- knots
-      AIC_df$AIC[knots-2] <- AIC(gamm.model$mer)
-    }
-    
-    bestK <- AIC_df$knots[which.min(AIC_df$AIC)]
-    
-    return(bestK)
-    
+dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(figure_dir, showWarnings = FALSE, recursive = TRUE)
+
+n_cores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = NA))
+if (is.na(n_cores) || n_cores < 1) n_cores <- parallel::detectCores()
+n_cores <- max(1L, n_cores)
+
+scdata <- readRDS(input_rds)
+
+age_col <- if ("age" %in% names(scdata)) "age" else if ("Age" %in% names(scdata)) "Age" else NA_character_
+sex_col <- if ("sex" %in% names(scdata)) "sex" else if ("Sex" %in% names(scdata)) "Sex" else NA_character_
+mean_fd_col <- if ("mean_fd" %in% names(scdata)) "mean_fd" else if ("meanFD" %in% names(scdata)) "meanFD" else NA_character_
+
+if (is.na(age_col)) stop("Missing age/Age column in input_rds.")
+if (is.na(sex_col)) stop("Missing sex/Sex column in input_rds.")
+if (is.na(mean_fd_col)) stop("Missing mean_fd column in input_rds.")
+
+if (age_col != "age") scdata$age <- scdata[[age_col]]
+if (sex_col != "sex") scdata$sex <- scdata[[sex_col]]
+if (mean_fd_col != "mean_fd") scdata$mean_fd <- scdata[[mean_fd_col]]
+scdata$sex <- as.factor(scdata$sex)
+
+sc_cols <- grep("^SC\\.", names(scdata), value = TRUE)
+if (length(sc_cols) == 0) stop("No SC.* columns found in input_rds.")
+
+n_edges <- as.integer(if (!is.null(args$n_edges)) args$n_edges else length(sc_cols))
+if (is.na(n_edges) || n_edges < 1) n_edges <- length(sc_cols)
+n_edges <- min(length(sc_cols), n_edges)
+
+message("[INFO] dataset=", dataset)
+message("[INFO] input_rds=", input_rds)
+message("[INFO] k_values=", paste(k_values, collapse = ","))
+message("[INFO] n_edges=", n_edges)
+message("[INFO] output_dir=", output_dir)
+message("[INFO] figure_dir=", figure_dir)
+message("[INFO] n_cores=", n_cores)
+
+fit_edge <- function(sc_label) {
+  aic_vals <- sapply(k_values, function(k) {
+    modelformula <- as.formula(sprintf("%s ~ s(age, k = %s, fx = TRUE) + sex + mean_fd", sc_label, k))
+    mod <- tryCatch(
+      gam(modelformula, method = "REML", data = scdata),
+      error = function(e) NULL
+    )
+    if (is.null(mod)) return(NA_real_)
+    AIC(mod)
   })
-  
-  bootchoice.df <- unlist(bootchoice)
-  choice.df[[region]] <- bootchoice.df
+  names(aic_vals) <- paste0("AIC_k", k_values)
+  data.frame(region = sc_label, t(aic_vals), check.names = FALSE, stringsAsFactors = FALSE)
 }
 
-choice.df$MostFrequent <- apply(choice.df, 1, function(row) {
-  freq <- table(row)
-  as.numeric(names(freq)[which.max(freq)])
+result_rows <- mclapply(sc_cols[seq_len(n_edges)], fit_edge, mc.cores = n_cores)
+aic_by_edge <- do.call(rbind, result_rows)
+
+aic_cols <- paste0("AIC_k", k_values)
+best_k <- apply(aic_by_edge[, aic_cols, drop = FALSE], 1, function(x) {
+  if (all(is.na(x))) return(NA_integer_)
+  k_values[which.min(x)]
 })
+aic_by_edge$best_k <- best_k
 
-table(choice.df$MostFrequent)
-# 3 
-# 1000
-
-choice.df$modelnum_k3 <- rowSums(choice.df[,2:79] == 3)
-write.csv(choice.df, paste0(resultFolderABCD, "/select_k_gam.csv"), row.names = F)
-## Best k
-ggplot(data = choice.df, aes(MostFrequent, y = ..count..)) +
-  geom_histogram(binwidth = 1, color = "black", fill = "#B4D3E7", position = position_dodge(width = 1), breaks=c(2.5,3.5,4.5,5.5, 6.5), center=0) +
-  scale_x_continuous(breaks=c(3,4,5,6), limits = c(2.5, 6.5))+
-  labs(x = expression("The optimal "*italic("k")*" value"), y = "Frequency", title = "ABCD") +
-  labs(y= "Frequency")+theme_classic()+
-  theme(panel.background = element_rect(fill="transparent"),
-        plot.background = element_rect(fill = "transparent",colour = NA),aspect.ratio = 0.7,
-        plot.title = element_text(color = "black", size = 14, hjust = 0.5),
-        axis.title = element_text(color = "black", size = 14),axis.line = element_line(linewidth = 0.4),
-        axis.ticks = element_line(linewidth = 0.4),
-        axis.text = element_text(color = "black", size = 14),
-        legend.position = "none")
-
-ggsave(paste(FigureFolderABCD, '/GAM_k_choose.tiff', sep = ''), width = 12, height = 12, units = "cm")
-ggsave(paste(FigureFolderABCD, '/GAM_k_choose.svg', sep = ''), width = 12, height = 10, units = "cm")
-
-## Number of models select k=3
-ggplot(data = choice.df, aes(modelnum_k3, y = ..count..)) +
-  geom_histogram(binwidth = 1, color = "black", fill = "#B4D3E7", position = position_dodge(width = 1)) +
-  #geom_vline(xintercept = median(choice.df$modelnum_k3), color="red", linetype="dashed", linewidth=1)+
-  labs(x = expression("Number of models choosing "*italic("k")*"=3"), y = "Frequency", title = "ABCD") +
-  labs(y= "Frequency")+theme_classic()+
-  theme(panel.background = element_rect(fill="transparent"),
-        plot.background = element_rect(fill = "transparent",colour = NA),aspect.ratio = 0.7,
-        plot.title = element_text(color = "black", size = 14, hjust = 0.5),
-        axis.title = element_text(color = "black", size = 14),axis.line = element_line(linewidth = 0.4),
-        axis.ticks = element_line(linewidth = 0.4),
-        axis.text = element_text(color = "black", size = 14),
-        legend.position = "none")
-
-ggsave(paste(FigureFolderABCD, '/GAM_k_choose_modelnum.tiff', sep = ''), width = 12, height = 12, units = "cm")
-ggsave(paste(FigureFolderABCD, '/GAM_k_choose_modelnum.svg', sep = ''), width = 12, height = 10, units = "cm")
-################################################
-
-# ChineseCohort k=3~6
-#########################################
-AIC_k3_6 <- data.frame(region=paste0("SC.", 1:78), AIC.k3=rep(NA,78), AIC.k4=rep(NA,78),
-                       AIC.k5=rep(NA,78),AIC.k6=rep(NA,78))
-SCdata.ChineseCohort$Sex <- as.factor(SCdata.ChineseCohort$Sex)
-covariates<-"Sex+mean_fd"
-dataname<-"SCdata.ChineseCohort"
-smooth_var<-"Age"
-
-## bootstrap
-num_cores <- detectCores() - 8
-cl <- makeCluster(num_cores)
-clusterEvalQ(cl, {
-  library(mgcv)
-  library(tidyr)
-  
-})
-
-SCdata.ChineseCohort$Sex <- as.factor(SCdata.ChineseCohort$Sex)
-covariates<-"Sex+mean_fd"
-smooth_var<-"Age"
-stratify.var <- SCdata.ChineseCohort$study
-
-choice.df <- data.frame(boottime=1:1000)
-for (i in 1:78){
-  region <- paste0("SC.", i, "_h")
-  clusterExport(cl, varlist = ls(), envir = .GlobalEnv)
-  
-  bootchoice<-parLapply(cl, 1:1000, function(x){
-    
-    # bootstrap
-    set.seed( seed=925 + x )
-    SPLIT <- split(1:NROW(SCdata.ChineseCohort), stratify.var)
-    LAPPLY <- lapply(SPLIT,function(X){sample(x=X,size=length(X),replace=TRUE)})
-    INDEX <- unsplit(LAPPLY, stratify.var)
-    
-    SCdata.ChineseCohort.subset <- SCdata.ChineseCohort[INDEX, ]
-    
-    # fit models
-    AIC_df <- data.frame(knots=rep(NA,4), AIC=rep(NA,4))
-    for (knots in c(3:6)){
-      modelformula <- as.formula(sprintf("%s ~ s(%s, k = %s, fx = %s) + %s", region, smooth_var, knots, "TRUE", covariates))
-      gam.model <- gam(modelformula, method = "REML", data = SCdata.ChineseCohort.subset)
-      AIC_df$knots[knots-2] <- knots
-      AIC_df$AIC[knots-2] <- AIC(gam.model)
-    }
-    
-    bestK <- AIC_df$knots[which.min(AIC_df$AIC)]
-    
-    return(bestK)
-    
-  })
-  
-  bootchoice.df <- unlist(bootchoice)
-  choice.df[[region]] <- bootchoice.df
+best_table <- as.data.frame(table(best_k, useNA = "ifany"), stringsAsFactors = FALSE)
+colnames(best_table) <- c("k", "n_edges")
+best_table$k <- as.character(best_table$k)
+valid_total <- sum(best_table$n_edges[best_table$k != "NA"])
+best_table$proportion <- if (valid_total > 0) {
+  best_table$n_edges / valid_total
+} else {
+  NA_real_
 }
 
-choice.df$MostFrequent <- apply(choice.df, 1, function(row) {
-  freq <- table(row)
-  as.numeric(names(freq)[which.max(freq)])
-})
+mean_aic <- sapply(aic_cols, function(col) mean(aic_by_edge[[col]], na.rm = TRUE))
+mean_aic_df <- data.frame(k = k_values, mean_aic = as.numeric(mean_aic))
 
-table(choice.df$MostFrequent)
-# 3   4   5   6 
-# 814 129  27  30 
+aic_summary <- merge(best_table, mean_aic_df, by.x = "k", by.y = "k", all = TRUE)
 
-choice.df$modelnum_k3 <- rowSums(choice.df[,2:79] == 3)
-write.csv(choice.df, paste0(resultFolder_ChineseCohort, "/select_k_gam.csv"), row.names = F)
-## Best k
-ggplot(data = choice.df, aes(MostFrequent, y = ..count..)) +
-  geom_histogram(binwidth = 1, color = "black", fill = "#B4D3E7", position = position_dodge(width = 1), breaks=c(2.5,3.5,4.5,5.5, 6.5), center=0) +
-  scale_x_continuous(breaks=c(3,4,5,6), limits = c(2.5, 6.5))+
-  labs(x = expression("The optimal "*italic("k")*" value"), y = "Frequency", title = "Chinese Cohort") +
-  labs(y= "Frequency")+theme_classic()+
-  theme(panel.background = element_rect(fill="transparent"),
-        plot.background = element_rect(fill = "transparent",colour = NA),aspect.ratio = 0.7,
-        plot.title = element_text(color = "black", size = 14, hjust = 0.5),
-        axis.title = element_text(color = "black", size = 14),axis.line = element_line(linewidth = 0.4),
-        axis.ticks = element_line(linewidth = 0.4),
-        axis.text = element_text(color = "black", size = 14),
-        legend.position = "none")
+write.csv(aic_by_edge, file.path(output_dir, "aic_by_edge.csv"), row.names = FALSE)
+write.csv(aic_summary, file.path(output_dir, "aic_summary.csv"), row.names = FALSE)
 
-ggsave(paste(FigureFolderChineseCohort, '/GAM_k_choose.tiff', sep = ''), width = 12, height = 12, units = "cm")
-ggsave(paste(FigureFolderChineseCohort, '/GAM_k_choose.svg', sep = ''), width = 12, height = 10, units = "cm")
+if (all(is.na(unlist(aic_by_edge[, aic_cols, drop = FALSE])))) {
+  warning("All AIC values are NA; skipping figure output.")
+} else {
+  aic_long <- data.frame(
+    k = rep(k_values, each = nrow(aic_by_edge)),
+    AIC = as.vector(t(as.matrix(aic_by_edge[, aic_cols, drop = FALSE])))
+  )
 
-## Number of models select k=3
-ggplot(data = choice.df, aes(modelnum_k3, y = ..count..)) +
-  geom_histogram(binwidth = 1, color = "black", fill = "#B4D3E7", position = position_dodge(width = 1)) +
-  #geom_vline(xintercept = median(choice.df$modelnum_k3), color="red", linetype="dashed", linewidth=1)+
-  labs(x = expression("Number of models choosing "*italic("k")*"=3"), y = "Frequency", title = "Chinese Cohort") +
-  labs(y= "Frequency")+theme_classic()+
-  theme(panel.background = element_rect(fill="transparent"),
-        plot.background = element_rect(fill = "transparent",colour = NA),aspect.ratio = 0.7,
-        plot.title = element_text(color = "black", size = 14, hjust = 0.5),
-        axis.title = element_text(color = "black", size = 14),axis.line = element_line(linewidth = 0.4),
-        axis.ticks = element_line(linewidth = 0.4),
-        axis.text = element_text(color = "black", size = 14),
-        legend.position = "none")
+  pdf(file.path(figure_dir, "aic_compare_by_k.pdf"), width = 6, height = 4)
+  boxplot(AIC ~ k, data = aic_long, col = "#B4D3E7",
+          xlab = "k", ylab = "AIC",
+          main = paste0("AIC compare (", toupper(dataset), ")"))
+  dev.off()
 
-ggsave(paste(FigureFolderChineseCohort, '/GAM_k_choose_modelnum.tiff', sep = ''), width = 12, height = 12, units = "cm")
-ggsave(paste(FigureFolderChineseCohort, '/GAM_k_choose_modelnum.svg', sep = ''), width = 12, height = 10, units = "cm")
-###############################################
-
-
-
-
-
-
+  tiff(file.path(figure_dir, "aic_compare_by_k.tiff"), width = 1800, height = 1200, res = 300)
+  boxplot(AIC ~ k, data = aic_long, col = "#B4D3E7",
+          xlab = "k", ylab = "AIC",
+          main = paste0("AIC compare (", toupper(dataset), ")"))
+  dev.off()
+}

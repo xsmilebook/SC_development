@@ -223,6 +223,7 @@
 
 ## GAM 平滑参数 k 的检查（ComBat-GAM 数据）
 - 脚本：`development_script/2nd_fitdevelopmentalmodel/V_check_k/V1st_check_k.R`
+- 兼容脚本：`development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R`（接口与输出保持一致）
 - 容器提交（默认依次跑 HCP-D/ABCD/Chinese）：`sbatch sbatch/run_check_k_combatgam_container.sbatch`
 - 可选参数：
   - `DATASET=all|hcpd|abcd|chinese`（默认 `all`）。

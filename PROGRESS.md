@@ -300,3 +300,5 @@
 - 2026-02-05: 更新 check_k 脚本使用 ComBat-GAM 数据并输出 k 值 AIC 对比图，新增容器 sbatch 提交脚本。
 - 2026-02-08: 将 `development_script/2nd_fitdevelopmentalmodel/V_check_k/R1_SAcorr_alongAge_varyk_HCPD.R` 纳入版本库；当前环境缺少 R/容器运行时，小样本测试需在集群执行。
 - 2026-02-08: check_k 容器 sbatch 支持 `DATASET=all` 串行运行 HCP-D/ABCD/Chinese，并提供按数据集覆盖输入路径的参数。
+- 2026-02-08: `development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R` 更新为 ComBat-GAM 数据与参数化接口，输出固定到项目内目录。
+- 2026-02-08: 同步 `development_script/2nd_fitdevelopmentalmodel/V_check_k/V1st_check_k.R` 到新版本，修复旧路径导致的 `source(gamsmooth.R)` 报错。
