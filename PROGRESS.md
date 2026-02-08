@@ -299,3 +299,4 @@
 - 2026-02-05: 修复 changerate 脚本在无距离文件时的候选路径选择，避免 `subscript out of bounds`。
 - 2026-02-05: 更新 check_k 脚本使用 ComBat-GAM 数据并输出 k 值 AIC 对比图，新增容器 sbatch 提交脚本。
 - 2026-02-08: 将 `development_script/2nd_fitdevelopmentalmodel/V_check_k/R1_SAcorr_alongAge_varyk_HCPD.R` 纳入版本库；当前环境缺少 R/容器运行时，小样本测试需在集群执行。
+- 2026-02-08: check_k 容器 sbatch 支持 `DATASET=all` 串行运行 HCP-D/ABCD/Chinese，并提供按数据集覆盖输入路径的参数。
