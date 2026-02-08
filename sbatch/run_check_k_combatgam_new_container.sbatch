@@ -6,7 +6,7 @@
 
 #SBATCH -J check_k_combatgam_new
 #SBATCH -p q_fat_c,q_fat,q_fat_l
-#SBATCH -c 32
+#SBATCH -c 72
 #SBATCH -o outputs/logs/check_k_combatgam_new_%j.log
 
 set -euo pipefail
@@ -40,7 +40,7 @@ export OPENBLAS_NUM_THREADS=1
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 
-export SINGULARITYENV_SLURM_CPUS_PER_TASK="${SLURM_CPUS_PER_TASK:-32}"
+export SINGULARITYENV_SLURM_CPUS_PER_TASK="${SLURM_CPUS_PER_TASK:-72}"
 export SINGULARITYENV_OPENBLAS_NUM_THREADS=1
 export SINGULARITYENV_OMP_NUM_THREADS=1
 export SINGULARITYENV_MKL_NUM_THREADS=1
