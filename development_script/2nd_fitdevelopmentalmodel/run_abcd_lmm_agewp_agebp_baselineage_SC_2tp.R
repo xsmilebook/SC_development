@@ -230,8 +230,10 @@ save_colorbar <- function(limthr, out_base) {
     coord_cartesian(expand = FALSE) +
     theme_void() +
     theme(
+      panel.background = element_blank(),
       panel.border = element_blank(),
-      plot.margin = margin(2, 2, 2, 2, "mm")
+      plot.background = element_rect(color = "black", fill = NA, linewidth = 0.5),
+      plot.margin = margin(0.1,0.1, 0.1, 0.1, "mm")
     )
 
   ggsave(paste0(out_base, ".tiff"), p, width = 12, height = 1.5, units = "cm", bg = "transparent")
@@ -347,7 +349,7 @@ plot_matrix(
   file.path(FigureFolder, paste0("matrix_age_wp_tvalue_SC_CV", CVthr, out_tag)),
   sig_mat = sig_wp_mat
 )
-limthr_wp_t_mat <- 20
+limthr_wp_t_mat <- 19.85
 if (!is.finite(limthr_wp_t_mat) || limthr_wp_t_mat == 0) limthr_wp_t_mat <- 1
 save_colorbar(
   limthr_wp_t_mat,
