@@ -47,6 +47,7 @@ Scripts:
   - `age_bp`: baseline age (fallback to per-subject minimum age if baseline event label is unavailable);
   - `age_wp`: current age minus baseline age.
 - Fits `SC ~ age_wp + age_bp + sex + mean_fd + (1 | subID)` per edge and exports t-value/beta matrices plus S-A rank scatter outputs.
+- Also computes term-level p-values for `age_wp` and `age_bp` via LRT (full vs reduced models), applies FDR correction across edges, and marks FDR-significant entries (`*`) on the generated age_wp/age_bp t-value and beta matrices.
 
 ## Chinese Cohort (ComBat-GAM) in-repo runnable scripts
 For Chinese Cohort, we add project-root relative scripts to generate scaled GAM models and derivatives from the ComBat-GAM output. Outputs are written under `SCDevelopment/outputs/` (no writes to historical `wd/`).
