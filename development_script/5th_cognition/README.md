@@ -29,5 +29,7 @@ ABCD baseline-age decomposition LMM interaction workflow for cognition (no t-val
 - In `decile-avg-SC-first`, interaction significance is tested for both `age_wp:cov` and `age_bp:cov` by LRT against
   `y ~ age_wp + cov + age_bp + sex + mean_fd + (1 | subID)`, followed by FDR correction (`p_agewp_cov_fdr`, `p_agebp_cov_fdr`).
 - `decile-avg-SC-first` figures annotate each decile with interaction `t value` and LRT `p value`.
+- Additional export: `decile_agewp_pvalues_baselineage_*.csv` with decile-wise `age_wp` main-effect p values (and FDR) from
+  full `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)` vs reduced `y ~ age_bp * cov + sex + mean_fd + (1 | subID)`.
 
 

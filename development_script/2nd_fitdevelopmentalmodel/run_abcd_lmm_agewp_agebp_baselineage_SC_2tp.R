@@ -340,7 +340,7 @@ plot_matrix(
   file.path(FigureFolder, paste0("matrix_age_wp_tvalue_SC_CV", CVthr, out_tag)),
   sig_mat = sig_wp_mat
 )
-limthr_wp_t_mat <- max(abs(mat_wp_t), na.rm = TRUE)
+limthr_wp_t_mat <- 20
 if (!is.finite(limthr_wp_t_mat) || limthr_wp_t_mat == 0) limthr_wp_t_mat <- 1
 save_colorbar(
   limthr_wp_t_mat,

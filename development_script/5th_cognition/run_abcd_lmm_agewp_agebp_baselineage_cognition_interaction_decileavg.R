@@ -191,6 +191,7 @@ fit_outcome_models <- function(
   row_info <- data.frame(
     outcome = y_col,
     n_obs = nrow(df),
+    p_agewp_main = NA_real_,
     beta_agewp_cov = NA_real_,
     beta_agebp_cov = NA_real_,
     t_agewp_cov = NA_real_,
@@ -211,6 +212,8 @@ fit_outcome_models <- function(
   fit_bp <- tryCatch(lme4::lmer(form_bp, data = df, REML = FALSE), error = function(e) NULL)
   form_red <- stats::as.formula("y ~ age_wp + cov + age_bp + sex + mean_fd + (1 | subID)")
   fit_red <- tryCatch(lme4::lmer(form_red, data = df, REML = FALSE), error = function(e) NULL)
+  form_agewp_main_red <- stats::as.formula("y ~ age_bp * cov + sex + mean_fd + (1 | subID)")
+  fit_agewp_main_red <- tryCatch(lme4::lmer(form_agewp_main_red, data = df, REML = FALSE), error = function(e) NULL)
 
   get_coef <- function(fit_obj, coef_name) {
     if (is.null(fit_obj)) return(NA_real_)
@@ -237,6 +240,7 @@ fit_outcome_models <- function(
     if (is.null(tb) || nrow(tb) < 2 || !("Pr(>Chisq)" %in% names(tb))) return(NA_real_)
     as.numeric(tb$`Pr(>Chisq)`[2])
   }
+  row_info$p_agewp_main <- get_lrt_p(fit_agewp_main_red, fit_bp)
   row_info$p_agewp_cov <- get_lrt_p(fit_red, fit_wp)
   row_info$p_agebp_cov <- get_lrt_p(fit_red, fit_bp)
 
@@ -543,10 +547,12 @@ if (need_refit || !file.exists(out_rds)) {
 
   if (nrow(decile_summary) > 0) {
     decile_summary$decile <- as.integer(sub("^SC_decile", "", decile_summary$outcome))
+    decile_summary$p_agewp_main_fdr <- stats::p.adjust(decile_summary$p_agewp_main, method = "fdr")
     decile_summary$p_agewp_cov_fdr <- stats::p.adjust(decile_summary$p_agewp_cov, method = "fdr")
     decile_summary$p_agebp_cov_fdr <- stats::p.adjust(decile_summary$p_agebp_cov, method = "fdr")
   } else {
     decile_summary$decile <- integer(0)
+    decile_summary$p_agewp_main_fdr <- numeric(0)
     decile_summary$p_agewp_cov_fdr <- numeric(0)
     decile_summary$p_agebp_cov_fdr <- numeric(0)
   }
@@ -586,6 +592,12 @@ if (need_refit || !file.exists(out_rds)) {
   write.csv(
     decile_summary,
     file.path(resultFolder, paste0("decile_avgSC_summary_baselineage_interaction_", Cogvar_base, "_CV", CVthr, ".csv")),
+    row.names = FALSE
+  )
+  decile_agewp_p <- decile_summary[, c("decile", "p_agewp_main", "p_agewp_main_fdr"), drop = FALSE]
+  write.csv(
+    decile_agewp_p,
+    file.path(resultFolder, paste0("decile_agewp_pvalues_baselineage_", Cogvar_base, "_CV", CVthr, ".csv")),
     row.names = FALSE
   )
 }
