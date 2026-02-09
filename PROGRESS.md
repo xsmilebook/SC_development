@@ -310,3 +310,4 @@
 - 2026-02-08: baseline-age cognition/pfactor decile 流程新增 `age_wp` 主效应 p 值提取：按 decile 输出 `full(y ~ age_wp + age_bp*cov + ...)` vs `red(y ~ age_bp*cov + ...)` 的 LRT p 值与 FDR 到 `decile_agewp_pvalues_baselineage_*.csv`。
 - 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp/age_bp 项的 LRT p 值与 FDR 校正（edge 级），并在 age_wp/age_bp 的 t-value 与 beta 矩阵图中对 `FDR < 0.05` 的连接标注 `*`。
 - 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp t-value 矩阵独立 colorbar 输出（`*_colorbar.tiff/.pdf`），颜色范围与矩阵图一致。
+- 2026-02-09: 修复 age_wp t-value colorbar 在 `limthr=20` 等范围下可能出现的中轴黑线：`save_colorbar()` 改用 `geom_raster(interpolate=TRUE)` + `scale_fill_gradient2()`，并移除边框绘制。

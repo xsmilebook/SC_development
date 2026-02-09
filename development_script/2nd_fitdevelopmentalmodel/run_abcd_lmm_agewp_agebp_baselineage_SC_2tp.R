@@ -218,12 +218,19 @@ save_colorbar <- function(limthr, out_base) {
   )
 
   p <- ggplot(cb, aes(x = x, y = y, fill = z)) +
-    geom_tile() +
-    scale_fill_distiller(type = "seq", palette = "RdBu", limits = c(-limthr, limthr), guide = "none") +
+    geom_raster(interpolate = TRUE) +
+    scale_fill_gradient2(
+      low = "#2C7BB6",
+      mid = "#F7F7F7",
+      high = "#D7191C",
+      midpoint = 0,
+      limits = c(-limthr, limthr),
+      guide = "none"
+    ) +
     coord_cartesian(expand = FALSE) +
     theme_void() +
     theme(
-      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+      panel.border = element_blank(),
       plot.margin = margin(2, 2, 2, 2, "mm")
     )
 
