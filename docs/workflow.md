@@ -179,10 +179,11 @@
 	       - 脚本：`development_script/1st_dataclean/merge_Chinese_cohort/S2nd_mergedata_SA_ds_sumSC_ChineseCohort.R`（SA7/SA17），`development_script/1st_dataclean/merge_Chinese_cohort/V2nd_mergedata_Yeo_sumSC_ChineseCohort.R`（Yeo7）
 	       - 一键 sbatch（SA7 + SA17 + Yeo7）：`sbatch sbatch/run_chinese_merge_SA7_SA17_Yeo7_container.sbatch`
        - 默认输出目录：`outputs/intermediate/1st_dataclean/chinese_cohort/`
-       - 说明：node volume 的 `*_Volume7.txt` 可能包含 `missing label` 等非数值行；脚本会忽略非数值行并仅使用前 400 个数值，且对缺失 volume 文件的被试给出 warning 并跳过。
+       - 说明：node volume 按 reference 脚本读取（`read_table(..., col_names=F)`），要求 `*_Volume7.txt` 为纯数值列；如含非数值行需先清理。
        - CuiBP demopath：使用项目内 `demopath/basic_demo_merge_screen.xlsx`。
        - CCNP 使用 `scanID` 作为 `subID` 以匹配 `*_ses-XX_*` 的 SC/volume 文件名。
        - 年龄筛选：合并时剔除 `Age > 26` 的被试。
+       - 行为列：输出对齐 reference（`subID, Age, Sex, Handedness, ICV, mean_fd`）。
 	     - 中国队列（SA7/SA17）devmodel（容器版，72 核）：
 	       - SA7：`sbatch sbatch/run_chinese_devmodel_combatgam_SA7_CV75_container.sbatch`
 	       - SA17：`sbatch sbatch/run_chinese_devmodel_combatgam_SA17_CV75_container.sbatch`

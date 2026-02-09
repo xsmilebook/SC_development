@@ -62,8 +62,8 @@ dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
 # CuiBP
 Behavior_Cui <- read.xlsx(file.path(project_root, "demopath", "basic_demo_merge_screen.xlsx")) # 152 subjects with complete dMRI & normal anat
-if ("MRI_ID" %in% names(Behavior_Cui) && !"subID" %in% names(Behavior_Cui)) Behavior_Cui <- dplyr::rename(Behavior_Cui, subID = MRI_ID)
-Behavior_Cui$Sex <- as.factor(as.character(Behavior_Cui$Sex))
+Behavior_Cui$Sex <- as.factor(dplyr::recode(as.character(Behavior_Cui$Sex), "M" = "Male", "F" = "Female", .default = as.character(Behavior_Cui$Sex)))
+Behavior_Cui <- dplyr::rename(Behavior_Cui, subID = MRI_ID)
 # SNU
 Behavior_SNU <- read.csv(paste0(demopath_SNU, "/basic_demo_merge_screen.csv")) # 145 subjects with complete dMRI & normal anat
 Behavior_SNU <- Behavior_SNU %>% dplyr::rename(all_of(c(subID = "sub_ID", Sex = "Gender_num")))
@@ -71,7 +71,6 @@ Behavior_SNU$Sex <- factor(Behavior_SNU$Sex, levels = c(1, 2), labels = c("Male"
 # CCNP
 Behavior_CCNP <- read.csv(paste0(demopath_CCNP, "/basic_demo_devCCNPPEK.csv")) # 323 subjects with complete dMRI & normal anat
 Behavior_CCNP$Sex <- as.factor(Behavior_CCNP$Sex)
-if ("scanID" %in% names(Behavior_CCNP)) Behavior_CCNP$subID <- NULL
 
 # load data
 schaefer400_index_SA<-read.csv(paste0(interfileFolder, '/schaefer400_index_SA.csv'))
@@ -145,67 +144,16 @@ names(SClength.sum)<-colname2
 SClength.sum$subID <- "NULL"
 SClength.sum75 <- SClength.sum25 <- SClength.sum
 
-ensure_cols <- function(df, cols) {
-  for (nm in cols) {
-    if (!nm %in% names(df)) df[[nm]] <- NA
-  }
-  df[, cols]
-}
+behavior_cols <- c("subID", "Age", "Sex", "Handedness", "ICV", "mean_fd")
 
-safe_rename <- function(df, mapping) {
-  for (target in names(mapping)) {
-    source <- mapping[[target]]
-    if (target %in% names(df)) {
-      if (source %in% names(df) && source != target) df[[source]] <- NULL
-      next
-    }
-    if (source %in% names(df)) {
-      names(df)[names(df) == source] <- target
-    }
-  }
-  df
-}
-
-read_nodevolume <- function(path, expected_len) {
-  if (!file.exists(path)) {
-    warning("Missing node volume file: ", path)
-    return(NULL)
-  }
-  vol_raw <- tryCatch(
-    read.table(path, header = FALSE, fill = TRUE, stringsAsFactors = FALSE),
-    error = function(e) {
-      warning("Failed to read node volume file: ", path, " (", conditionMessage(e), ")")
-      return(NULL)
-    }
-  )
-  if (is.null(vol_raw) || nrow(vol_raw) == 0) {
-    warning("Empty node volume file: ", path)
-    return(NULL)
-  }
-  vol <- suppressWarnings(as.numeric(vol_raw[[2]]))
-  if (all(is.na(vol))) {
-    vol <- suppressWarnings(as.numeric(vol_raw[[1]]))
-  }
-  vol <- vol[!is.na(vol)]
-  if (length(vol) < expected_len) {
-    warning("Node volume length too short for: ", path, " (", length(vol), " < ", expected_len, ")")
-    return(NULL)
-  }
-  vol[seq_len(expected_len)]
-}
-
-behavior_cols <- c("subID", "Age", "Sex", "Handedness", "CBCLtotalproblem", "EFPCA", "ICV", "mean_fd")
-
-# rbind demographic data (align to the Yeo merge script inputs)
-Behavior <- ensure_cols(Behavior_Cui, behavior_cols)
+# rbind demographic data (align to reference merge script)
+Behavior <- Behavior_Cui %>% select(all_of(behavior_cols))
 Behavior$study <- "CuiBP"
-Behavior2 <- ensure_cols(Behavior_SNU, behavior_cols)
+Behavior2 <- Behavior_SNU %>% select(all_of(behavior_cols))
 Behavior2$study <- "SNU"
-Behavior3 <- safe_rename(
-  Behavior_CCNP,
-  c(subID = "scanID", Handedness = "handedness", CBCLtotalproblem = "Total_Problems_Total", Age = "ScanAge")
-)
-Behavior3 <- ensure_cols(Behavior3, behavior_cols)
+Behavior3 <- Behavior_CCNP %>%
+  select(scanID, ScanAge, Sex, handedness, ICV, mean_fd) %>%
+  dplyr::rename(all_of(c(subID = "scanID", Handedness = "handedness", Age = "ScanAge")))
 Behavior3$study <- "CCNP"
 
 Behavior <- rbind(Behavior, Behavior2, Behavior3)
@@ -235,8 +183,7 @@ for (i in 1:nrow(Behavior)){
   volumefile <- paste0(Volume_path, '/', subID, '_Volume7.txt')
   # all the T1 parcellation for CuiBP succeed.
   if (file.exists(sc_file)){
-    nodevolume <- read_nodevolume(volumefile, expected_len = 400L)
-    if (is.null(nodevolume)) next
+    nodevolume <- read_table(volumefile, col_names = FALSE)
     SCmat <- readMat(sc_file) 
     # load steamline counts matrix & fiber length matrix
     SCmat_raw <- SCmat$schaefer400.sift.radius2.count.connectivity[schaefer376_delLM, schaefer376_delLM]
@@ -271,7 +218,7 @@ for (i in 1:nrow(Behavior)){
     sumSC.raw75 <- result$sum_value75[1:elementnum]
     sumSC.raw25 <- result$sum_value25[1:elementnum]
     ## node volume
-    nodevolume <- nodevolume[orderSA_7.delLM] # sort as SA-axis without limbic
+    nodevolume <- as.numeric(nodevolume$X1[orderSA_7.delLM]) # sort as SA-axis without limbic
     df2 <- data.frame(
       group = SAds.resolutionnode,
       value = nodevolume
