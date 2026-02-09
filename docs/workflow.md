@@ -182,7 +182,8 @@
        - 说明：node volume 按 reference 脚本读取（`read_table(..., col_names=F)`），要求 `*_Volume7.txt` 为纯数值列；如含非数值行需先清理。
        - CuiBP demopath：使用项目内 `demopath/basic_demo_merge_screen.xlsx`。
        - CCNP 使用 `scanID` 作为 `subID` 以匹配 `*_ses-XX_*` 的 SC/volume 文件名。
-       - 年龄筛选：合并时剔除 `Age > 26` 的被试。
+       - 年龄筛选：各数据源先做 `Age <= 26` 过滤，CCNP 额外剔除 `Age <= 6.0` 的被试。
+       - 72 核单步提交：`sbatch sbatch/run_chinese_merge_SA7_container.sbatch`、`sbatch sbatch/run_chinese_merge_SA17_container.sbatch`、`sbatch sbatch/run_chinese_merge_Yeo7_container.sbatch`。
        - 行为列：输出对齐 reference（`subID, Age, Sex, Handedness, ICV, mean_fd`）。
 	     - 中国队列（SA7/SA17）devmodel（容器版，72 核）：
 	       - SA7：`sbatch sbatch/run_chinese_devmodel_combatgam_SA7_CV75_container.sbatch`

@@ -308,3 +308,4 @@
 - 2026-02-08: `V1st_check_k_new.R` 的 bootstrap 直方图改用既有 ggplot 风格，并支持复用已有结果跳过重算。
 - 2026-02-09: 中国队列 merge 改为优先使用 CCNP 的 `scanID` 以匹配 session 文件名，并在合并时剔除 `Age > 26` 被试。
 - 2026-02-09: 中国队列 SA/Yeo merge 的 CCNP/scanID、行为列与 node volume 读取逻辑对齐 reference 脚本。
+- 2026-02-09: 中国队列 merge 在各数据源内先做年龄过滤（Cui/SNU `Age <= 26`；CCNP `6 < Age <= 26`），并新增 72 核 SA7/SA17/Yeo7 提交脚本。

@@ -64,10 +64,14 @@ dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 Behavior_Cui <- read.xlsx(file.path(project_root, "demopath", "basic_demo_merge_screen.xlsx")) # 152 subjects with complete dMRI & normal anat
 Behavior_Cui$Sex <- as.factor(dplyr::recode(as.character(Behavior_Cui$Sex), "M" = "Male", "F" = "Female", .default = as.character(Behavior_Cui$Sex)))
 Behavior_Cui <- dplyr::rename(Behavior_Cui, subID = MRI_ID)
+Behavior_Cui$Age <- suppressWarnings(as.numeric(Behavior_Cui$Age))
+Behavior_Cui <- Behavior_Cui[!is.na(Behavior_Cui$Age) & Behavior_Cui$Age <= 26, ]
 # SNU
 Behavior_SNU <- read.csv(paste0(demopath_SNU, "/basic_demo_merge_screen.csv")) # 145 subjects with complete dMRI & normal anat
 Behavior_SNU <- Behavior_SNU %>% dplyr::rename(all_of(c(subID = "sub_ID", Sex = "Gender_num")))
 Behavior_SNU$Sex <- factor(Behavior_SNU$Sex, levels = c(1, 2), labels = c("Male", "Female"))
+Behavior_SNU$Age <- suppressWarnings(as.numeric(Behavior_SNU$Age))
+Behavior_SNU <- Behavior_SNU[!is.na(Behavior_SNU$Age) & Behavior_SNU$Age <= 26, ]
 # CCNP
 Behavior_CCNP <- read.csv(paste0(demopath_CCNP, "/basic_demo_devCCNPPEK.csv")) # 323 subjects with complete dMRI & normal anat
 Behavior_CCNP$Sex <- as.factor(Behavior_CCNP$Sex)
@@ -154,11 +158,11 @@ Behavior2$study <- "SNU"
 Behavior3 <- Behavior_CCNP %>%
   select(scanID, ScanAge, Sex, handedness, ICV, mean_fd) %>%
   dplyr::rename(all_of(c(subID = "scanID", Handedness = "handedness", Age = "ScanAge")))
+Behavior3$Age <- suppressWarnings(as.numeric(Behavior3$Age))
+Behavior3 <- Behavior3[!is.na(Behavior3$Age) & Behavior3$Age > 6 & Behavior3$Age <= 26, ]
 Behavior3$study <- "CCNP"
 
 Behavior <- rbind(Behavior, Behavior2, Behavior3)
-Behavior$Age <- suppressWarnings(as.numeric(Behavior$Age))
-Behavior <- Behavior[!is.na(Behavior$Age) & Behavior$Age <= 26, ]
 
 for (i in 1:nrow(Behavior)){
   subID <- Behavior$subID[i]
