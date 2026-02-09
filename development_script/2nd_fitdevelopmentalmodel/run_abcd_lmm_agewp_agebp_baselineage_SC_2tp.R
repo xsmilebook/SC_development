@@ -218,15 +218,8 @@ save_colorbar <- function(limthr, out_base) {
   )
 
   p <- ggplot(cb, aes(x = x, y = y, fill = z)) +
-    geom_raster(interpolate = TRUE) +
-    scale_fill_gradient2(
-      low = "#2C7BB6",
-      mid = "#F7F7F7",
-      high = "#D7191C",
-      midpoint = 0,
-      limits = c(-limthr, limthr),
-      guide = "none"
-    ) +
+    geom_tile() +
+    scale_fill_distiller(type = "seq", palette = "RdBu", limits = c(-limthr, limthr), guide = "none") +
     coord_cartesian(expand = FALSE) +
     theme_void() +
     theme(
@@ -349,7 +342,7 @@ plot_matrix(
   file.path(FigureFolder, paste0("matrix_age_wp_tvalue_SC_CV", CVthr, out_tag)),
   sig_mat = sig_wp_mat
 )
-limthr_wp_t_mat <- 19.85
+limthr_wp_t_mat <- max(abs(mat_wp_t), na.rm = TRUE)
 if (!is.finite(limthr_wp_t_mat) || limthr_wp_t_mat == 0) limthr_wp_t_mat <- 1
 save_colorbar(
   limthr_wp_t_mat,

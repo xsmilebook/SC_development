@@ -1,5 +1,6 @@
 # Progress
 
+- 2026-02-09: baseline-age SC 2tp 脚本中 age_wp t-value colorbar 改为与矩阵图完全一致的 `scale_fill_distiller(palette="RdBu")`，并使用矩阵实际 `limthr`（不再手动固定 `limthr_wp_t_mat`）。
 - 2026-01-16: 更新 AGENTS.md 规则为中文并调整文档语言要求；建立会话记录与进度文件。
 - 2026-01-16: 新增 `docs/README.md`、`docs/workflow.md`、`docs/methods.md`；更新 `README.md` 文档入口与 AGENTS 路径约定。
 - 2026-01-16: 根据 `docs/research` 文档补充 `docs/methods.md` 的样本、影像与方法学摘要。
