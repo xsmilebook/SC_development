@@ -209,6 +209,28 @@ plot_matrix <- function(mat, title, out_base, sig_mat = NULL) {
   ggsave(paste0(out_base, ".pdf"), p, height = 18, width = 20, units = "cm", bg = "transparent")
 }
 
+save_colorbar <- function(limthr, out_base) {
+  if (!is.finite(limthr) || limthr == 0) limthr <- 1
+  cb <- data.frame(
+    x = seq(-limthr, limthr, length.out = 600),
+    y = 1,
+    z = seq(-limthr, limthr, length.out = 600)
+  )
+
+  p <- ggplot(cb, aes(x = x, y = y, fill = z)) +
+    geom_tile() +
+    scale_fill_distiller(type = "seq", palette = "RdBu", limits = c(-limthr, limthr), guide = "none") +
+    coord_cartesian(expand = FALSE) +
+    theme_void() +
+    theme(
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+      plot.margin = margin(2, 2, 2, 2, "mm")
+    )
+
+  ggsave(paste0(out_base, ".tiff"), p, width = 12, height = 1.5, units = "cm", bg = "transparent")
+  ggsave(paste0(out_base, ".pdf"), p, width = 12, height = 1.5, units = "cm", bg = "transparent")
+}
+
 num_cores <- as.integer(Sys.getenv("LMM_CORES", unset = "16"))
 if (is.na(num_cores) || num_cores < 1) num_cores <- 16
 num_cores <- min(num_cores, parallel::detectCores())
@@ -317,6 +339,12 @@ plot_matrix(
   "SC age_wp t value",
   file.path(FigureFolder, paste0("matrix_age_wp_tvalue_SC_CV", CVthr, out_tag)),
   sig_mat = sig_wp_mat
+)
+limthr_wp_t_mat <- max(abs(mat_wp_t), na.rm = TRUE)
+if (!is.finite(limthr_wp_t_mat) || limthr_wp_t_mat == 0) limthr_wp_t_mat <- 1
+save_colorbar(
+  limthr_wp_t_mat,
+  file.path(FigureFolder, paste0("matrix_age_wp_tvalue_SC_CV", CVthr, out_tag, "_colorbar"))
 )
 
 SCrank.df.wp_t <- SCrankcorr(res_df, "t_wp", 12, dsdata = FALSE)

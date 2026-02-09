@@ -320,6 +320,7 @@
       - 输入与模型：与 `run_abcd_lmm_agewp_agebp_SC_2tp.R` 一致（`SC ~ age_wp + age_bp + sex + mean_fd + (1 | subID)`），仅保留 `subID` 观测次数 ≥ 2 的被试
       - 输出：t value 与 fixed effect（beta）的矩阵/散点结果，文件名后缀为 `_baselineage_2tp`
       - 显著性：对 `age_wp` 与 `age_bp` 分别进行 LRT（full vs 去除对应项的 reduced），并对 p 值做 FDR 校正；在 age_wp/age_bp 的 t-value 与 beta 矩阵图中以 `*` 标注 `FDR < 0.05`
+      - 颜色条：额外输出 `matrix_age_wp_tvalue_SC_CV*_baselineage_2tp_colorbar.{tiff,pdf}`，与 age_wp t-value 矩阵使用相同对称色域
    - ABCD SC personal slope（LGCM-style slope per year；不做显著性检验）：
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lgcm_personal_slope_SC.R`
      - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`

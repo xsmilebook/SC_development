@@ -309,3 +309,4 @@
 - 2026-02-08: baseline-age cognition/pfactor decile 图改为标注 `t value` 与 `p value`：`t` 使用交互项系数（`age_wp:cov` / `age_bp:cov`）的 t 值，`p` 使用对应 full vs reduced 的 LRT p 值；FDR 输出仍保留在结果表中。
 - 2026-02-08: baseline-age cognition/pfactor decile 流程新增 `age_wp` 主效应 p 值提取：按 decile 输出 `full(y ~ age_wp + age_bp*cov + ...)` vs `red(y ~ age_bp*cov + ...)` 的 LRT p 值与 FDR 到 `decile_agewp_pvalues_baselineage_*.csv`。
 - 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp/age_bp 项的 LRT p 值与 FDR 校正（edge 级），并在 age_wp/age_bp 的 t-value 与 beta 矩阵图中对 `FDR < 0.05` 的连接标注 `*`。
+- 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp t-value 矩阵独立 colorbar 输出（`*_colorbar.tiff/.pdf`），颜色范围与矩阵图一致。
