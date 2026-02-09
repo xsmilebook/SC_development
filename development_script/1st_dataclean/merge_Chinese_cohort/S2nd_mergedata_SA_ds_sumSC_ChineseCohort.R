@@ -71,6 +71,7 @@ Behavior_SNU$Sex <- factor(Behavior_SNU$Sex, levels = c(1, 2), labels = c("Male"
 # CCNP
 Behavior_CCNP <- read.csv(paste0(demopath_CCNP, "/basic_demo_devCCNPPEK.csv")) # 323 subjects with complete dMRI & normal anat
 Behavior_CCNP$Sex <- as.factor(Behavior_CCNP$Sex)
+if ("scanID" %in% names(Behavior_CCNP)) Behavior_CCNP$subID <- NULL
 
 # load data
 schaefer400_index_SA<-read.csv(paste0(interfileFolder, '/schaefer400_index_SA.csv'))
@@ -208,6 +209,8 @@ Behavior3 <- ensure_cols(Behavior3, behavior_cols)
 Behavior3$study <- "CCNP"
 
 Behavior <- rbind(Behavior, Behavior2, Behavior3)
+Behavior$Age <- suppressWarnings(as.numeric(Behavior$Age))
+Behavior <- Behavior[!is.na(Behavior$Age) & Behavior$Age <= 26, ]
 
 for (i in 1:nrow(Behavior)){
   subID <- Behavior$subID[i]
