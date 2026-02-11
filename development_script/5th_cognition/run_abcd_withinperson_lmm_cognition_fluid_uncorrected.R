@@ -35,11 +35,11 @@ dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
 input_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"
+  project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_baseline_age_sex_meanfd.rds"
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (age/sex/mean_fd variant; longitudinal)")
+  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (baseline_age_sex_meanfd variant)")
 }
 
 source(file.path(functionFolder, "lmminteraction.R"))
@@ -67,13 +67,13 @@ if (length(missing) > 0) stop("Missing required columns in SCdata: ", paste(miss
 SCdata$sex <- as.factor(SCdata$sex)
 
 # Baseline cognition comes from the cognition-specific ComBat output (baseline-only),
-# then merged into the longitudinal SCdata by subID to keep "baseline fill" logic consistent.
+# then merged into the SCdata by subID to keep "baseline fill" logic consistent.
 cog_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cognition.rds"
+  project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_cognition.rds"
 )
 if (!file.exists(cog_rds)) {
-  stop("Missing cognition baseline input: ", cog_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (cognition variant)")
+  stop("Missing cognition baseline input: ", cog_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (cognition variant)")
 }
 SCcog <- readRDS(cog_rds)
 if (!("eventname" %in% names(SCcog)) && ("scanID" %in% names(SCcog))) {

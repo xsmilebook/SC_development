@@ -49,11 +49,11 @@ scanid_to_eventname <- function(scanID) {
 }
 
 input_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_fluidcomp_fc_baseline.rds"
+  project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_fluidcomp_fc_baseline.rds"
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_fluidcomp_fc_baseline.sbatch")
+  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (fluidcomp_fc_baseline variant)")
 }
 
 SCdata <- readRDS(input_rds)
