@@ -261,7 +261,7 @@
    - CBCL total raw 关联分析脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R`。
    - 小样本验证脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R`。
    - CBCL 关联分析绘图输出（t-value matrix、S-A rank 散点、分位数组轨迹）写入 `outputs/figures/cbcl_totprob/`。
-   - ABCD p-factor（GENERAL；Nonlinear-ComBat-GAM 输出 `*combatgam_pfactor.rds`）S1 复现入口（连续效应 + age-by-pfactor smooth interaction）：
+   - ABCD p-factor（GENERAL；neuroHarmonize baseline 输出 `*combatgam_neuroharmonize_pfactor.rds`）S1 复现入口（连续效应 + age-by-pfactor smooth interaction）：
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_pfactor_effect_continuous_container.sbatch`
      - 结果：`outputs/results/6th_pfactor/abcd/pfactor/`
      - 图像（tiff + svg/pdf）：`outputs/figures/6th_pfactor/abcd/pfactor/`
@@ -424,7 +424,7 @@
 
 ## CBCL 关联运行
 - 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。
-- CBCL 关联分析默认输入（ABCD Nonlinear-ComBat-GAM 输出）：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cbcl.rds`。
+- CBCL 关联分析默认输入（ABCD neuroHarmonize baseline 输出）：`outputs/results/combat_gam/abcd/baseline/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_cbcl.rds`。
 - 全量作业脚本（容器版）：`sbatch/run_cbcl_assoc_full.sbatch`（使用 `outputs/containers/scdevelopment_r41.sif`；可用 `SIF_PATH` 指向新构建镜像）。
 - 运行前确认 `outputs/logs/` 存在，脚本内会自动创建。
 - 若需非容器运行，建议参考 `docs/workflow.md` 中关于 R ABI 隔离的说明，避免作业环境误加载用户库（`/GPFS/.../R/packages`）导致 ABI 不一致报错。

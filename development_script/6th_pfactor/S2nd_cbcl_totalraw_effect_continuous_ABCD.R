@@ -29,9 +29,15 @@ source(paste0(functionFolder, "/gamminteraction.R"))
 source(paste0(functionFolder, "/SCrankcorr.R"))
 
 input_rds <- file.path(
-  wdpath, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cbcl.rds"
+  wdpath, "outputs", "results", "combat_gam", "abcd", "baseline",
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_cbcl.rds"
 )
+if (!file.exists(input_rds)) {
+  stop(
+    "Missing input_rds: ", input_rds,
+    "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (cbcl variant)"
+  )
+}
 SCdata <- readRDS(input_rds)
 
 need_demo <- (is.data.frame(SCdata$age) || !is.numeric(SCdata$age)) ||
