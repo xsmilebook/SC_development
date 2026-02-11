@@ -201,6 +201,7 @@
 - 2026-02-11: 新增 ABCD 基于 neuroHarmonize（mgcv 基函数）的 ComBat-GAM 变体脚本与一键 sbatch，输出统一写入 `outputs/results/combat_gam/abcd/baseline/`。
 - 2026-02-11: 将 `development_script/5th_cognition/` 的 ABCD 脚本输入切换为 neuroHarmonize baseline 输出，并更新 workflow 说明。
 - 2026-02-11: 将 `development_script/6th_pfactor/run_abcd_pfactor_effect_continuous_S1.R` 与 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R` 输入切换为 neuroHarmonize baseline 输出。
+- 2026-02-11: 将 `development_script/1st_dataclean/S3rd_combat_controlsite_ABCD.R` 中 CV25 的 ComBat 数据清洗分支纳入版本控制（含小站点过滤）。
 - 2026-01-28: 新增 HCP-D（SA12）4th_changerate_SAcorr 的协变量敏感性分析（SES/ICV）容器 sbatch：基于 `development_script/4th_changerate_SAcorr/V_Covariates`，输出 `tiff+pdf` 并在日志中打印 flip-age 与 rho 等 `[RESULT]` 数值。
 - 2026-01-28: 加固 HCP-D 协变量敏感性分析脚本：在 covariate 管线的 S2/S4 中若检测到输入数据缺少 `income.adj/ICV`（或为 NA），则从 `demopath/HCPD_demo_behav.csv` 按 `subID` 回填并写出 backfilled 版本到项目 `outputs/intermediate/`，同时在日志输出缺失计数。
 - 2026-01-28: 修复 HCP-D covariates devmodel 容器作业 “All GAM fits failed / Not enough (non-NA) data”：S1 对 `subID` 做标准化（去除 `sub-` 前缀）后再从 `demopath/HCPD_demo_behav.csv` 回填 `income.adj/ICV`，并对 `age/sex/mean_fd/covariate` 做 complete-case 过滤与计数输出，避免回填不匹配导致全边失败。
