@@ -27,11 +27,14 @@ dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(intermediateFolder, showWarnings = FALSE, recursive = TRUE)
 
 input_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_pfactor.rds"
+  project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_pfactor.rds"
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch (p-factor variant)")
+  stop(
+    "Missing input_rds: ", input_rds,
+    "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (pfactor variant)"
+  )
 }
 
 euclid_csv <- Sys.getenv(

@@ -29,11 +29,11 @@ dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(intermediateFolder, showWarnings = FALSE, recursive = TRUE)
 
 input_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds"
+  project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
+  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_baseline_age_sex_meanfd.rds"
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam.sbatch")
+  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (baseline_age_sex_meanfd variant)")
 }
 
 sa12_csv <- Sys.getenv(
@@ -74,7 +74,7 @@ required_cols <- c("subID", "age", "mean_fd", "sex")
 missing_cols <- setdiff(required_cols, names(SCdata))
 if (length(missing_cols) > 0) {
   stop(
-    "Missing required columns in longitudinal SCdata: ", paste(missing_cols, collapse = ", "), "\n",
+    "Missing required columns in SCdata: ", paste(missing_cols, collapse = ", "), "\n",
     "SCdata input: ", input_rds
   )
 }
@@ -97,7 +97,7 @@ if (can_extract_from_scdata) {
 
 if (!Cogvar_base %in% names(SCdata)) {
   message(
-    "[WARN] Baseline cognition not available from longitudinal SCdata (need columns: ", Cogvar, " + eventname).",
+    "[WARN] Baseline cognition not available from SCdata (need columns: ", Cogvar, " + eventname).",
     "\n[WARN] Will backfill baseline cognition from demopath/DemodfScreenFinal.csv and join by subID."
   )
   demopath_csv <- file.path(project_root, "demopath", "DemodfScreenFinal.csv")

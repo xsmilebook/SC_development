@@ -307,8 +307,29 @@
    - ABCD age_wp/age_bp LMM（SC 版本；不剔除单时间点被试）：
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC.R`
      - 输入：`*combatgam_age_sex_meanfd.rds`（SC + age/sex/mean_fd）
-     - 模型：`SC ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID)`；`age_wp = age_ij - mean(age)_i`，`age_bp = mean(age)_i`
-     - 统计：age_bp partial R²（full vs null，parametric-bootstrap ANOVA）并做 FDR；输出矩阵与 S-A 相关散点图
+     - 模型：`SC ~ age_wp + age_bp + sex + mean_fd + (1 | subID)`；`age_wp = age_ij - mean(age)_i`，`age_bp = mean(age)_i`
+     - 统计：输出 age_wp/age_bp 的 **t 值矩阵**与 S-A 相关散点图（不标注显著性）
+     - 固定效应：输出 age_wp/age_bp 的 fixed effect（beta）矩阵与 S-A 相关散点图（不标注显著性）
+   - ABCD age_wp/age_bp LMM（SC 版本；仅保留至少两次扫描被试）：
+     - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC_2tp.R`
+     - 输入与模型同上；仅保留 `subID` 观测次数 ≥ 2 的被试
+     - 输出：与 SC 版本一致，但文件名后缀为 `_2tp`
+    - ABCD age_wp/age_bp LMM（SC 版本；baseline-age 分解 + 仅保留至少两次扫描被试）：
+      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R`
+      - 年龄定义：`age_bp` 为 baseline age（基线访视年龄；若缺少 baseline 标签则回退到该被试最小年龄），`age_wp = age_current - age_bp`
+      - 输入与模型：与 `run_abcd_lmm_agewp_agebp_SC_2tp.R` 一致（`SC ~ age_wp + age_bp + sex + mean_fd + (1 | subID)`），仅保留 `subID` 观测次数 ≥ 2 的被试
+      - 输出：t value 与 fixed effect（beta）的矩阵/散点结果，文件名后缀为 `_baselineage_2tp`
+      - 显著性：对 `age_wp` 与 `age_bp` 分别进行 LRT（full vs 去除对应项的 reduced），并对 p 值做 FDR 校正；在 age_wp/age_bp 的 t-value 与 beta 矩阵图中以 `*` 标注 `FDR < 0.05`
+      - 颜色条：额外输出 `matrix_age_wp_tvalue_SC_CV*_baselineage_2tp_colorbar.{tiff,pdf}`，与 age_wp t-value 矩阵使用相同对称色域
+   - ABCD SC personal slope（LGCM-style slope per year；不做显著性检验）：
+     - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lgcm_personal_slope_SC.R`
+     - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`
+     - 预处理：按每个被试选取最小/最大年龄两次观测，计算 `delta_age`；**不做离群点剔除**
+     - 变化率定义：`slope_per_year = (SC_t1 - SC_t0) / delta_age`
+     - 协变量控制：对每条 edge 将 `age_t0/SC_t0/mean_fd_t0/mean_fd_t1` 做均值中心化；`sex` 使用 sum-to-zero contrasts；拟合 `slope_per_year ~ age_t0_c + SC_t0_c + sex + mean_fd_t0_c + mean_fd_t1_c`，以 **模型截距** 作为 covariate-adjusted mean slope（同时保存 raw mean/sd 与残差 sd 供对照）
+     - 结果：`outputs/results/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（每条边 raw mean/sd + adjusted mean + residual sd）
+     - Windows 并行：默认使用 16 核（`SLOPE_CORES` 可覆盖）
+     - 图像：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（covariate-adjusted mean slope 矩阵 + 与 S-A axis 的相关散点图）
    - ABCD age_wp/age_bp LMM（cognition 版本；过滤单时间点）：
      - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_cognition_groups.R`
      - 输入：纵向 SC `*combatgam_age_sex_meanfd.rds` + baseline cognition `*combatgam_cognition.rds`
@@ -317,6 +338,48 @@
      - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_pfactor_general.R`
      - 输入：纵向 SC `*combatgam_pfactor.rds`（含 `GENERAL`）；baseline pfactor 从 baseline `eventname` 提取
      - 统计：age_bp partial R² 矩阵 + S-A 相关；age_wp personal slope 的低/高组 t 值矩阵（FDR 标注）与 decile 柱状图；personal slope 与 pfactor 相关矩阵及其 S-A 相关散点图
+  - ABCD age_wp/age_bp LMM（cognition 版本；interaction 预测）：
+    - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_cognition_tvalue_interaction.R`
+    - 模型：`SC ~ age_wp * cognition + age_bp + sex + mean_fd + (1 | subID)`
+    - 预测：取 cognition 的 10%/90% 分位预测 `.fitted`
+    - 图像：按 SA decile（10 组）汇总预测轨迹（低/高两条线），输出 `developmentcurve_decile*`；同时拼接为 2×5 的总图 `developmentcurve_decile_all_2x5`（参考 `run_abcd_pfactor_effect_continuous_S1.R` 风格；不再计算 t 值矩阵或 S-A 相关散点图）
+  - ABCD age_wp/age_bp LMM（p-factor 版本；interaction 预测）：
+    - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_pfactor_tvalue_interaction.R`
+    - 模型：`SC ~ age_wp * pfactor + age_bp + sex + mean_fd + (1 | subID)`（pfactor 使用纵向数据，不再限制 baseline）
+    - 预测：取 pfactor 的 10%/90% 分位预测 `.fitted`
+    - 图像：按 SA decile（10 组）汇总预测轨迹（低/高两条线），输出 `developmentcurve_decile*`；同时拼接为 2×5 的总图 `developmentcurve_decile_all_2x5`（参考 `run_abcd_pfactor_effect_continuous_S1.R` 风格；不再计算 t 值矩阵或 S-A 相关散点图）
+  - ABCD age_wp/age_bp LMM（cognition 版本；基线年龄分解 + 双交互 + decile 聚合 SC）：
+    - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_baselineage_cognition_interaction_decileavg.R`
+    - 年龄定义：`age_bp` 为 baseline age（基线访视年龄），`age_wp = age_current - age_bp`
+    - cognition：使用 baseline-only `nihtbx_fluidcomp_uncorrected_base`
+    - 模型（均为随机截距）：
+      - `y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)`
+      - `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)`
+    - 预测与图像（不输出 t 值矩阵）：
+      - `age_wp*cov`：预测时固定 `age_bp=mean(age_bp)`，`age_wp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_wp` 实际值（标签保持 `Age`）
+      - `age_bp*cov`：预测时固定 `age_wp=mean(age_wp)`，`age_bp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_bp` 实际值（标签保持 `Age`）
+      - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first 额外统计：对 `age_wp:cov` 与 `age_bp:cov` 分别进行 LRT（`red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)` vs 对应 full），并输出 FDR 校正结果到 `decile_avgSC_summary_baselineage_interaction_*.csv`
+      - decile-avg-SC-first 图注：每个 decile 标注交互项 `t value`（来自 `age_wp:cov`/`age_bp:cov` 系数）与对应 LRT `p value`
+      - 额外导出：10 个 decile 的 `age_wp` 主效应 p 值（full: `y ~ age_wp + age_bp*cov + ...` vs red: `y ~ age_bp*cov + ...`），输出 `decile_agewp_pvalues_baselineage_*.csv`（含原始 p 与 FDR）
+      - 坐标轴：`x=Age`（整数刻度）；`y=SC strength (ratio)`（一位小数；范围/刻度对齐既有脚本）
+  - ABCD age_wp/age_bp LMM（p-factor 版本；基线年龄分解 + baseline pfactor + 双交互 + decile 聚合 SC）：
+    - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_baselineage_pfactor_interaction_decileavg.R`
+    - 年龄定义：`age_bp` 为 baseline age（基线访视年龄），`age_wp = age_current - age_bp`
+    - pfactor：使用 baseline-only `GENERAL_base`（与 cognition 对齐）
+    - 模型（均为随机截距）：
+      - `y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)`
+      - `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)`
+    - 预测与图像（不输出 t 值矩阵）：
+      - `age_wp*cov`：预测时固定 `age_bp=mean(age_bp)`，`age_wp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_wp` 实际值（标签保持 `Age`）
+      - `age_bp*cov`：预测时固定 `age_wp=mean(age_wp)`，`age_bp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_bp` 实际值（标签保持 `Age`）
+      - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first 额外统计：对 `age_wp:cov` 与 `age_bp:cov` 分别进行 LRT（`red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)` vs 对应 full），并输出 FDR 校正结果到 `decile_avgSC_summary_baselineage_interaction_*.csv`
+      - decile-avg-SC-first 图注：每个 decile 标注交互项 `t value`（来自 `age_wp:cov`/`age_bp:cov` 系数）与对应 LRT `p value`
+      - 额外导出：10 个 decile 的 `age_wp` 主效应 p 值（full: `y ~ age_wp + age_bp*cov + ...` vs red: `y ~ age_bp*cov + ...`），输出 `decile_agewp_pvalues_baselineage_*.csv`（含原始 p 与 FDR）
+      - 坐标轴：`x=Age`（整数刻度）；`y=SC strength (ratio)`（一位小数；范围/刻度对齐既有脚本）
 	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`

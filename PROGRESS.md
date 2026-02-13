@@ -1,5 +1,6 @@
 # Progress
 
+- 2026-02-09: baseline-age SC 2tp 脚本中 age_wp t-value colorbar 改为与矩阵图完全一致的 `scale_fill_distiller(palette="RdBu")`，并使用矩阵实际 `limthr`（不再手动固定 `limthr_wp_t_mat`）。
 - 2026-01-16: 更新 AGENTS.md 规则为中文并调整文档语言要求；建立会话记录与进度文件。
 - 2026-01-16: 新增 `docs/README.md`、`docs/workflow.md`、`docs/methods.md`；更新 `README.md` 文档入口与 AGENTS 路径约定。
 - 2026-01-16: 根据 `docs/research` 文档补充 `docs/methods.md` 的样本、影像与方法学摘要。
@@ -282,3 +283,32 @@
 - 2026-02-04: 修复 Windows 并行下 personal slope 全 NA：`ranef/fixef` 改为显式使用 `lme4::` 命名空间。
 - 2026-02-04: age LMM 与 age_wp/age_bp LMM 输出 ranef(age_wp/age) 全 0 的边清单与数量，并在结果表中新增随机斜率方差列。
 - 2026-02-04: age LMM 的随机斜率方差列改为使用 `VarCorr(lmer)` 的参数估计（不再使用 BLUP 方差）。
+- 2026-02-05: age_wp/age_bp SC 脚本：结果存在时默认直接读取；新增 age_wp 固定效应（beta）矩阵与 S-A 散点；partial R² 的 3-SD 过滤仅用于散点图。
+- 2026-02-05: age_wp/age_bp SC 脚本补齐 age_wp/age_bp 的 partial R² 与 beta 的矩阵/散点图输出。
+- 2026-02-05: 新增 `development_script/2nd_fitdevelopmentalmodel/run_abcd_lgcm_personal_slope_SC.R`：按 LGCM-style slope_per_year 计算 SC personal slope（edge 级 mean），输出均值矩阵与 S-A axis 相关散点图（不做显著性标注）。
+- 2026-02-05: SC personal slope 脚本更新：在被试层面控制 `age_t0/sex/mean_fd_t0/mean_fd_t1`，使用 `slope_per_year` 回归残差的均值作为 edge 指标，并据此绘制矩阵与 S-A axis 相关散点图（同时保留 raw mean/sd）。
+- 2026-02-05: SC personal slope 脚本修正：残差均值恒为 0（含截距时的性质）；改为对数值协变量做中心化、`sex` 用 sum contrasts，并以回归模型的截距作为 covariate-adjusted mean slope（用于矩阵与 S-A axis 相关散点图）。
+- 2026-02-05: SC personal slope 脚本更新：协变量模型加入 `SC_t0`（中心化后作为 `SC_t0_c`），即 `slope_per_year ~ age_t0_c + SC_t0_c + sex + mean_fd_t0_c + mean_fd_t1_c`，并以截距作为 covariate-adjusted mean slope。
+- 2026-02-05: age_wp/age_bp SC 脚本改为输出 t 值矩阵与 S-A 相关散点图（不再计算 partial R²）；新增仅保留两次及以上扫描被试的 2tp 版本脚本。
+- 2026-02-05: 新增 cognition/pfactor 的 age_wp/age_bp t 值脚本与 interaction 预测脚本（10%/90% 分位，按 SA decile 输出 10 组发育曲线图）。
+- 2026-02-05: cognition/pfactor t 值脚本补齐 parametric-bootstrap p 值与 FDR 校正流程（与 `run_abcd_pfactor_effect_continuous_S1.R` 一致）。
+- 2026-02-05: cognition/pfactor t 值矩阵加入 FDR 显著性标注（仅主效应矩阵；交互仅用于高低组轨迹）。
+- 2026-02-05: cognition/pfactor 的 age_wp/age_bp 交互脚本移除 t 值/SCrank 输出，仅保留按 SA decile 的低/高预测轨迹绘图。
+- 2026-02-05: cognition/pfactor 交互 decile 曲线图固定 low/high 线型映射（low=虚线，high=实线），避免因标签顺序导致显示反向。
+- 2026-02-05: cognition/pfactor 交互 decile 曲线新增 2×5 拼接总图（developmentcurve_decile_all_2x5）。
+- 2026-02-05: p-factor 交互 decile 曲线线型调整为 high=虚线（severe）、low=实线（mild）。
+- 2026-02-05: SC age_wp/age_bp 与 cognition/pfactor 交互脚本移除随机斜率，统一为随机截距 (1 | subID)。
+- 2026-02-05: p-factor 交互脚本改用纵向 pfactor 数据（不再取 baseline），并调整线型为低=虚线、高=实线以对齐参考脚本。
+- 2026-02-05: p-factor 交互 decile 曲线线型对齐参考脚本（high=虚线，low=实线）。
+- 2026-02-06: 新增 baseline-age 分解的 cognition/pfactor 双交互脚本（`run_abcd_lmm_agewp_agebp_baselineage_*_interaction_decileavg.R`）：`age_bp=baseline age`、`age_wp=current-baseline`，并同时实现 `age_wp*cov` 与 `age_bp*cov` 两类随机截距模型；pfactor 改为 baseline-only `GENERAL_base`；新增“decile 内先聚合 SC ratio 再拟合”流程，输出 age_wp/age_bp 在 low/high 下的 10 decile 曲线图（含 2×5 总图），不输出 t 值矩阵。
+- 2026-02-06: 新增 `development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R`：在 SC `2tp` LMM 中改用 baseline-age 分解（`age_bp=baseline age`、`age_wp=current-baseline`），其余统计输出与原 `run_abcd_lmm_agewp_agebp_SC_2tp.R` 保持一致，并使用 `_baselineage_2tp` 后缀避免覆盖。
+- 2026-02-06: baseline-age cognition/pfactor decile 图坐标轴标签调整为与既有流程一致：`x=Age`、`y=SC strength (ratio)`（不再显示 age_wp/age_bp 的自定义 x 轴文字）。
+- 2026-02-06: baseline-age cognition/pfactor decile 预测逻辑更新：`age_wp*cov` 固定 `age_bp` 均值并让 `age_wp` 走范围，`age_bp*cov` 固定 `age_wp` 均值并让 `age_bp` 走范围；绘图横轴统一显示实际年龄（非 0 起点），`Age` 使用整数刻度，`SC strength (ratio)` 采用一位小数并固定到既有 y 轴范围/刻度。
+- 2026-02-06: baseline-age cognition/pfactor decile 曲线改为覆盖数据集全年龄段：两类模型均按 `Age` 最小值到最大值生成 100 个时间点，并在缓存为旧年龄范围时自动重算。
+- 2026-02-07: baseline-age cognition/pfactor decile 脚本更新为以 `age_wp`/`age_bp` 实际值作为绘图横轴（标签仍为 `Age`）；`decile_avg_sc_first` 新增 `age_wp:cov` 与 `age_bp:cov` 的 LRT 显著性检验（对比 `red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)`），输出 FDR 校正列并将 FDR p 值标注到 decile 图上。
+- 2026-02-08: baseline-age cognition/pfactor decile 图关闭显著性文本标注：`decile_avg_sc_first` 不再在 figure 上显示 FDR p 值；LRT 与 FDR 结果仍按原流程计算并写入结果表。
+- 2026-02-08: baseline-age cognition/pfactor decile 图改为标注 `t value` 与 `p value`：`t` 使用交互项系数（`age_wp:cov` / `age_bp:cov`）的 t 值，`p` 使用对应 full vs reduced 的 LRT p 值；FDR 输出仍保留在结果表中。
+- 2026-02-08: baseline-age cognition/pfactor decile 流程新增 `age_wp` 主效应 p 值提取：按 decile 输出 `full(y ~ age_wp + age_bp*cov + ...)` vs `red(y ~ age_bp*cov + ...)` 的 LRT p 值与 FDR 到 `decile_agewp_pvalues_baselineage_*.csv`。
+- 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp/age_bp 项的 LRT p 值与 FDR 校正（edge 级），并在 age_wp/age_bp 的 t-value 与 beta 矩阵图中对 `FDR < 0.05` 的连接标注 `*`。
+- 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp t-value 矩阵独立 colorbar 输出（`*_colorbar.tiff/.pdf`），颜色范围与矩阵图一致。
+- 2026-02-09: 修复 age_wp t-value colorbar 在 `limthr=20` 等范围下可能出现的中轴黑线：`save_colorbar()` 改用 `geom_raster(interpolate=TRUE)` + `scale_fill_gradient2()`，并移除边框绘制。

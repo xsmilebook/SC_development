@@ -63,10 +63,12 @@ plot_only <- is_windows
 
 dataset <- "abcd"
 CVthr <- as_num(args$cvthr, 75)
-ds.resolution <- 12
+ds.resolution <- as_int(args$ds_res, 12L)
+out_tag <- if (!is.null(args$out_tag)) as.character(args$out_tag) else ""
+tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
 
-result_dir <- file.path(project_root, "outputs", "results", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr))
-figure_dir <- file.path(project_root, "outputs", "figures", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr), "Alignment_development")
+result_dir <- file.path(project_root, "outputs", "results", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix))
+figure_dir <- file.path(project_root, "outputs", "figures", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix), "Alignment_development")
 dir.create(result_dir, showWarnings = FALSE, recursive = TRUE)
 dir.create(figure_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -109,6 +111,8 @@ if (plot_only) {
 
 message("[INFO] dataset=", dataset)
 message("[INFO] CVthr=", CVthr)
+message("[INFO] ds.resolution=", ds.resolution)
+message("[INFO] out_tag=", ifelse(nzchar(out_tag), out_tag, "<none>"))
 message("[INFO] in_derivative_posterior=", in_derivative_posterior)
 message("[INFO] in_derivative=", in_derivative)
 message("[INFO] n_cores=", n_cores)
@@ -253,8 +257,9 @@ p_align <- ggplot(curve_df) +
   labs(x = "Age (years)", y = "rho") +
   mytheme
 
-ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_alignment.tiff"), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_alignment.pdf"), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
+plot_tag <- if (nzchar(out_tag)) out_tag else paste0("SA", ds.resolution)
+ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_alignment.tiff")), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_alignment.pdf")), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
 
 make_flip_hist_plot <- function(flip_age_each_draw, flip_median) {
   ggplot() +
@@ -275,8 +280,8 @@ make_flip_hist_plot <- function(flip_age_each_draw, flip_median) {
 }
 
 p_hist <- make_flip_hist_plot(flip_age_each_draw, flip_median)
-ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.tiff"), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.pdf"), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_flip_age_hist.tiff")), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_flip_age_hist.pdf")), p_hist, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
 
 save_svg_if_available <- function(filename, plot, width_cm, height_cm, dpi = 600) {
   if (!requireNamespace("svglite", quietly = TRUE)) {
@@ -288,12 +293,12 @@ save_svg_if_available <- function(filename, plot, width_cm, height_cm, dpi = 600
 }
 
 # Also save figures using the original Rmd filenames (tiff+svg), when possible.
-ggsave(file.path(figure_dir, "SA12_posDeriv_divweight_corr.tiff"), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
-ggsave(file.path(figure_dir, "SA12_posDeriv_divweight_corr.pdf"), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_divweight_corr.tiff")), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0(plot_tag, "_posDeriv_divweight_corr.pdf")), p_align, dpi = 600, width = 18, height = 12, units = "cm", bg = "transparent")
 if (is_windows) {
-  save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_divweight_corr.svg"), p_align, width_cm = 16, height_cm = 14)
-  save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_SAaxis_alignment.svg"), p_align, width_cm = 18, height_cm = 12)
-  save_svg_if_available(file.path(figure_dir, "SA12_posDeriv_SAaxis_flip_age_hist.svg"), p_hist, width_cm = 18, height_cm = 12)
+  save_svg_if_available(file.path(figure_dir, paste0(plot_tag, "_posDeriv_divweight_corr.svg")), p_align, width_cm = 16, height_cm = 14)
+  save_svg_if_available(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_alignment.svg")), p_align, width_cm = 18, height_cm = 12)
+  save_svg_if_available(file.path(figure_dir, paste0(plot_tag, "_posDeriv_SAaxis_flip_age_hist.svg")), p_hist, width_cm = 18, height_cm = 12)
 }
 
 # Additional figures from the original Rmd: age-specific derivative scatter/matrix and derivative line plot.
@@ -401,9 +406,9 @@ minderiv <- min(c(df_age_min$derivative, df_age_max$derivative), na.rm = TRUE)
 maxderiv <- max(c(df_age_min$derivative, df_age_max$derivative), na.rm = TRUE)
 
 p_mat_min <- make_matrix_plot(df_age_min$derivative, sprintf("Age = %.2f", age_min))
-ggsave(file.path(figure_dir, "Deri_SA12_diw_age8.tiff"), p_mat_min, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("Deri_", plot_tag, "_diw_age8.tiff")), p_mat_min, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
 p_mat_max <- make_matrix_plot(df_age_max$derivative, sprintf("Age = %.2f", age_max))
-ggsave(file.path(figure_dir, "Deri_SA12_diw_age13.tiff"), p_mat_max, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("Deri_", plot_tag, "_diw_age13.tiff")), p_mat_max, dpi = 600, height = 13, width = 15, units = "cm", bg = "transparent")
 
 sc_rank_first <- rank(edge_sarank_value, ties.method = "first")
 rank_df <- data.frame(label_ID = paste0("SC.", seq_len(length(posterior_list)), "_h"), SCrank12 = sc_rank_first)
@@ -425,6 +430,6 @@ p_line <- ggplot(derivative_merge) +
     panel.background = element_rect(fill = "transparent", color = NA),
     legend.position = "none"
   )
-ggsave(file.path(figure_dir, "derivative_diw_SA12_changerate.tiff"), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")
-save_svg_if_available(file.path(figure_dir, "derivative_diw_SA12_changerate.svg"), p_line, width_cm = 13, height_cm = 13)
-ggsave(file.path(figure_dir, "derivative_diw_SA12_changerate.pdf"), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")
+ggsave(file.path(figure_dir, paste0("derivative_diw_", plot_tag, "_changerate.tiff")), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")
+save_svg_if_available(file.path(figure_dir, paste0("derivative_diw_", plot_tag, "_changerate.svg")), p_line, width_cm = 13, height_cm = 13)
+ggsave(file.path(figure_dir, paste0("derivative_diw_", plot_tag, "_changerate.pdf")), p_line, dpi = 600, width = 20, height = 16, units = "cm", bg = "transparent")

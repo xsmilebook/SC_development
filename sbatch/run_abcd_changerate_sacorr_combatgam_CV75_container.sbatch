@@ -10,6 +10,8 @@ project_root="/ibmgpfs/cuizaixu_lab/xuhaoshu/projects/SCDevelopment"
 sif="${SIF_PATH:-${project_root}/outputs/containers/scdevelopment_r41.sif}"
 
 CVTHR="${CVTHR:-75}"
+DS_RES="${DS_RES:-12}"
+OUT_TAG="${OUT_TAG:-}"
 N_EDGES="${N_EDGES:-}"
 N_DRAWS="${N_DRAWS:-1000}"
 
@@ -55,6 +57,8 @@ fi
 echo "[INFO] project_root=${project_root}"
 echo "[INFO] sif=${sif}"
 echo "[INFO] CVTHR=${CVTHR}"
+echo "[INFO] DS_RES=${DS_RES}"
+echo "[INFO] OUT_TAG=${OUT_TAG:-<unset>}"
 echo "[INFO] INPUT_RDS=${INPUT_RDS}"
 echo "[INFO] N_EDGES=${N_EDGES:-<unset>}"
 echo "[INFO] N_DRAWS=${N_DRAWS}"
@@ -72,10 +76,14 @@ exec_sif Rscript --version
 
 # Ensure derivatives exist (skip if already present unless FORCE=1)
 deriv_dir="${project_root}/outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV${CVTHR}"
-if [ "${FORCE}" = "1" ] || [ ! -f "${deriv_dir}/derivative.df78_CV${CVTHR}.rds" ] || [ ! -f "${deriv_dir}/derivative.posterior.df.SA12_CV${CVTHR}.rds" ]; then
+elementnum="$((DS_RES*(DS_RES+1)/2))"
+deriv_df_expected="${deriv_dir}/derivative.df${elementnum}_CV${CVTHR}.rds"
+deriv_post_expected="${deriv_dir}/derivative.posterior.df.SA${DS_RES}_CV${CVTHR}.rds"
+if [ "${FORCE}" = "1" ] || [ ! -f "${deriv_df_expected}" ] || [ ! -f "${deriv_post_expected}" ]; then
   exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S1st_fitgammodels_SA_ds_sumSCinvnode_ABCD_combatgam.R \
     --project_root=/work \
     --cvthr="${CVTHR}" \
+    --ds_res="${DS_RES}" \
     --input_rds="${INPUT_RDS_CONTAINER}" \
     ${N_EDGES:+--n_edges=${N_EDGES}} \
     --force="${FORCE}"
@@ -83,6 +91,7 @@ if [ "${FORCE}" = "1" ] || [ ! -f "${deriv_dir}/derivative.df78_CV${CVTHR}.rds" 
   exec_sif Rscript --vanilla /work/development_script/2nd_fitdevelopmentalmodel/S2nd_calculatederivative_ABCD_combatgam.R \
     --project_root=/work \
     --cvthr="${CVTHR}" \
+    --ds_res="${DS_RES}" \
     ${N_EDGES:+--n_edges=${N_EDGES}} \
     --skip_posterior=0 \
     --force="${FORCE}"
@@ -93,5 +102,7 @@ fi
 exec_sif Rscript --vanilla /work/development_script/4th_changerate_SAcorr/S1st_SAcorr_alongAge_ABCD.R \
   --project_root=/work \
   --cvthr="${CVTHR}" \
+  --ds_res="${DS_RES}" \
+  ${OUT_TAG:+--out_tag=${OUT_TAG}} \
   --n_draws="${N_DRAWS}" \
   --force="${FORCE}"

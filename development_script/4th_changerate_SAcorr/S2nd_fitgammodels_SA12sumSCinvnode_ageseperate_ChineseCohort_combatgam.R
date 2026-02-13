@@ -75,8 +75,10 @@ if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
 
 dataset <- "chinese"
 CVthr <- as_num(args$cvthr, 75)
-ds.resolution <- 12
+ds.resolution <- as_int(args$ds_res, 12L)
 elementnum <- ds.resolution * (ds.resolution + 1) / 2
+out_tag <- if (!is.null(args$out_tag)) as.character(args$out_tag) else ""
+tag_suffix <- if (nzchar(out_tag)) paste0("_", out_tag) else ""
 force <- as_int(args$force, 0L) == 1L
 save_svg <- as_int(args$save_svg, 0L) == 1L
 
@@ -98,7 +100,7 @@ if (!file.exists(scdata_diw_rds)) stop("Missing scdata_diw_rds: ", scdata_diw_rd
 flip_csv <- if (!is.null(args$flip_age_csv)) {
   args$flip_age_csv
 } else {
-  file.path(project_root, "outputs", "results", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr), "alignment_summary_flip_age.csv")
+  file.path(project_root, "outputs", "results", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix), "alignment_summary_flip_age.csv")
 }
 
 sepage <- if (!is.null(args$sepage)) {
@@ -112,16 +114,16 @@ sepage <- if (!is.null(args$sepage)) {
 }
 if (!is.finite(sepage)) stop("Missing/invalid sepage. Provide --sepage=... or a valid --flip_age_csv=... (default: ", flip_csv, ")")
 
-inter_out <- file.path(project_root, "outputs", "intermediate", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr))
+inter_out <- file.path(project_root, "outputs", "intermediate", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix))
 dir.create(inter_out, showWarnings = FALSE, recursive = TRUE)
 
-FigureRoot <- file.path(project_root, "outputs", "figures", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr))
+FigureRoot <- file.path(project_root, "outputs", "figures", "4th_changerate_SAcorr", dataset, "combat_gam", paste0("CV", CVthr, tag_suffix))
 dir.create(FigureRoot, showWarnings = FALSE, recursive = TRUE)
 
 FigCorrYoung <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank_younger")
 FigCorrOld <- file.path(FigureRoot, "correlation_sumSCinvnode_SCrank_older")
-FigMatYoung <- file.path(FigureRoot, "Matrix12_sumSCinvnode_gamstats_younger")
-FigMatOld <- file.path(FigureRoot, "Matrix12_sumSCinvnode_gamstats_older")
+FigMatYoung <- file.path(FigureRoot, paste0("Matrix", ds.resolution, "_sumSCinvnode_gamstats_younger"))
+FigMatOld <- file.path(FigureRoot, paste0("Matrix", ds.resolution, "_sumSCinvnode_gamstats_older"))
 dir.create(FigCorrYoung, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigCorrOld, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigMatYoung, showWarnings = FALSE, recursive = TRUE)
