@@ -73,11 +73,6 @@
 - HCP-D 派生表（如 Yeo/TractSeg）若缺少 `site` 列，可在 ComBat-GAM 时从 SA12 merge 表按 `subID` 回填：`/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds`（`combat_gam/scripts/run_combat_gam_neuroharmonize.py` 支持 `--batch-source-rds`）。
 - 运行相关依赖应安装在 `scdevelopment` 环境；若包依赖冲突需建立独立虚拟环境，并在此处补充说明。
 - Reviewer2（Q5）补充：ABCD baseline 的 `age+sex+meanFD` 纵向 ComBat（不保护 cognition）可用 `combat_gam/sbatch/abcd_combat_gam_baseline_age_sex_meanfd.sbatch` 提交，输出 `*combatgam_age_sex_meanfd_baseline.rds`。
-- ABCD（neuroHarmonize；与 HCP-D 一致的 mgcv 基函数）：
-  - 一键提交：`sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch`
-  - 输出目录：`outputs/results/combat_gam/abcd/baseline/`
-  - 变体：`cognition`（baseline-only）、`pfactor`（非 baseline）、`baseline_age_sex_meanfd`（baseline-only）、`cbcl`、`comp_agecorrected_baseline`（baseline-only）、`fluidcomp_fc_baseline`（baseline-only）
-  - 命名规则：`*combatgam_neuroharmonize_<variant>.rds`
 - ABCD 纵向 Nonlinear-ComBat-GAM（新增变体）：
   - CBCL total problems：`sbatch combat_gam/sbatch/abcd_combat_gam_cbcl.sbatch`，输出 `*combatgam_cbcl.rds`（协变量列：`cbcl_scr_syn_totprob_r`；不做 baseline-only）。
   - NIH Toolbox fluid cognition（age-corrected，baseline-only）：`sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch`，输出 `*combatgam_comp_agecorrected_baseline.rds`（协变量列：`nihtbx_fluidcomp_agecorrected`；仅保留 baseline 与 cognition 方案一致）。
@@ -107,12 +102,6 @@
 ## HCP-D/Chinese ComBat-GAM（neuroHarmonize 原生 smooth_terms）
 - HCP-D 提交：`sbatch combat_gam/sbatch/hcpd_combat_gam_native.sbatch`
 - Chinese 提交：`sbatch combat_gam/sbatch/chinese_combat_gam_native.sbatch`
-- Chinese（SA7/SA17/Yeo7，CV75，ComBat-GAM）：
-  - SA7：`sbatch combat_gam/sbatch/chinese_combat_gam_SA7_CV75.sbatch`
-  - SA17：`sbatch combat_gam/sbatch/chinese_combat_gam_SA17_CV75.sbatch`
-  - Yeo7：`sbatch combat_gam/sbatch/chinese_combat_gam_Yeo7_CV75.sbatch`
-  - 默认输入：`outputs/intermediate/1st_dataclean/chinese_cohort/SCdata_*_CV75_sumSCinvnode.sum.msmtcsd.merge.rds`
-  - 默认输出：`outputs/results/combat_gam/chinese/SCdata_*_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
 - HCP-D（Yeo7/Yeo17/TractSeg major-bundle，CV75，输入来自 `/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD`）：`sbatch combat_gam/sbatch/hcpd_combat_gam_yeo_tractseg_CV75.sbatch`
 - 输出默认写入：
   - `outputs/results/combat_gam/hcpd/*combatgam_native.rds`
@@ -180,30 +169,6 @@
 	   - Chinese Cohort（基于 ComBat-GAM 输出）的可复现运行入口：
 	     - 输入默认：`outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_chinese_devmodel_combatgam_CV75_container.sbatch`
-	     - 中国队列 merge 数据生成（pre-ComBat；输出到当前项目路径）：
-	       - 脚本：`development_script/1st_dataclean/merge_Chinese_cohort/S2nd_mergedata_SA_ds_sumSC_ChineseCohort.R`（SA7/SA17），`development_script/1st_dataclean/merge_Chinese_cohort/V2nd_mergedata_Yeo_sumSC_ChineseCohort.R`（Yeo7）
-	       - 一键 sbatch（SA7 + SA17 + Yeo7）：`sbatch sbatch/run_chinese_merge_SA7_SA17_Yeo7_container.sbatch`
-       - 默认输出目录：`outputs/intermediate/1st_dataclean/chinese_cohort/`
-       - 说明：node volume 按 reference 脚本读取（`read_table(..., col_names=F)`），要求 `*_Volume7.txt` 为纯数值列；如含非数值行需先清理。
-       - CuiBP demopath：使用项目内 `demopath/basic_demo_merge_screen.xlsx`。
-       - CCNP 使用 `scanID` 作为 `subID` 以匹配 `*_ses-XX_*` 的 SC/volume 文件名。
-       - 年龄筛选：各数据源先做 `Age <= 26` 过滤，CCNP 额外剔除 `Age <= 6.0` 的被试。
-       - 72 核单步提交：`sbatch sbatch/run_chinese_merge_SA7_container.sbatch`、`sbatch sbatch/run_chinese_merge_SA17_container.sbatch`、`sbatch sbatch/run_chinese_merge_Yeo7_container.sbatch`。
-       - 行为列：输出对齐 reference（`subID, Age, Sex, Handedness, ICV, mean_fd`）。
-	     - 中国队列（SA7/SA17）devmodel（容器版，72 核）：
-	       - SA7：`sbatch sbatch/run_chinese_devmodel_combatgam_SA7_CV75_container.sbatch`
-	       - SA17：`sbatch sbatch/run_chinese_devmodel_combatgam_SA17_CV75_container.sbatch`
-	       - 输出：`outputs/{intermediate,results,figures}/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`（文件名含 SA7/SA17 标记）。
-	       - 说明：SA7/SA17 不做 Euclidean distance 控制（脚本在非 SA12 分辨率时自动跳过）。
-	     - 中国队列（SA7/SA17）changerate S-A corr（容器版，50 核）：
-	       - SA7：`sbatch sbatch/run_chinese_changerate_sacorr_combatgam_SA7_CV75_container.sbatch`
-	       - SA17：`sbatch sbatch/run_chinese_changerate_sacorr_combatgam_SA17_CV75_container.sbatch`
-	       - 输出：`outputs/{results,figures}/4th_changerate_SAcorr/chinese/combat_gam/CV75_SA7/` 与 `CV75_SA17/`。
-	       - 说明：SA7/SA17 不做 Euclidean distance 控制（脚本在非 SA12 分辨率时自动跳过）。
-	     - 中国队列（Yeo7）devmodel / changerate：
-	       - devmodel：`sbatch sbatch/run_chinese_devmodel_combatgam_Yeo7_CV75_container.sbatch`
-	       - changerate：`sbatch sbatch/run_chinese_changerate_sacorr_combatgam_Yeo7_CV75_container.sbatch`
-	       - 输出：`outputs/{intermediate,results,figures}/2nd_fitdevelopmentalmodel/chinese/yeo/Yeo7/combat_gam/CV75/` 与 `outputs/{results,figures}/4th_changerate_SAcorr/chinese/yeo/Yeo7/combat_gam/CV75/`。
 	     - 产物目录：
 	       - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
 	       - results：`outputs/results/2nd_fitdevelopmentalmodel/chinese/combat_gam/CV75/`
@@ -213,45 +178,9 @@
    - ABCD（基于 ComBat-GAM 输出）的可复现运行入口：
      - 输入默认：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
      - sbatch（容器版，50 核）：`sbatch sbatch/run_abcd_devmodel_combatgam_CV75_container.sbatch`
-     - SA7/SA17/Yeo7（ABCD；Nonlinear ComBat-GAM）提交入口：
-       - combat（容器版，72 核；输入为外部 merge RDS；输出写入本仓库 `outputs/results/combat_gam/abcd/`）：
-         - SA7：`sbatch sbatch/run_abcd_combatgam_SA7_CV75_container.sbatch`
-         - SA17：`sbatch sbatch/run_abcd_combatgam_SA17_CV75_container.sbatch`
-         - Yeo7：`sbatch sbatch/run_abcd_combatgam_Yeo7_CV75_container.sbatch`
-       - devmodel（S1–S4；容器版，50 核；默认仅依赖 combat 输出；summary 用 `OUT_TAG` 后缀避免覆盖不同分辨率结果）：
-         - SA7：`sbatch sbatch/run_abcd_devmodel_combatgam_SA7_CV75_container.sbatch`
-         - SA17：`sbatch sbatch/run_abcd_devmodel_combatgam_SA17_CV75_container.sbatch`
-         - Yeo7：`sbatch sbatch/run_abcd_devmodel_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`；如你的边数为 28 则改为 `DS_RES=7`）
-       - changerate S-A corr（沿年龄的 alignment；容器版，50 核；脚本会在缺失 derivative 产物时自动补跑上游 S1/S2）：
-         - SA7：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_SA7_CV75_container.sbatch`
-         - SA17：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_SA17_CV75_container.sbatch`
-         - Yeo7：`sbatch sbatch/run_abcd_changerate_sacorr_combatgam_Yeo7_CV75_container.sbatch`（默认 `DS_RES=6`；如你的边数为 28 则改为 `DS_RES=7`）
-     - 产物目录：
-      - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
-      - results：`outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
-
-## GAM 平滑参数 k 的检查（ComBat-GAM 数据）
-- 脚本：`development_script/2nd_fitdevelopmentalmodel/V_check_k/V1st_check_k.R`
-- 兼容脚本：`development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R`（接口与输出保持一致）
-- ABCD 使用 GAMM 对比版本：`development_script/2nd_fitdevelopmentalmodel/V_check_k/V1st_check_k_new.R`（随机效应基于 `subID`）
-- 容器提交（默认依次跑 HCP-D/ABCD/Chinese）：`sbatch sbatch/run_check_k_combatgam_container.sbatch`
-- 容器提交（ABCD 用 GAMM）：`sbatch sbatch/run_check_k_combatgam_new_container.sbatch`
-- 可选参数：
-  - `DATASET=all|hcpd|abcd|chinese`（默认 `all`）。
-  - `DATASET_LIST=hcpd,abcd,chinese`（仅在 `DATASET=all` 时生效）。
-  - `INPUT_RDS`：仅在单数据集模式下生效。
-  - `INPUT_RDS_HCPD/INPUT_RDS_ABCD/INPUT_RDS_CHINESE`：为 `DATASET=all` 提供按数据集覆盖的输入路径。
-- 默认输入（可通过上述变量覆盖）：
-  - HCP-D：`outputs/results/combat_gam/hcpd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
-  - ABCD：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_age_sex_meanfd.rds`
-  - Chinese：`outputs/results/combat_gam/chinese/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam.rds`
-- 输出：
-  - AIC 明细：`outputs/results/2nd_fitdevelopmentalmodel/<dataset>/check_k/aic_by_edge.csv`
-  - 最优 k 汇总：`outputs/results/2nd_fitdevelopmentalmodel/<dataset>/check_k/aic_summary.csv`
-  - AIC 对比图：`outputs/figures/2nd_fitdevelopmentalmodel/<dataset>/check_k/aic_compare_by_k.{tiff,pdf}`
-  - bootstrap 最优 k 频次：`outputs/results/2nd_fitdevelopmentalmodel/<dataset>/check_k/bootstrap_k_counts.csv`
-  - bootstrap 最优 k 原始序列：`outputs/results/2nd_fitdevelopmentalmodel/<dataset>/check_k/bootstrap_best_k.csv`
-  - bootstrap 频率柱状图：`outputs/figures/2nd_fitdevelopmentalmodel/<dataset>/check_k/bootstrap_best_k_hist.{tiff,pdf}`
+   - 产物目录：
+     - intermediates：`outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
+     - results：`outputs/results/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
      - figures：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/`
    - S4 散点图输出：`correlation_sumSCinvnode_SCrank/` 内默认生成 `pdf`；若在 Windows 环境运行则额外输出 `svg`（需要 `svglite`）。
    - Windows 便捷模式：S4 默认在 Windows 跳过 summary 计算，仅生成散点图；可用 `--skip_compute_on_windows=0` 关闭（或 `--force=1` 强制完整重算）。
@@ -261,7 +190,7 @@
    - CBCL total raw 关联分析脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R`。
    - 小样本验证脚本见 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD_smalltest.R`。
    - CBCL 关联分析绘图输出（t-value matrix、S-A rank 散点、分位数组轨迹）写入 `outputs/figures/cbcl_totprob/`。
-   - ABCD p-factor（GENERAL；neuroHarmonize baseline 输出 `*combatgam_neuroharmonize_pfactor.rds`）S1 复现入口（连续效应 + age-by-pfactor smooth interaction）：
+   - ABCD p-factor（GENERAL；Nonlinear-ComBat-GAM 输出 `*combatgam_pfactor.rds`）S1 复现入口（连续效应 + age-by-pfactor smooth interaction）：
      - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_pfactor_effect_continuous_container.sbatch`
      - 结果：`outputs/results/6th_pfactor/abcd/pfactor/`
      - 图像（tiff + svg/pdf）：`outputs/figures/6th_pfactor/abcd/pfactor/`
@@ -309,7 +238,7 @@
      - decile 柱状图：按 S-A decile 计算 low/high 个人斜率均值并绘制（单图 10 组柱状；另新增随机斜率 decile 柱状图）。
    - 临时对比脚本（LCMM vs LMM 参数差异，单边示例）：
      - 脚本：`development_script/5th_cognition/tmp_compare_lcmm_lmm_params.R`
-     - 输入：`*combatgam_neuroharmonize_baseline_age_sex_meanfd.rds` 与 `ABCD_PLOTDATASUM_RDS`（ratio 缩放与 LMM 一致）
+     - 输入：`*combatgam_age_sex_meanfd.rds` 与 `ABCD_PLOTDATASUM_RDS`（ratio 缩放与 LMM 一致）
      - 说明：默认比较 `SC.1_h`，可用 `EDGE_NAME=SC.X_h` 覆盖；随机斜率采用 `ranef(lmm)[["subID"]][["age"]]` 对齐后与 `lcmm$predRE$age` 比较，并输出个人斜率（固定+随机）的相关、最大差值。
      - 输出：`outputs/results/5th_cognition/abcd/age_lmm/tmp_lcmm_lmm_compare/`
    - ABCD cognition（uncorrected；within-person change × cognition）：
@@ -320,7 +249,7 @@
          - 总强度：`delta_totalstrength_vs_nihtbx_fluidcomp_uncorrected_base_residualized.*`
          - S-A deciles（10 张图）：`delta_SC_decile{01..10}_vs_nihtbx_fluidcomp_uncorrected_base_residualized.*`（y 为“归一化连接强度比率”的变化率；log 中输出每张图的 r/p）
          - t value 散点：`scatter_tvalue_vs_SCrank_lmm_nihtbx_fluidcomp_uncorrected_base_CV75.*`
-      - 输入：`*combatgam_neuroharmonize_baseline_age_sex_meanfd.rds` + `*combatgam_neuroharmonize_cognition.rds`（baseline-only 输出；按 `subID` 合并 baseline cognition）。
+       - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；baseline cognition 从 `*combatgam_cognition.rds` 提取后按 `subID` 合并到纵向 SC（保持“baseline 填充”设定）。
      - ABCD p-factor（GENERAL；within-person change × pfactor）：
        - 入口脚本：`development_script/6th_pfactor/run_abcd_withinperson_lmm_pfactor_general.R`
        - sbatch（容器版，40 核）：`sbatch sbatch/run_abcd_withinperson_lmm_pfactor_general_container.sbatch`
@@ -341,7 +270,7 @@
        - `age_baseline`：基线年龄（由 `eventname` 识别 baseline）
        - `mean_fd`：被试两次扫描的平均值
      - cognition 入口脚本：`development_script/5th_cognition/run_abcd_change_score_lm_cognition_uncorrected.R`
-       - 输入：`*combatgam_neuroharmonize_baseline_age_sex_meanfd.rds`；baseline cognition 来自 `*combatgam_neuroharmonize_cognition.rds` 并按 `subID` 合并
+       - 输入：纵向 SC `*combatgam_age_sex_meanfd.rds`；baseline cognition 来自 `*combatgam_cognition.rds` 并按 `subID` 合并
        - 结果：`outputs/results/5th_cognition/abcd/change_score_lm/`
        - 统计：输出每条边 `beta_int`（X 的系数）与 FDR，并计算 `beta_int` 与 S-A rank 的相关
        - 图像：位于 `outputs/figures/5th_cognition/abcd/change_score_lm/`：`scatter_beta_vs_SCrank_change_score_*`、`scatter_tvalue_vs_SCrank_change_score_*` 与 `delta_SC_deciles_vs_*`（含 r/p CSV）
@@ -353,7 +282,7 @@
      - 相关输出：`SCrankcorr_change_score_*`（RDS；Spearman r/p）
    - ABCD cognition（uncorrected；LGCM-style slope per year，线性模型）：
      - 入口脚本：`development_script/5th_cognition/run_abcd_lgcm_slope_cognition_uncorrected.R`
-     - 输入：`*combatgam_neuroharmonize_baseline_age_sex_meanfd.rds`；baseline cognition 来自 `*combatgam_neuroharmonize_cognition.rds` 并按 `subID` 合并；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`
+     - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；baseline cognition 来自 `*combatgam_cognition.rds` 并按 `subID` 合并；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`
      - 预处理：按每个被试选取最小/最大年龄两次观测，计算 `delta_age`；**不做离群点剔除**
      - 变化率定义：`slope_per_year = (SC_t1 - SC_t0) / delta_age`
      - 模型：`slope_per_year ~ age_t0 + SC_t0 + cog_base + sex + site + mean_fd_t0 + mean_fd_t1`
@@ -378,22 +307,85 @@
    - ABCD age_wp/age_bp LMM（SC 版本；不剔除单时间点被试）：
      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC.R`
      - 输入：`*combatgam_age_sex_meanfd.rds`（SC + age/sex/mean_fd）
-     - 模型：`SC ~ age_wp + age_bp + sex + mean_fd + (1 + age_wp || subID)`；`age_wp = age_ij - mean(age)_i`，`age_bp = mean(age)_i`
-     - 统计：age_bp partial R²（full vs null，parametric-bootstrap ANOVA）并做 FDR；输出矩阵与 S-A 相关散点图
+     - 模型：`SC ~ age_wp + age_bp + sex + mean_fd + (1 | subID)`；`age_wp = age_ij - mean(age)_i`，`age_bp = mean(age)_i`
+     - 统计：输出 age_wp/age_bp 的 **t 值矩阵**与 S-A 相关散点图（不标注显著性）
+     - 固定效应：输出 age_wp/age_bp 的 fixed effect（beta）矩阵与 S-A 相关散点图（不标注显著性）
+   - ABCD age_wp/age_bp LMM（SC 版本；仅保留至少两次扫描被试）：
+     - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_SC_2tp.R`
+     - 输入与模型同上；仅保留 `subID` 观测次数 ≥ 2 的被试
+     - 输出：与 SC 版本一致，但文件名后缀为 `_2tp`
+    - ABCD age_wp/age_bp LMM（SC 版本；baseline-age 分解 + 仅保留至少两次扫描被试）：
+      - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R`
+      - 年龄定义：`age_bp` 为 baseline age（基线访视年龄；若缺少 baseline 标签则回退到该被试最小年龄），`age_wp = age_current - age_bp`
+      - 输入与模型：与 `run_abcd_lmm_agewp_agebp_SC_2tp.R` 一致（`SC ~ age_wp + age_bp + sex + mean_fd + (1 | subID)`），仅保留 `subID` 观测次数 ≥ 2 的被试
+      - 输出：t value 与 fixed effect（beta）的矩阵/散点结果，文件名后缀为 `_baselineage_2tp`
+      - 显著性：对 `age_wp` 与 `age_bp` 分别进行 LRT（full vs 去除对应项的 reduced），并对 p 值做 FDR 校正；在 age_wp/age_bp 的 t-value 与 beta 矩阵图中以 `*` 标注 `FDR < 0.05`
+      - 颜色条：额外输出 `matrix_age_wp_tvalue_SC_CV*_baselineage_2tp_colorbar.{tiff,pdf}`，与 age_wp t-value 矩阵使用相同对称色域
+   - ABCD SC personal slope（LGCM-style slope per year；不做显著性检验）：
+     - 入口脚本：`development_script/2nd_fitdevelopmentalmodel/run_abcd_lgcm_personal_slope_SC.R`
+     - 输入：纵向 SC 使用 `*combatgam_age_sex_meanfd.rds`；S-A decile 来自 `wd/interdataFolder_ABCD/SA12_10.csv`；ratio 缩放使用 `ABCD_PLOTDATASUM_RDS` 的 `fit`
+     - 预处理：按每个被试选取最小/最大年龄两次观测，计算 `delta_age`；**不做离群点剔除**
+     - 变化率定义：`slope_per_year = (SC_t1 - SC_t0) / delta_age`
+     - 协变量控制：对每条 edge 将 `age_t0/SC_t0/mean_fd_t0/mean_fd_t1` 做均值中心化；`sex` 使用 sum-to-zero contrasts；拟合 `slope_per_year ~ age_t0_c + SC_t0_c + sex + mean_fd_t0_c + mean_fd_t1_c`，以 **模型截距** 作为 covariate-adjusted mean slope（同时保存 raw mean/sd 与残差 sd 供对照）
+     - 结果：`outputs/results/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（每条边 raw mean/sd + adjusted mean + residual sd）
+     - Windows 并行：默认使用 16 核（`SLOPE_CORES` 可覆盖）
+     - 图像：`outputs/figures/2nd_fitdevelopmentalmodel/abcd/lgcm_personal_slope/`（covariate-adjusted mean slope 矩阵 + 与 S-A axis 的相关散点图）
    - ABCD age_wp/age_bp LMM（cognition 版本；过滤单时间点）：
      - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_cognition_groups.R`
-     - 输入：`*combatgam_neuroharmonize_baseline_age_sex_meanfd.rds` + baseline cognition `*combatgam_neuroharmonize_cognition.rds`
+     - 输入：纵向 SC `*combatgam_age_sex_meanfd.rds` + baseline cognition `*combatgam_cognition.rds`
      - 统计：age_bp partial R² 矩阵 + S-A 相关；age_wp personal slope 的低/高组 t 值矩阵（FDR 标注）与 decile 柱状图；personal slope 与 cognition 相关矩阵及其 S-A 相关散点图
    - ABCD age_wp/age_bp LMM（p-factor 版本；过滤单时间点）：
      - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_pfactor_general.R`
      - 输入：纵向 SC `*combatgam_pfactor.rds`（含 `GENERAL`）；baseline pfactor 从 baseline `eventname` 提取
      - 统计：age_bp partial R² 矩阵 + S-A 相关；age_wp personal slope 的低/高组 t 值矩阵（FDR 标注）与 decile 柱状图；personal slope 与 pfactor 相关矩阵及其 S-A 相关散点图
-	   - ABCD fluid cognition（uncorrected；neuroHarmonize baseline 输出 `*combatgam_neuroharmonize_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
+  - ABCD age_wp/age_bp LMM（cognition 版本；interaction 预测）：
+    - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_cognition_tvalue_interaction.R`
+    - 模型：`SC ~ age_wp * cognition + age_bp + sex + mean_fd + (1 | subID)`
+    - 预测：取 cognition 的 10%/90% 分位预测 `.fitted`
+    - 图像：按 SA decile（10 组）汇总预测轨迹（低/高两条线），输出 `developmentcurve_decile*`；同时拼接为 2×5 的总图 `developmentcurve_decile_all_2x5`（参考 `run_abcd_pfactor_effect_continuous_S1.R` 风格；不再计算 t 值矩阵或 S-A 相关散点图）
+  - ABCD age_wp/age_bp LMM（p-factor 版本；interaction 预测）：
+    - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_pfactor_tvalue_interaction.R`
+    - 模型：`SC ~ age_wp * pfactor + age_bp + sex + mean_fd + (1 | subID)`（pfactor 使用纵向数据，不再限制 baseline）
+    - 预测：取 pfactor 的 10%/90% 分位预测 `.fitted`
+    - 图像：按 SA decile（10 组）汇总预测轨迹（低/高两条线），输出 `developmentcurve_decile*`；同时拼接为 2×5 的总图 `developmentcurve_decile_all_2x5`（参考 `run_abcd_pfactor_effect_continuous_S1.R` 风格；不再计算 t 值矩阵或 S-A 相关散点图）
+  - ABCD age_wp/age_bp LMM（cognition 版本；基线年龄分解 + 双交互 + decile 聚合 SC）：
+    - 入口脚本：`development_script/5th_cognition/run_abcd_lmm_agewp_agebp_baselineage_cognition_interaction_decileavg.R`
+    - 年龄定义：`age_bp` 为 baseline age（基线访视年龄），`age_wp = age_current - age_bp`
+    - cognition：使用 baseline-only `nihtbx_fluidcomp_uncorrected_base`
+    - 模型（均为随机截距）：
+      - `y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)`
+      - `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)`
+    - 预测与图像（不输出 t 值矩阵）：
+      - `age_wp*cov`：预测时固定 `age_bp=mean(age_bp)`，`age_wp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_wp` 实际值（标签保持 `Age`）
+      - `age_bp*cov`：预测时固定 `age_wp=mean(age_wp)`，`age_bp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_bp` 实际值（标签保持 `Age`）
+      - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first 额外统计：对 `age_wp:cov` 与 `age_bp:cov` 分别进行 LRT（`red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)` vs 对应 full），并输出 FDR 校正结果到 `decile_avgSC_summary_baselineage_interaction_*.csv`
+      - decile-avg-SC-first 图注：每个 decile 标注交互项 `t value`（来自 `age_wp:cov`/`age_bp:cov` 系数）与对应 LRT `p value`
+      - 额外导出：10 个 decile 的 `age_wp` 主效应 p 值（full: `y ~ age_wp + age_bp*cov + ...` vs red: `y ~ age_bp*cov + ...`），输出 `decile_agewp_pvalues_baselineage_*.csv`（含原始 p 与 FDR）
+      - 坐标轴：`x=Age`（整数刻度）；`y=SC strength (ratio)`（一位小数；范围/刻度对齐既有脚本）
+  - ABCD age_wp/age_bp LMM（p-factor 版本；基线年龄分解 + baseline pfactor + 双交互 + decile 聚合 SC）：
+    - 入口脚本：`development_script/6th_pfactor/run_abcd_lmm_agewp_agebp_baselineage_pfactor_interaction_decileavg.R`
+    - 年龄定义：`age_bp` 为 baseline age（基线访视年龄），`age_wp = age_current - age_bp`
+    - pfactor：使用 baseline-only `GENERAL_base`（与 cognition 对齐）
+    - 模型（均为随机截距）：
+      - `y ~ age_wp * cov + age_bp + sex + mean_fd + (1 | subID)`
+      - `y ~ age_wp + age_bp * cov + sex + mean_fd + (1 | subID)`
+    - 预测与图像（不输出 t 值矩阵）：
+      - `age_wp*cov`：预测时固定 `age_bp=mean(age_bp)`，`age_wp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_wp` 实际值（标签保持 `Age`）
+      - `age_bp*cov`：预测时固定 `age_wp=mean(age_wp)`，`age_bp` 取观测范围并生成 100 点曲线；绘图横轴使用 `age_bp` 实际值（标签保持 `Age`）
+      - edge-first：先按 edge 拟合并预测 low/high（10%/90%），再在 SA decile（1-10）内取均值，分别绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first：先在 decile 内聚合 SC ratio（`SC_decile1`~`SC_decile10`），再拟合同样两类交互模型，并绘制 age_wp 与 age_bp 的 10 decile 曲线图（含 2×5 拼接图）
+      - decile-avg-SC-first 额外统计：对 `age_wp:cov` 与 `age_bp:cov` 分别进行 LRT（`red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)` vs 对应 full），并输出 FDR 校正结果到 `decile_avgSC_summary_baselineage_interaction_*.csv`
+      - decile-avg-SC-first 图注：每个 decile 标注交互项 `t value`（来自 `age_wp:cov`/`age_bp:cov` 系数）与对应 LRT `p value`
+      - 额外导出：10 个 decile 的 `age_wp` 主效应 p 值（full: `y ~ age_wp + age_bp*cov + ...` vs red: `y ~ age_bp*cov + ...`），输出 `decile_agewp_pvalues_baselineage_*.csv`（含原始 p 与 FDR）
+      - 坐标轴：`x=Age`（整数刻度）；`y=SC strength (ratio)`（一位小数；范围/刻度对齐既有脚本）
+	   - ABCD fluid cognition（uncorrected；Nonlinear-ComBat-GAM 输出 `*combatgam_cognition.rds`）可复现入口（原始设定：控制 `age(smooth)+sex+mean_fd`）：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_uncorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/cognition/`
 	     - 图像：`outputs/figures/5th_cognition/abcd/cognition/`
 	     - 注：sbatch 会依次运行 `run_abcd_cognition_fluid_uncorrected_S{1,2,3}.R`；其中 S3 需要 `ABCD_SA12_CSV` 与 `ABCD_PLOTDATASUM_RDS`（见下）。
-	   - ABCD fluid cognition（age-corrected，baseline-only；neuroHarmonize 变体 `*combatgam_neuroharmonize_comp_agecorrected_baseline.rds`）可复现入口：
+	   - ABCD fluid cognition（age-corrected，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_comp_agecorrected_baseline.rds`）可复现入口：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_comp_agecorrected_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/comp_agecorrected/`
 	     - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/comp_agecorrected/`
@@ -408,7 +400,7 @@
 	     - 欧氏距离控制项默认读取：`wd/interdataFolder_ABCD/average_EuclideanDistance_12.csv`（可用 `ABCD_EUCLID_CSV` 覆盖）。
 	     - 并行：脚本使用 `mclapply`（fork）并默认最多使用 60 个 worker（sbatch 仍可申请 72 CPU）；若遇到 `Cannot fork` 会按 60→50→40→30→20→… 自动降档直到可运行。
 
-	   - ABCD fluid cognition（fully-corrected/fc，baseline-only；neuroHarmonize 变体 `*combatgam_neuroharmonize_fluidcomp_fc_baseline.rds`）可复现入口：
+	   - ABCD fluid cognition（fully-corrected/fc，baseline-only；Nonlinear-ComBat-GAM 变体 `*combatgam_fluidcomp_fc_baseline.rds`）可复现入口：
 	     - sbatch（容器版，72 核）：`sbatch sbatch/run_abcd_cognition_fluid_fc_container.sbatch`
 	     - 结果：`outputs/results/5th_cognition/abcd/fluid_fc/`
 	     - 图像（tiff+pdf）：`outputs/figures/5th_cognition/abcd/fluid_fc/`
@@ -417,14 +409,14 @@
 	   - S3（development curve）额外依赖：
 	     - `ABCD_SA12_CSV`：默认 `wd/interdataFolder_ABCD/SA12_10.csv`
 	     - `ABCD_PLOTDATASUM_RDS`：默认 `outputs/intermediate/2nd_fitdevelopmentalmodel/abcd/combat_gam/CV75/plotdatasum.df_SA12_sumSCinvnode_siteall_CV75.rds`（如需用其他版本，请在提交时覆盖该环境变量）
-	     - S3 当前默认使用 baseline neuroHarmonize 输出（`*combatgam_neuroharmonize_baseline_age_sex_meanfd.rds`）。如需纵向模型，请改用纵向 ComBat-GAM 输出（如 `*combatgam_age_sex_meanfd.rds`）并手动调整脚本输入。
-	       - uncorrected：优先从输入 SCdata 自身按 baseline `eventname` 提取；若 SCdata 缺少 `nihtbx_fluidcomp_uncorrected`，则从 `demopath/DemodfScreenFinal.csv` 回填 baseline cognition；
-	       - age-corrected：SCdata 通常不包含 `nihtbx_fluidcomp_agecorrected`，因此从 `demopath/DemodfScreenFinal.csv`（git-ignored）按 `subID` 回填 baseline cognition 后再拟合。
-	       - fully-corrected/fc：SCdata 通常不包含 `nihtbx_fluidcomp_fc`，因此从 `demopath/DemodfScreenFinal.csv` 按 `subID` 回填 baseline cognition 后再拟合。
+	     - S3 会在**纵向** SC 数据上拟合 `age × baseline cognition`（`gamm4` 需要每个 `subID` 至少两次观测；baseline-only 会失败）。
+	       - uncorrected：优先从输入 SCdata 自身按 baseline `eventname` 提取；若纵向 SCdata 缺少 `nihtbx_fluidcomp_uncorrected`，则从 `demopath/DemodfScreenFinal.csv` 回填 baseline cognition；
+	       - age-corrected：纵向 SCdata 通常不包含 `nihtbx_fluidcomp_agecorrected`，因此从 `demopath/DemodfScreenFinal.csv`（git-ignored）按 `subID` 回填 baseline cognition 后再拟合。
+	       - fully-corrected/fc：纵向 SCdata 通常不包含 `nihtbx_fluidcomp_fc`，因此从 `demopath/DemodfScreenFinal.csv` 按 `subID` 回填 baseline cognition 后再拟合。
 
 ## CBCL 关联运行
 - 默认使用容器镜像：`outputs/containers/scdevelopment_r41.sif`（可用 `SIF_PATH=/.../scdevelopment_r41_<tag>.sif` 指向新构建镜像）。
-- CBCL 关联分析默认输入（ABCD neuroHarmonize baseline 输出）：`outputs/results/combat_gam/abcd/baseline/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_cbcl.rds`。
+- CBCL 关联分析默认输入（ABCD Nonlinear-ComBat-GAM 输出）：`outputs/results/combat_gam/abcd/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_cbcl.rds`。
 - 全量作业脚本（容器版）：`sbatch/run_cbcl_assoc_full.sbatch`（使用 `outputs/containers/scdevelopment_r41.sif`；可用 `SIF_PATH` 指向新构建镜像）。
 - 运行前确认 `outputs/logs/` 存在，脚本内会自动创建。
 - 若需非容器运行，建议参考 `docs/workflow.md` 中关于 R ABI 隔离的说明，避免作业环境误加载用户库（`/GPFS/.../R/packages`）导致 ABI 不一致报错。

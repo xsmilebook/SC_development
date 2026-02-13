@@ -1,5 +1,6 @@
 # Progress
 
+- 2026-02-09: baseline-age SC 2tp 脚本中 age_wp t-value colorbar 改为与矩阵图完全一致的 `scale_fill_distiller(palette="RdBu")`，并使用矩阵实际 `limthr`（不再手动固定 `limthr_wp_t_mat`）。
 - 2026-01-16: 更新 AGENTS.md 规则为中文并调整文档语言要求；建立会话记录与进度文件。
 - 2026-01-16: 新增 `docs/README.md`、`docs/workflow.md`、`docs/methods.md`；更新 `README.md` 文档入口与 AGENTS 路径约定。
 - 2026-01-16: 根据 `docs/research` 文档补充 `docs/methods.md` 的样本、影像与方法学摘要。
@@ -198,10 +199,6 @@
 - 2026-01-28: 统一 ABCD 与 HCP-D 的 2nd 发育模型（SA12，ComBat-GAM）绘图风格：对齐到 HCP-D Yeo7 图像（尺寸、配色、主题与散点/线宽设置），以保持跨数据集的可比性。
 - 2026-01-28: sbatch 提交流程默认强制重绘 S3/S4：在 HCP-D/ABCD 2nd devmodel 的 sbatch 中对 S3/S4 固定传入 `--force=1`，避免旧图残留并简化“补图”判断逻辑。
 - 2026-01-28: 新增 HCP-D（SA12，ComBat-GAM）协变量敏感性分析（SES 与 ICV 两版本）入口：基于 `development_script/2nd_fitdevelopmentalmodel/V_Covariates` 脚本，输出统一为 `tiff+pdf`（不生成 svg），并在日志打印 S4 的 Spearman r/p；提供容器 sbatch 一键提交 `sbatch/run_hcpd_devmodel_combatgam_CV75_covariates_ses_icv_container.sbatch`。
-- 2026-02-11: 新增 ABCD 基于 neuroHarmonize（mgcv 基函数）的 ComBat-GAM 变体脚本与一键 sbatch，输出统一写入 `outputs/results/combat_gam/abcd/baseline/`。
-- 2026-02-11: 将 `development_script/5th_cognition/` 的 ABCD 脚本输入切换为 neuroHarmonize baseline 输出，并更新 workflow 说明。
-- 2026-02-11: 将 `development_script/6th_pfactor/run_abcd_pfactor_effect_continuous_S1.R` 与 `development_script/6th_pfactor/S2nd_cbcl_totalraw_effect_continuous_ABCD.R` 输入切换为 neuroHarmonize baseline 输出。
-- 2026-02-11: 将 `development_script/1st_dataclean/S3rd_combat_controlsite_ABCD.R` 中 CV25 的 ComBat 数据清洗分支纳入版本控制（含小站点过滤）。
 - 2026-01-28: 新增 HCP-D（SA12）4th_changerate_SAcorr 的协变量敏感性分析（SES/ICV）容器 sbatch：基于 `development_script/4th_changerate_SAcorr/V_Covariates`，输出 `tiff+pdf` 并在日志中打印 flip-age 与 rho 等 `[RESULT]` 数值。
 - 2026-01-28: 加固 HCP-D 协变量敏感性分析脚本：在 covariate 管线的 S2/S4 中若检测到输入数据缺少 `income.adj/ICV`（或为 NA），则从 `demopath/HCPD_demo_behav.csv` 按 `subID` 回填并写出 backfilled 版本到项目 `outputs/intermediate/`，同时在日志输出缺失计数。
 - 2026-01-28: 修复 HCP-D covariates devmodel 容器作业 “All GAM fits failed / Not enough (non-NA) data”：S1 对 `subID` 做标准化（去除 `sub-` 前缀）后再从 `demopath/HCPD_demo_behav.csv` 回填 `income.adj/ICV`，并对 `age/sex/mean_fd/covariate` 做 complete-case 过滤与计数输出，避免回填不匹配导致全边失败。
@@ -286,30 +283,32 @@
 - 2026-02-04: 修复 Windows 并行下 personal slope 全 NA：`ranef/fixef` 改为显式使用 `lme4::` 命名空间。
 - 2026-02-04: age LMM 与 age_wp/age_bp LMM 输出 ranef(age_wp/age) 全 0 的边清单与数量，并在结果表中新增随机斜率方差列。
 - 2026-02-04: age LMM 的随机斜率方差列改为使用 `VarCorr(lmer)` 的参数估计（不再使用 BLUP 方差）。
-- 2026-02-04: 新增 ABCD SA7/SA17/Yeo7 的 Nonlinear ComBat-GAM（combat）、S2 与 S4 的容器版 `sbatch` 提交脚本，并使 combat 输出文件名随输入分辨率自动匹配；S4 支持 `--out_tag` 防止 summary 覆盖且欧氏距离控制项改为可选。
-- 2026-02-04: 修复 ABCD Nonlinear ComBat-GAM 运行时缺包报错：移除 `combat_gam/longitudinal/nonlinearlongcombat.R` 中未使用的 `library(invgamma)` 依赖。
-- 2026-02-04: 修复 ABCD SA7/SA17/Yeo7 的 S2 缺失 `gammodel*_scale_TRUE.rds`：ABCD 的 S1（fit GAMM models）改为从输入 `SC.*_h` 列数自动推断分辨率（或用 `--ds_res` 显式指定），并新增对应的 S1 `sbatch` 提交脚本。
-- 2026-02-04: ABCD SA7/SA17/Yeo7 将 devmodel 与 changerate 提交脚本整合为完整流水线（不再使用 S1/S2/S4 单步脚本）；ABCD changerate 脚本支持 `DS_RES/OUT_TAG` 以避免不同分辨率结果相互覆盖。
-- 2026-02-05: 中国队列 merge 脚本支持生成 SA7/SA17/Yeo7，并将输出写入本项目 `outputs/intermediate/1st_dataclean/chinese_cohort/`；新增一键生成三种结果的容器版 `sbatch` 脚本。
-- 2026-02-05: 修复中国队列 merge 脚本 `rbind` 列数不一致：统一 phenotype 合并列并对缺失列补 NA。
-- 2026-02-05: 修复中国队列 merge 脚本 `rename` 重复列名（`subID`）报错：对 CCNP 表使用安全重命名逻辑。
-- 2026-02-05: 修复中国队列 merge 的 node volume 读取：忽略 `missing label` 等非数值行，仅使用前 400 个数值；缺失 volume 文件或长度不足时 warning 并跳过被试。
-- 2026-02-05: 中国队列 CuiBP demopath 改为项目内 `demopath/basic_demo_merge_screen.xlsx`。
-- 2026-02-05: 中国队列 devmodel/changerate 脚本新增 `ds_res/out_tag` 支持，SA7/SA17 输出独立命名与目录。
-- 2026-02-05: 新增中国队列 Yeo7 ComBat-GAM devmodel/changerate 脚本与 SA7/SA17/Yeo7 的容器版 sbatch 提交脚本。
-- 2026-02-05: 新增中国队列 SA7/SA17/Yeo7 的 ComBat-GAM sbatch 提交脚本。
-- 2026-02-05: 修复中国队列 devmodel S3 在 SA7/SA17 的 S-A rank/decile 计算使用 `ds_res` 并避免 decile CSV 覆盖。
-- 2026-02-05: 中国队列 SA7/SA17 devmodel/changerate 在非 SA12 分辨率时自动跳过 Euclidean distance 控制，避免缺失距离文件报错。
-- 2026-02-05: 修复 changerate 脚本在无距离文件时的候选路径选择，避免 `subscript out of bounds`。
-- 2026-02-05: 更新 check_k 脚本使用 ComBat-GAM 数据并输出 k 值 AIC 对比图，新增容器 sbatch 提交脚本。
-- 2026-02-08: 将 `development_script/2nd_fitdevelopmentalmodel/V_check_k/R1_SAcorr_alongAge_varyk_HCPD.R` 纳入版本库；当前环境缺少 R/容器运行时，小样本测试需在集群执行。
-- 2026-02-08: check_k 容器 sbatch 支持 `DATASET=all` 串行运行 HCP-D/ABCD/Chinese，并提供按数据集覆盖输入路径的参数。
-- 2026-02-08: `development_script/2nd_fitdevelopmentalmodel/V1st_check_k.R` 更新为 ComBat-GAM 数据与参数化接口，输出固定到项目内目录。
-- 2026-02-08: 同步 `development_script/2nd_fitdevelopmentalmodel/V_check_k/V1st_check_k.R` 到新版本，修复旧路径导致的 `source(gamsmooth.R)` 报错。
-- 2026-02-08: check_k 脚本新增 bootstrap 最优 k 的频次/频率统计与柱状图输出。
-- 2026-02-08: 新增 `V1st_check_k_new.R` 的 ComBat-GAM 版本（ABCD 使用 GAMM），并提供对应容器 sbatch 提交脚本。
-- 2026-02-08: `V1st_check_k_new.R` 增加固定随机种子 `set.seed(925)`。
-- 2026-02-08: `V1st_check_k_new.R` 的 bootstrap 直方图改用既有 ggplot 风格，并支持复用已有结果跳过重算。
-- 2026-02-09: 中国队列 merge 改为优先使用 CCNP 的 `scanID` 以匹配 session 文件名，并在合并时剔除 `Age > 26` 被试。
-- 2026-02-09: 中国队列 SA/Yeo merge 的 CCNP/scanID、行为列与 node volume 读取逻辑对齐 reference 脚本。
-- 2026-02-09: 中国队列 merge 在各数据源内先做年龄过滤（Cui/SNU `Age <= 26`；CCNP `6 < Age <= 26`），并新增 72 核 SA7/SA17/Yeo7 提交脚本。
+- 2026-02-05: age_wp/age_bp SC 脚本：结果存在时默认直接读取；新增 age_wp 固定效应（beta）矩阵与 S-A 散点；partial R² 的 3-SD 过滤仅用于散点图。
+- 2026-02-05: age_wp/age_bp SC 脚本补齐 age_wp/age_bp 的 partial R² 与 beta 的矩阵/散点图输出。
+- 2026-02-05: 新增 `development_script/2nd_fitdevelopmentalmodel/run_abcd_lgcm_personal_slope_SC.R`：按 LGCM-style slope_per_year 计算 SC personal slope（edge 级 mean），输出均值矩阵与 S-A axis 相关散点图（不做显著性标注）。
+- 2026-02-05: SC personal slope 脚本更新：在被试层面控制 `age_t0/sex/mean_fd_t0/mean_fd_t1`，使用 `slope_per_year` 回归残差的均值作为 edge 指标，并据此绘制矩阵与 S-A axis 相关散点图（同时保留 raw mean/sd）。
+- 2026-02-05: SC personal slope 脚本修正：残差均值恒为 0（含截距时的性质）；改为对数值协变量做中心化、`sex` 用 sum contrasts，并以回归模型的截距作为 covariate-adjusted mean slope（用于矩阵与 S-A axis 相关散点图）。
+- 2026-02-05: SC personal slope 脚本更新：协变量模型加入 `SC_t0`（中心化后作为 `SC_t0_c`），即 `slope_per_year ~ age_t0_c + SC_t0_c + sex + mean_fd_t0_c + mean_fd_t1_c`，并以截距作为 covariate-adjusted mean slope。
+- 2026-02-05: age_wp/age_bp SC 脚本改为输出 t 值矩阵与 S-A 相关散点图（不再计算 partial R²）；新增仅保留两次及以上扫描被试的 2tp 版本脚本。
+- 2026-02-05: 新增 cognition/pfactor 的 age_wp/age_bp t 值脚本与 interaction 预测脚本（10%/90% 分位，按 SA decile 输出 10 组发育曲线图）。
+- 2026-02-05: cognition/pfactor t 值脚本补齐 parametric-bootstrap p 值与 FDR 校正流程（与 `run_abcd_pfactor_effect_continuous_S1.R` 一致）。
+- 2026-02-05: cognition/pfactor t 值矩阵加入 FDR 显著性标注（仅主效应矩阵；交互仅用于高低组轨迹）。
+- 2026-02-05: cognition/pfactor 的 age_wp/age_bp 交互脚本移除 t 值/SCrank 输出，仅保留按 SA decile 的低/高预测轨迹绘图。
+- 2026-02-05: cognition/pfactor 交互 decile 曲线图固定 low/high 线型映射（low=虚线，high=实线），避免因标签顺序导致显示反向。
+- 2026-02-05: cognition/pfactor 交互 decile 曲线新增 2×5 拼接总图（developmentcurve_decile_all_2x5）。
+- 2026-02-05: p-factor 交互 decile 曲线线型调整为 high=虚线（severe）、low=实线（mild）。
+- 2026-02-05: SC age_wp/age_bp 与 cognition/pfactor 交互脚本移除随机斜率，统一为随机截距 (1 | subID)。
+- 2026-02-05: p-factor 交互脚本改用纵向 pfactor 数据（不再取 baseline），并调整线型为低=虚线、高=实线以对齐参考脚本。
+- 2026-02-05: p-factor 交互 decile 曲线线型对齐参考脚本（high=虚线，low=实线）。
+- 2026-02-06: 新增 baseline-age 分解的 cognition/pfactor 双交互脚本（`run_abcd_lmm_agewp_agebp_baselineage_*_interaction_decileavg.R`）：`age_bp=baseline age`、`age_wp=current-baseline`，并同时实现 `age_wp*cov` 与 `age_bp*cov` 两类随机截距模型；pfactor 改为 baseline-only `GENERAL_base`；新增“decile 内先聚合 SC ratio 再拟合”流程，输出 age_wp/age_bp 在 low/high 下的 10 decile 曲线图（含 2×5 总图），不输出 t 值矩阵。
+- 2026-02-06: 新增 `development_script/2nd_fitdevelopmentalmodel/run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R`：在 SC `2tp` LMM 中改用 baseline-age 分解（`age_bp=baseline age`、`age_wp=current-baseline`），其余统计输出与原 `run_abcd_lmm_agewp_agebp_SC_2tp.R` 保持一致，并使用 `_baselineage_2tp` 后缀避免覆盖。
+- 2026-02-06: baseline-age cognition/pfactor decile 图坐标轴标签调整为与既有流程一致：`x=Age`、`y=SC strength (ratio)`（不再显示 age_wp/age_bp 的自定义 x 轴文字）。
+- 2026-02-06: baseline-age cognition/pfactor decile 预测逻辑更新：`age_wp*cov` 固定 `age_bp` 均值并让 `age_wp` 走范围，`age_bp*cov` 固定 `age_wp` 均值并让 `age_bp` 走范围；绘图横轴统一显示实际年龄（非 0 起点），`Age` 使用整数刻度，`SC strength (ratio)` 采用一位小数并固定到既有 y 轴范围/刻度。
+- 2026-02-06: baseline-age cognition/pfactor decile 曲线改为覆盖数据集全年龄段：两类模型均按 `Age` 最小值到最大值生成 100 个时间点，并在缓存为旧年龄范围时自动重算。
+- 2026-02-07: baseline-age cognition/pfactor decile 脚本更新为以 `age_wp`/`age_bp` 实际值作为绘图横轴（标签仍为 `Age`）；`decile_avg_sc_first` 新增 `age_wp:cov` 与 `age_bp:cov` 的 LRT 显著性检验（对比 `red: y ~ age_wp + cov + age_bp + sex + mean_fd + (1|subID)`），输出 FDR 校正列并将 FDR p 值标注到 decile 图上。
+- 2026-02-08: baseline-age cognition/pfactor decile 图关闭显著性文本标注：`decile_avg_sc_first` 不再在 figure 上显示 FDR p 值；LRT 与 FDR 结果仍按原流程计算并写入结果表。
+- 2026-02-08: baseline-age cognition/pfactor decile 图改为标注 `t value` 与 `p value`：`t` 使用交互项系数（`age_wp:cov` / `age_bp:cov`）的 t 值，`p` 使用对应 full vs reduced 的 LRT p 值；FDR 输出仍保留在结果表中。
+- 2026-02-08: baseline-age cognition/pfactor decile 流程新增 `age_wp` 主效应 p 值提取：按 decile 输出 `full(y ~ age_wp + age_bp*cov + ...)` vs `red(y ~ age_bp*cov + ...)` 的 LRT p 值与 FDR 到 `decile_agewp_pvalues_baselineage_*.csv`。
+- 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp/age_bp 项的 LRT p 值与 FDR 校正（edge 级），并在 age_wp/age_bp 的 t-value 与 beta 矩阵图中对 `FDR < 0.05` 的连接标注 `*`。
+- 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp t-value 矩阵独立 colorbar 输出（`*_colorbar.tiff/.pdf`），颜色范围与矩阵图一致。
+- 2026-02-09: 修复 age_wp t-value colorbar 在 `limthr=20` 等范围下可能出现的中轴黑线：`save_colorbar()` 改用 `geom_raster(interpolate=TRUE)` + `scale_fill_gradient2()`，并移除边框绘制。
