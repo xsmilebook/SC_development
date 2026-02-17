@@ -12,6 +12,8 @@ rm(list = ls())
 
 CVthr <- 75
 int_var <- "GENERAL"
+pfactor_tag <- Sys.getenv("PFACTOR_TAG", unset = "")
+variant_suffix <- if (nzchar(pfactor_tag)) paste0("_", pfactor_tag) else ""
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -26,14 +28,18 @@ dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(intermediateFolder, showWarnings = FALSE, recursive = TRUE)
 
-input_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_pfactor.rds"
+input_rds <- Sys.getenv(
+  "PFACTOR_INPUT_RDS",
+  unset = file.path(
+    project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
+    "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_pfactor.rds"
+  )
 )
 if (!file.exists(input_rds)) {
   stop(
     "Missing input_rds: ", input_rds,
-    "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (pfactor variant)"
+    "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (pfactor variant)",
+    "\nOr set PFACTOR_INPUT_RDS to a compatible ComBat output."
   )
 }
 
@@ -76,6 +82,25 @@ message(
   "[INFO] SCdata age range (years): ",
   round(min(SCdata$age, na.rm = TRUE), 3), "–", round(max(SCdata$age, na.rm = TRUE), 3)
 )
+if (!(int_var %in% names(SCdata)) || all(is.na(SCdata[[int_var]]))) {
+  demopath_csv <- file.path(project_root, "demopath", "DemodfScreenFinal.csv")
+  if (!file.exists(demopath_csv)) {
+    stop("Missing demopath/DemodfScreenFinal.csv needed to backfill ", int_var, ": ", demopath_csv)
+  }
+  if (!("scanID" %in% names(SCdata))) {
+    stop("Missing scanID in input; cannot backfill ", int_var, " from demopath.")
+  }
+  demodf <- read.csv(demopath_csv, stringsAsFactors = FALSE)
+  required_demo <- c("scanID", int_var)
+  missing_demo <- setdiff(required_demo, names(demodf))
+  if (length(missing_demo) > 0) {
+    stop("Missing required columns in demopath/DemodfScreenFinal.csv: ", paste(missing_demo, collapse = ", "))
+  }
+  idx <- match(SCdata$scanID, demodf$scanID)
+  SCdata[[int_var]] <- demodf[[int_var]][idx]
+  missing_after <- sum(is.na(SCdata[[int_var]]))
+  message("[INFO] Backfilled ", int_var, " from demopath/DemodfScreenFinal.csv; missing_after=", missing_after)
+}
 if (!("eventname" %in% names(SCdata)) && ("scanID" %in% names(SCdata))) {
   scanid_to_eventname <- function(scanID) {
     sess <- sub("^.*_ses-", "", as.character(scanID))
@@ -120,7 +145,10 @@ if (is.na(num_cores) || num_cores < 1) num_cores <- 50
 num_cores <- min(num_cores, 50L)
 
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
-out_rds <- file.path(resultFolder, paste0("gamresult_Int_age_pFactor_", int_var, "_CV", CVthr, ".rds"))
+out_rds <- file.path(
+  resultFolder,
+  paste0("gamresult_Int_age_pFactor_", int_var, "_CV", CVthr, variant_suffix, ".rds")
+)
 
 if (force || !file.exists(out_rds)) {
   message("[INFO] Fitting p-factor GAMM interaction models (n_edges=78, mc.cores=", num_cores, ")")
@@ -178,7 +206,10 @@ saveRDS(
     SCrank.df = SCrank.df,
     SCrank.df.general.controldistance = SCrank.df.general.controldistance
   ),
-  file.path(resultFolder, paste0("SCrankcorr_summary_Int_age_pFactor_", int_var, "_CV", CVthr, ".rds"))
+  file.path(
+    resultFolder,
+    paste0("SCrankcorr_summary_Int_age_pFactor_", int_var, "_CV", CVthr, variant_suffix, ".rds")
+  )
 )
 
 save_svg_or_pdf <- function(filename_svg, plot_obj, width, height, units = "cm") {
@@ -247,7 +278,12 @@ for (Interest.var in c("IntpartialRsq", "T.disease", "T.disease_control_distance
     theme_classic() +
     mytheme
 
-  out_base <- file.path(FigureFolder, "Disease", "pFactor", paste0(Interest.var, "_", int_var, "_SCrankcorr"))
+  out_base <- file.path(
+    FigureFolder,
+    "Disease",
+    "pFactor",
+    paste0(Interest.var, "_", int_var, "_SCrankcorr", variant_suffix)
+  )
   ggsave(paste0(out_base, ".tiff"), scatterFig, width = mywidth, height = myheight, units = "cm", bg = "transparent")
   save_svg_or_pdf(paste0(out_base, ".svg"), scatterFig, width = mywidth, height = myheight, units = "cm")
 
@@ -315,7 +351,12 @@ for (Interest.var in c("IntpartialRsq", "T.disease", "T.disease_control_distance
       panel.grid.minor = element_line(linewidth = 1)
     )
 
-  filename <- file.path(FigureFolder, "Disease", "pFactor", paste0(Interest.var, "_", int_var, "_Matrix12.tiff"))
+  filename <- file.path(
+    FigureFolder,
+    "Disease",
+    "pFactor",
+    paste0(Interest.var, "_", int_var, "_Matrix12", variant_suffix, ".tiff")
+  )
   ggsave(filename, MatFig, height = 18, width = 20, units = "cm", bg = "transparent")
 }
 
@@ -337,7 +378,10 @@ SCdata.diw[, sc_cols] <- lapply(SCdata.diw[, sc_cols, drop = FALSE], as.numeric)
 
 dataname <- "SCdata.diw"
 stats_only <- FALSE
-cache_rds <- file.path(intermediateFolder, paste0("plotdata_high90_low10_pFactor_", int_var, "_develop_CV", CVthr, ".rds"))
+cache_rds <- file.path(
+  intermediateFolder,
+  paste0("plotdata_high90_low10_pFactor_", int_var, "_develop_CV", CVthr, variant_suffix, ".rds")
+)
 should_recompute_cache <- force || !file.exists(cache_rds)
 if (!should_recompute_cache) {
   tmp_cache <- tryCatch(readRDS(cache_rds), error = function(e) NULL)
@@ -454,7 +498,13 @@ for (i in 1:10) {
     labs(x = NULL, y = "SC strength (ratio)") +
     mytheme
 
-  out_base <- file.path(FigureFolder, "Disease", "pFactor", "Interaction", paste0("developmentcurve_decile", i))
+  out_base <- file.path(
+    FigureFolder,
+    "Disease",
+    "pFactor",
+    "Interaction",
+    paste0("developmentcurve_decile", i, variant_suffix)
+  )
   ggsave(paste0(out_base, ".tiff"), Fig, width = 10, height = 10, units = "cm", bg = "transparent")
   save_svg_or_pdf(paste0(out_base, ".svg"), Fig, width = 10, height = 10, units = "cm")
 }

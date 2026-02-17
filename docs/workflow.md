@@ -73,6 +73,7 @@
 - HCP-D 派生表（如 Yeo/TractSeg）若缺少 `site` 列，可在 ComBat-GAM 时从 SA12 merge 表按 `subID` 回填：`/ibmgpfs/cuizaixu_lab/xuxiaoyu/SC_development/interdataFolder_HCPD/SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.merge.rds`（`combat_gam/scripts/run_combat_gam_neuroharmonize.py` 支持 `--batch-source-rds`）。
 - 运行相关依赖应安装在 `scdevelopment` 环境；若包依赖冲突需建立独立虚拟环境，并在此处补充说明。
 - Reviewer2（Q5）补充：ABCD baseline 的 `age+sex+meanFD` 纵向 ComBat（不保护 cognition）可用 `combat_gam/sbatch/abcd_combat_gam_baseline_age_sex_meanfd.sbatch` 提交，输出 `*combatgam_age_sex_meanfd_baseline.rds`。
+- ABCD 行为变量不进入 ComBat 协变量（仅 `age/sex/mean_fd`）的敏感性分析：`sbatch sbatch/run_abcd_cognition_pfactor_no_behavior_covariates.sbatch`。该脚本会生成 neuroHarmonize 的 `baseline_age_sex_meanfd`（baseline-only）与 `age_sex_meanfd`（纵向）输出，并分别用于 cognition/pfactor 的 S1 复现（通过 `COG_ASSOC_TAG`/`PFACTOR_TAG` 避免覆盖）。
 - ABCD 纵向 Nonlinear-ComBat-GAM（新增变体）：
   - CBCL total problems：`sbatch combat_gam/sbatch/abcd_combat_gam_cbcl.sbatch`，输出 `*combatgam_cbcl.rds`（协变量列：`cbcl_scr_syn_totprob_r`；不做 baseline-only）。
   - NIH Toolbox fluid cognition（age-corrected，baseline-only）：`sbatch combat_gam/sbatch/abcd_combat_gam_comp_agecorrected_baseline.sbatch`，输出 `*combatgam_comp_agecorrected_baseline.rds`（协变量列：`nihtbx_fluidcomp_agecorrected`；仅保留 baseline 与 cognition 方案一致）。

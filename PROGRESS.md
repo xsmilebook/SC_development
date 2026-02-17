@@ -312,3 +312,4 @@
 - 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp/age_bp 项的 LRT p 值与 FDR 校正（edge 级），并在 age_wp/age_bp 的 t-value 与 beta 矩阵图中对 `FDR < 0.05` 的连接标注 `*`。
 - 2026-02-09: `run_abcd_lmm_agewp_agebp_baselineage_SC_2tp.R` 新增 age_wp t-value 矩阵独立 colorbar 输出（`*_colorbar.tiff/.pdf`），颜色范围与矩阵图一致。
 - 2026-02-09: 修复 age_wp t-value colorbar 在 `limthr=20` 等范围下可能出现的中轴黑线：`save_colorbar()` 改用 `geom_raster(interpolate=TRUE)` + `scale_fill_gradient2()`，并移除边框绘制。
+- 2026-02-17: 新增 ABCD no-behavior ComBat（仅 age/sex/mean_fd）变体 `age_sex_meanfd` 与复现 sbatch（cognition/pfactor S1），并在 S1 中支持从 `demopath` 回填缺失的行为变量与输出后缀标记。

@@ -28,12 +28,19 @@ FigureFolder <- file.path(project_root, "outputs", "figures", "5th_cognition", "
 dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
-input_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_comp_agecorrected_baseline.rds"
+input_rds <- Sys.getenv(
+  "COG_INPUT_RDS",
+  unset = file.path(
+    project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
+    "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_comp_agecorrected_baseline.rds"
+  )
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (comp_agecorrected_baseline variant)")
+  stop(
+    "Missing input_rds: ", input_rds,
+    "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (comp_agecorrected_baseline variant)",
+    "\nOr set COG_INPUT_RDS to a compatible ComBat output."
+  )
 }
 
 euclid_csv <- Sys.getenv(
@@ -65,8 +72,27 @@ SCdata <- readRDS(input_rds)
 meandistance <- read.csv(euclid_csv)$Edistance
 SCdata$age <- as.numeric(SCdata$age) / 12
 
-if (!Cogvar %in% names(SCdata)) {
-  stop("Missing cognition variable in input: ", Cogvar)
+if (!Cogvar %in% names(SCdata) || all(is.na(SCdata[[Cogvar]]))) {
+  demopath_csv <- file.path(project_root, "demopath", "DemodfScreenFinal.csv")
+  if (!file.exists(demopath_csv)) {
+    stop("Missing demopath/DemodfScreenFinal.csv needed to backfill cognition: ", demopath_csv)
+  }
+  if (!("scanID" %in% names(SCdata))) {
+    stop("Missing scanID in input; cannot backfill cognition from demopath.")
+  }
+  Demodf <- read.csv(demopath_csv, stringsAsFactors = FALSE)
+  required_demo <- c("scanID", Cogvar)
+  missing_demo <- setdiff(required_demo, names(Demodf))
+  if (length(missing_demo) > 0) {
+    stop("Missing required columns in demopath/DemodfScreenFinal.csv: ", paste(missing_demo, collapse = ", "))
+  }
+  idx <- match(SCdata$scanID, Demodf$scanID)
+  SCdata[[Cogvar]] <- Demodf[[Cogvar]][idx]
+  missing_after <- sum(is.na(SCdata[[Cogvar]]))
+  message("[INFO] Backfilled ", Cogvar, " from demopath/DemodfScreenFinal.csv; missing_after=", missing_after)
+}
+if (!Cogvar %in% names(SCdata) || all(is.na(SCdata[[Cogvar]]))) {
+  stop("Missing cognition variable in input after backfill: ", Cogvar)
 }
 
 nonna_index <- which(!is.na(SCdata[, Cogvar]))
