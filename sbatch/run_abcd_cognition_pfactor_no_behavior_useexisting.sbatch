@@ -90,4 +90,4 @@ singularity exec --cleanenv \
   --bind "${binds}" \
   --pwd /work \
   "${sif}" \
-  bash -lc 'Rscript --vanilla /work/development_script/5th_cognition/run_abcd_cognition_comp_agecorrected_S1.R && Rscript --vanilla /work/development_script/6th_pfactor/run_abcd_pfactor_effect_continuous_S1.R'
+  bash -lc 'Rscript --vanilla /work/development_script/5th_cognition/run_abcd_cognition_fluid_uncorrected_S1.R && Rscript --vanilla /work/development_script/6th_pfactor/run_abcd_pfactor_effect_continuous_S1.R'

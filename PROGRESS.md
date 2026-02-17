@@ -314,3 +314,4 @@
 - 2026-02-09: 修复 age_wp t-value colorbar 在 `limthr=20` 等范围下可能出现的中轴黑线：`save_colorbar()` 改用 `geom_raster(interpolate=TRUE)` + `scale_fill_gradient2()`，并移除边框绘制。
 - 2026-02-17: 新增 ABCD no-behavior ComBat 变体 `age_sex_meanfd`，并提供使用既有 `baseline_age_sex_meanfd`/`age_sex_meanfd` 输出的 cognition/pfactor S1 sbatch；S1 支持从 `demopath` 回填行为变量与输出后缀标记。
 - 2026-02-17: pfactor S1 脚本新增 t-value 与 S-A 相关性（含 control-distance）日志输出。
+- 2026-02-17: no-behavior sbatch 改为使用 `nihtbx_fluidcomp_uncorrected` 的 cognition S1，并支持从 `demopath` 回填该列。
