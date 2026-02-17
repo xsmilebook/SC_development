@@ -194,12 +194,24 @@ SCrank.df.age <- SCrankcorr(gamresult.tmp, "IntpartialRsq", 12, dsdata = FALSE)
 SCrank.df.general <- SCrankcorr(gamresult.tmp, "T.disease", 12, dsdata = FALSE)
 SCrank.df <- rbind(SCrank.df.age, SCrank.df.general)
 SCrank.df$int_var <- int_var
+message(
+  "[RESULT] SCrankcorr T.disease vs S-A: r=",
+  round(SCrank.df.general$r.spearman, 3),
+  ", p=",
+  signif(SCrank.df.general$p.spearman, 3)
+)
 
 message("[INFO] Control Euclidean distance for T.disease")
 gamresult.tmp$meandistance <- meandistance
 gamresult.tmp$T.disease_control_distance[which(!is.na(gamresult.tmp$T.disease))] <-
   residuals(lm(T.disease ~ meandistance, data = gamresult.tmp))
 SCrank.df.general.controldistance <- SCrankcorr(gamresult.tmp, "T.disease_control_distance", 12, dsdata = FALSE)
+message(
+  "[RESULT] SCrankcorr T.disease (control distance) vs S-A: r=",
+  round(SCrank.df.general.controldistance$r.spearman, 3),
+  ", p=",
+  signif(SCrank.df.general.controldistance$p.spearman, 3)
+)
 
 saveRDS(
   list(
