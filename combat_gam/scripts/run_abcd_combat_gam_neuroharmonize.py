@@ -37,6 +37,11 @@ VARIANTS = {
         "baseline_only": True,
         "backfill": [],
     },
+    "age_sex_meanfd": {
+        "extra_covars": [],
+        "baseline_only": False,
+        "backfill": [],
+    },
     "cbcl": {
         "extra_covars": ["cbcl_scr_syn_totprob_r"],
         "baseline_only": False,

@@ -13,6 +13,9 @@ rm(list = ls())
 
 CVthr <- 75
 Cogvar <- "nihtbx_fluidcomp_uncorrected"
+mode <- Sys.getenv("COG_ASSOC_MODE", unset = "original")
+variant_tag <- Sys.getenv("COG_ASSOC_TAG", unset = "")
+variant_suffix <- if (nzchar(variant_tag)) paste0("_", variant_tag) else if (mode != "original") paste0("_", mode) else ""
 
 project_root <- normalizePath(getwd(), mustWork = FALSE)
 if (!file.exists(file.path(project_root, "ARCHITECTURE.md"))) {
@@ -25,12 +28,19 @@ FigureFolder <- file.path(project_root, "outputs", "figures", "5th_cognition", "
 dir.create(resultFolder, showWarnings = FALSE, recursive = TRUE)
 dir.create(FigureFolder, showWarnings = FALSE, recursive = TRUE)
 
-input_rds <- file.path(
-  project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
-  "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_cognition.rds"
+input_rds <- Sys.getenv(
+  "COG_INPUT_RDS",
+  unset = file.path(
+    project_root, "outputs", "results", "combat_gam", "abcd", "baseline",
+    "SCdata_SA12_CV75_sumSCinvnode.sum.msmtcsd.combatgam_neuroharmonize_cognition.rds"
+  )
 )
 if (!file.exists(input_rds)) {
-  stop("Missing input_rds: ", input_rds, "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (cognition variant)")
+  stop(
+    "Missing input_rds: ", input_rds,
+    "\nRun first: sbatch combat_gam/sbatch/abcd_combat_gam_neuroharmonize_baseline.sbatch (cognition variant)",
+    "\nOr set COG_INPUT_RDS to a compatible ComBat output."
+  )
 }
 
 euclid_csv <- Sys.getenv(
@@ -62,8 +72,27 @@ SCdata <- readRDS(input_rds)
 meandistance <- read.csv(euclid_csv)$Edistance
 SCdata$age <- as.numeric(SCdata$age) / 12
 
-if (!Cogvar %in% names(SCdata)) {
-  stop("Missing cognition variable in input: ", Cogvar)
+if (!Cogvar %in% names(SCdata) || all(is.na(SCdata[[Cogvar]]))) {
+  demopath_csv <- file.path(project_root, "demopath", "DemodfScreenFinal.csv")
+  if (!file.exists(demopath_csv)) {
+    stop("Missing demopath/DemodfScreenFinal.csv needed to backfill cognition: ", demopath_csv)
+  }
+  if (!("scanID" %in% names(SCdata))) {
+    stop("Missing scanID in input; cannot backfill cognition from demopath.")
+  }
+  Demodf <- read.csv(demopath_csv, stringsAsFactors = FALSE)
+  required_demo <- c("scanID", Cogvar)
+  missing_demo <- setdiff(required_demo, names(Demodf))
+  if (length(missing_demo) > 0) {
+    stop("Missing required columns in demopath/DemodfScreenFinal.csv: ", paste(missing_demo, collapse = ", "))
+  }
+  idx <- match(SCdata$scanID, Demodf$scanID)
+  SCdata[[Cogvar]] <- Demodf[[Cogvar]][idx]
+  missing_after <- sum(is.na(SCdata[[Cogvar]]))
+  message("[INFO] Backfilled ", Cogvar, " from demopath/DemodfScreenFinal.csv; missing_after=", missing_after)
+}
+if (!Cogvar %in% names(SCdata) || all(is.na(SCdata[[Cogvar]]))) {
+  stop("Missing cognition variable in input after backfill: ", Cogvar)
 }
 
 nonna_index <- which(!is.na(SCdata[, Cogvar]))
@@ -75,13 +104,33 @@ if ("eventname" %in% names(SCdata.cog)) {
   SCdata.cog <- SCdata.cog[SCdata.cog$eventname == "baseline_year_1_arm_1", , drop = FALSE]
 }
 
-cogagemodel <- gam(stats::as.formula(paste0(Cogvar, "~ s(age,k=3, fx=TRUE)+sex+mean_fd")), data = SCdata.cog)
-t <- summary(cogagemodel)
-message("age, sex, mean_fd can explain ", round(t$r.sq, 3), " variance of cognition.")
+if (mode == "meanfd_only") {
+  cogagemodel <- gam(stats::as.formula(paste0(Cogvar, "~ mean_fd")), data = SCdata.cog)
+  t <- summary(cogagemodel)
+  message("mean_fd can explain ", round(t$r.sq, 3), " variance of cognition.")
+} else if (mode == "sex_meanfd") {
+  cogagemodel <- gam(stats::as.formula(paste0(Cogvar, "~ sex+mean_fd")), data = SCdata.cog)
+  t <- summary(cogagemodel)
+  message("sex, mean_fd can explain ", round(t$r.sq, 3), " variance of cognition.")
+} else if (mode == "original") {
+  cogagemodel <- gam(stats::as.formula(paste0(Cogvar, "~ s(age,k=3, fx=TRUE)+sex+mean_fd")), data = SCdata.cog)
+  t <- summary(cogagemodel)
+  message("age, sex, mean_fd can explain ", round(t$r.sq, 3), " variance of cognition.")
+} else {
+  stop("Unknown COG_ASSOC_MODE: ", mode, " (supported: original, meanfd_only, sex_meanfd)")
+}
 
 dataname <- "SCdata.cog"
-smooth_var <- "age"
-covariates <- "sex+mean_fd"
+if (mode == "meanfd_only") {
+  smooth_var <- ""
+  covariates <- "mean_fd"
+} else if (mode == "sex_meanfd") {
+  smooth_var <- ""
+  covariates <- "sex+mean_fd"
+} else {
+  smooth_var <- "age"
+  covariates <- "sex+mean_fd"
+}
 knots <- 3
 corrmethod <- "pearson"
 
@@ -123,7 +172,10 @@ make_error_row <- function(parcel, cognition_var, err) {
 }
 
 force <- as.integer(Sys.getenv("FORCE", unset = "0")) == 1
-out_rds <- file.path(resultFolder, paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_cognition.rds"))
+out_rds <- file.path(
+  resultFolder,
+  paste0("SC_Cog_results_", Cogvar, "_CV", CVthr, "_cognition", variant_suffix, ".rds")
+)
 
 if (force || !file.exists(out_rds)) {
   sc_labels <- grep("SC\\.", names(SCdata), value = TRUE)
@@ -208,7 +260,10 @@ saveRDS(
     SCrankresult.whole = SCrankresult.whole,
     SCrankresult.whole.controllength = SCrankresult.whole.controllength
   ),
-  file.path(resultFolder, paste0("SCrankcorr_summary_", Cogvar, "_CV", CVthr, "_cognition.rds"))
+  file.path(
+    resultFolder,
+    paste0("SCrankcorr_summary_", Cogvar, "_CV", CVthr, "_cognition", variant_suffix, ".rds")
+  )
 )
 
 fig_dir <- file.path(FigureFolder, Cogvar)
@@ -251,8 +306,23 @@ p_scatter <- ggplot(data = SC_Cog_results.tmp) +
   labs(x = "S-A connectional axis rank", y = expression("Cognitive association (" * italic("T") * " value)")) +
   theme_classic() + mytheme
 
-ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall.tiff"), p_scatter, width = 17, height = 14, units = "cm", bg = "transparent")
-ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall.pdf"), p_scatter, dpi = 600, width = width, height = height, units = "cm", bg = "transparent")
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall", variant_suffix, ".tiff")),
+  p_scatter,
+  width = 17,
+  height = 14,
+  units = "cm",
+  bg = "transparent"
+)
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall", variant_suffix, ".pdf")),
+  p_scatter,
+  dpi = 600,
+  width = width,
+  height = height,
+  units = "cm",
+  bg = "transparent"
+)
 
 Matrix.tmp.T <- Matrix.tmp
 Matrix.tmp.T[lower.tri(Matrix.tmp.T, diag = TRUE)] <- SC_Cog_results.tmp$gam.smooth.t
@@ -305,8 +375,23 @@ p_matrix <- ggplot(data = matrixtmp.df.melt) +
     panel.grid.minor = element_line(linewidth = 1)
   )
 
-ggsave(file.path(fig_dir, "CorrTvalue_Matrix_n12_siteall.tiff"), p_matrix, height = 15, width = 16, units = "cm", bg = "transparent")
-ggsave(file.path(fig_dir, "CorrTvalue_Matrix_n12_siteall.pdf"), p_matrix, dpi = 600, height = 15, width = 16, units = "cm", bg = "transparent")
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_Matrix_n12_siteall", variant_suffix, ".tiff")),
+  p_matrix,
+  height = 15,
+  width = 16,
+  units = "cm",
+  bg = "transparent"
+)
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_Matrix_n12_siteall", variant_suffix, ".pdf")),
+  p_matrix,
+  dpi = 600,
+  height = 15,
+  width = 16,
+  units = "cm",
+  bg = "transparent"
+)
 
 correlation2.df <- SCrankcorr(SC_Cog_results.df.whole, "gam.smooth.t_control_distance", 12, dsdata = TRUE)
 lwth2 <- abs(min(SC_Cog_results.df.whole$gam.smooth.t_control_distance, na.rm = TRUE))
@@ -328,5 +413,20 @@ p_scatter2 <- ggplot(data = correlation2.df) +
     legend.position = "none"
   )
 
-ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall_control_distance.tiff"), p_scatter2, width = 13, height = 13, units = "cm", bg = "transparent")
-ggsave(file.path(fig_dir, "CorrTvalue_SCrankcorr_n12_siteall_control_distance.pdf"), p_scatter2, dpi = 600, width = 15, height = 13.5, units = "cm", bg = "transparent")
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_control_distance", variant_suffix, ".tiff")),
+  p_scatter2,
+  width = 13,
+  height = 13,
+  units = "cm",
+  bg = "transparent"
+)
+ggsave(
+  file.path(fig_dir, paste0("CorrTvalue_SCrankcorr_n12_siteall_control_distance", variant_suffix, ".pdf")),
+  p_scatter2,
+  dpi = 600,
+  width = 15,
+  height = 13.5,
+  units = "cm",
+  bg = "transparent"
+)
